@@ -1,0 +1,16 @@
+{
+  "name": "Crown Duel",
+  "short_name": "Crown Duel",
+  "description": "Real-time card battles for your phone. Play the AI offline or duel friends online.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0d1b33",
+  "theme_color": "#0d1b33",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
