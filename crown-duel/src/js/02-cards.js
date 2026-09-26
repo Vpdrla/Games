@@ -179,7 +179,7 @@ function cardStatLines(key, lvl) {
   const u = unitStats(c.unit, lvl);
   out.push(['Hitpoints', u.hp]);
   if (u.beam) out.push(['Damage', u.beam.join(' > ')]);
-  else if (u.dmg) out.push(['Damage', u.dmg + (u.chain ? ' x' + u.chain : '')]);
+  else if (u.dmg) out.push(['Damage', u.chain ? u.dmg + ' x' + u.chain : u.dmg]);
   if (u.hs && u.dmg) out.push(['Hit speed', u.hs + 's']);
   if (u.range) out.push(['Range', u.range < 2 ? 'Melee' : u.range]);
   if (u.speed) out.push(['Speed', u.speed >= 2 ? 'Very fast' : u.speed >= 1.5 ? 'Fast' : u.speed >= 1 ? 'Medium' : 'Slow']);

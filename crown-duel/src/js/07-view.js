@@ -4,6 +4,7 @@ const UNIT_SCALE = 1.12;
 const TOWER_SCALE = 0.86;
 const TOP_ROOM = 1.7; // tiles reserved above the arena for the enemy king tower
 const EMOTES = ['👍', '😂', '😡', '😭', '👏', '😱'];
+const TIME_ANIM = { imp: 1, drakeling: 1, balloon: 1, stormmage: 1, firemage: 1 };
 
 class BattleView {
   constructor(scene, o) {
@@ -26,6 +27,28 @@ class BattleView {
     this.bgT = 0;
     this.badSpot = 0;
     this.crownPops = [];
+    this.sprites = new Map();
+  }
+
+  // Troops are drawn from cached animation frames (quantized walk / attack / wing-flap poses);
+  // painting dozens of vector characters every frame is too slow on phones.
+  sprite(key, u, o) {
+    let sp = this.sprites.get(key);
+    if (sp) return sp;
+    if (this.sprites.size > 700) this.sprites.clear();
+    const px = this.T * UNIT_SCALE * this.dpr;
+    const uh = UNIT_H[u] || 1.2;
+    const wT = Math.max(2.8, uh * 1.9), hT = uh * 1.35 + 0.8;
+    const cv = makeCanvas(wT * px, hT * px);
+    const c = cv.getContext('2d');
+    const ox = wT / 2, oy = hT - 0.35;
+    c.translate(ox * px, oy * px);
+    c.scale(px, px);
+    UNIT_ART[u](c, o);
+    const k = this.T * UNIT_SCALE;
+    sp = { cv, ox: ox * k, oy: oy * k, w: wT * k, h: hT * k };
+    this.sprites.set(key, sp);
+    return sp;
   }
 
   // ---- layout ----
@@ -54,11 +77,12 @@ class BattleView {
     this.cards = [];
     for (let i = 0; i < 4; i++) this.cards.push({ x: x0 + nw + 10 + i * (cw + 6), y: cy, w: cw, h: ch });
     this.elixirRect = { x: x0 + nw + 10, y: cy + ch + 6, w: cw * 4 + 18, h: eh - 4 };
-    this.emoteBtn = { x: 8 + 18, y: this.handTop - 26, r: 18 };
+    this.emoteBtn = { x: Math.max(8, this.ox + 4) + 18, y: this.handTop - 26, r: 18 };
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (!this.bg || Math.abs(this.bgT - T) > 0.01) {
       this.bg = paintArena(this.theme, T * this.dpr, false);
       this.bgT = T;
+      if (this.sprites) this.sprites.clear();
     }
   }
 
@@ -389,9 +413,26 @@ class BattleView {
     ctx.globalAlpha = alpha;
     ctx.translate(q[0], q[1] - z * T);
     const sc = T * UNIT_SCALE;
-    ctx.scale(sc, sc);
-    const f = UNIT_ART[e.u];
-    if (f) f(ctx, o);
+    if (e.kind === 'troop' && UNIT_ART[e.u]) {
+      const fk = atk >= 0 ? 'a' + Math.min(7, Math.floor(atk * 8)) : e.moving ? 'w' + (Math.floor(s.walk * 4) % 4) : 'i';
+      const tk = TIME_ANIM[e.u] ? Math.floor(this.t * 9 + e.id) % 4 : 0;
+      const key = e.u + (mine ? 'b' : 'r') + (o.back ? 'k' : 'f') + fk + tk + (e.charging ? 'c' : '');
+      const po = Object.assign({}, o, {
+        dir: 1, t: tk / 9 + (TIME_ANIM[e.u] ? 0 : 0.3), id: 0,
+        walk: e.moving ? (Math.floor(s.walk * 4) % 4) / 4 + 0.125 : 0,
+        atk: atk >= 0 ? (Math.min(7, Math.floor(atk * 8)) + 0.5) / 8 : -1,
+      });
+      const sp = this.sprite(key, e.u, po);
+      ctx.save();
+      ctx.scale(s.dir, 1);
+      ctx.drawImage(sp.cv, -sp.ox, -sp.oy, sp.w, sp.h);
+      ctx.restore();
+      ctx.scale(sc, sc);
+    } else {
+      ctx.scale(sc, sc);
+      const f = UNIT_ART[e.u];
+      if (f) f(ctx, o);
+    }
     if (s.flash > 0) {
       ctx.globalAlpha = 0.45;
       ctx.fillStyle = '#fff';

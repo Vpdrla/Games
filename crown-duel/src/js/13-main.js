@@ -33,7 +33,7 @@ const Game = {
 
   init() {
     this.canvas = $('game');
-    this.ctx = this.canvas.getContext('2d');
+    this.ctx = this.canvas.getContext('2d', { alpha: false });
     loadGame();
     UI.init();
     applySettings();
