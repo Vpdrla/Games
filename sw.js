@@ -1,5 +1,5 @@
 // Service worker: caches the game so it launches and plays with no internet connection.
-const CACHE = 'stickman-odyssey-4949cd6bb973';
+const CACHE = 'stickman-odyssey-c4beeca3aca9';
 const ASSETS = [
   './',
   './index.html',

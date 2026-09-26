@@ -94,7 +94,7 @@ const Game = {
 
   registerSW() {
     try {
-      const ok = 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+      const ok = !this.isEmbedded() && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1');
       if (!ok) return;
       navigator.serviceWorker.register('sw.js').then((reg) => {
         if (navigator.serviceWorker.controller) this.offlineReady = true;
@@ -109,6 +109,8 @@ const Game = {
     } catch (e) { /* not supported here */ }
   },
 
+  // Inside another page's frame the game can't be installed or cached offline.
+  isEmbedded() { try { return window.self !== window.top; } catch (e) { return true; } },
   isIOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); },
   isStandalone() { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; },
 

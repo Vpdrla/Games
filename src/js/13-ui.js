@@ -101,7 +101,7 @@ const UI = {
         p.prompt();
         p.userChoice.finally(() => this.refreshTitleFoot());
       }, 'small gold'));
-    } else if (Game.isIOS() && !Game.isStandalone()) {
+    } else if (Game.isIOS() && !Game.isStandalone() && !Game.isEmbedded()) {
       foot.appendChild(el('div', { class: 'hint' }, 'Tip: tap Share, then "Add to Home Screen" to install & play offline.'));
     }
     const status = Game.offlineReady ? 'Offline ready' : location.protocol === 'file:' ? 'Running from file - works offline' : '';
