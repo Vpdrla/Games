@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#07090d">
+<meta name="description" content="Stickman Odyssey - a stickman action adventure. Travel six lands, fight 18 kinds of enemies and 6 bosses. Plays offline on your phone.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stickman">
+<title>Stickman Odyssey</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23101820'/%3E%3Cg stroke='%23fff' stroke-width='5' stroke-linecap='round' fill='none'%3E%3Cpath d='M30 26 L28 42 L20 56 M28 42 L38 55 M29 31 L18 38 M29 31 L42 24'/%3E%3C/g%3E%3Ccircle cx='31' cy='17' r='7' fill='%23fff'/%3E%3Cpath d='M42 24 L56 8' stroke='%23ffc940' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M25 15 L12 20' stroke='%23e53935' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{--gold:#ffc940;--panel:rgba(14,18,28,.96);--line:#34425a;--text:#f5f5f5;--muted:#9aa7b8}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{position:fixed;inset:0;overflow:hidden;background:#07090d;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+#game{position:absolute;display:block;touch-action:none;background:#000}
+#ui{position:absolute;inset:0;pointer-events:none}
+.screen{position:absolute;inset:0;display:none}
+.screen.show{display:flex}
+#safe-probe{position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+
+#title{align-items:center;justify-content:center;pointer-events:auto;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.title-wrap{text-align:center;display:flex;flex-direction:column;align-items:center;gap:1.2vh}
+.logo{font-weight:900;font-size:clamp(30px,12vh,80px);line-height:.92;letter-spacing:2px;color:#fff;text-shadow:0 5px 0 #000,0 0 30px rgba(255,201,64,.35);-webkit-text-stroke:2px #111;font-style:italic}
+.logo span{color:var(--gold);font-size:1.12em}
+.tag{color:#eee;font-weight:800;font-size:clamp(11px,3.2vh,16px);text-shadow:0 2px 4px #000;margin-bottom:1vh;letter-spacing:1px}
+.menu{display:flex;flex-direction:column;gap:1.4vh;align-items:center}
+.menu .row{display:flex;gap:10px}
+.foot{margin-top:.5vh;display:flex;flex-direction:column;align-items:center;gap:6px}
+.ver{font-size:11px;color:rgba(255,255,255,.65);text-shadow:0 1px 2px #000}
+.hint{font-size:12px;color:#ffe082;max-width:80vw;text-shadow:0 1px 2px #000}
+
+.btn{appearance:none;-webkit-appearance:none;border:0;border-radius:12px;padding:10px 18px;min-height:40px;font:inherit;font-weight:900;font-size:14px;letter-spacing:.5px;color:#fff;background:linear-gradient(#4b5870,#343e52);box-shadow:0 3px 0 #1c2230,0 5px 12px rgba(0,0,0,.35);cursor:pointer;touch-action:manipulation;white-space:nowrap}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #1c2230}
+.btn.big{font-size:clamp(16px,4.8vh,22px);padding:12px 34px;min-width:min(300px,60vw)}
+.btn.green{background:linear-gradient(#5cc662,#2e8b3a);box-shadow:0 3px 0 #1b5e20,0 5px 12px rgba(0,0,0,.35)}
+.btn.gold,.btn.on{background:linear-gradient(#ffd54f,#f59e0b);color:#3a2300;box-shadow:0 3px 0 #9a5b00,0 5px 12px rgba(0,0,0,.35)}
+.btn.red{background:linear-gradient(#ef5350,#b71c1c);box-shadow:0 3px 0 #6d1010,0 5px 12px rgba(0,0,0,.35)}
+.btn.small{min-height:34px;padding:6px 12px;font-size:12px;border-radius:9px}
+.btn[disabled]{opacity:.5;filter:grayscale(.5);cursor:default}
+.btn.tab{background:#262e3d;box-shadow:none}
+.btn.tab.on{background:linear-gradient(#ffd54f,#f59e0b);color:#3a2300}
+.btn.chip{min-height:32px;padding:5px 10px;font-size:12px}
+
+#maphud{pointer-events:none;flex-direction:column;justify-content:space-between}
+.topbar{pointer-events:auto;display:flex;align-items:center;gap:8px;padding:6px 10px;padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right));background:linear-gradient(rgba(0,0,0,.65),rgba(0,0,0,0))}
+.stat{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.55);border-radius:10px;padding:5px 10px;font-weight:800;font-size:13px;white-space:nowrap}
+.stat .lv{color:var(--gold)}
+.xpbar{width:56px;height:6px;background:#222;border-radius:3px;overflow:hidden;display:inline-block}
+.xpbar i{display:block;height:100%;background:var(--gold)}
+#mh-coins::before{content:"";width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#fff59d,#f9a825 60%);display:inline-block;margin-right:6px}
+#mh-coins{color:#ffe082}
+#mh-pot::before{content:"";width:10px;height:12px;border-radius:5px 5px 6px 6px;background:#ff5277;display:inline-block;margin-right:6px}
+.spacer{flex:1}
+.nodepanel{pointer-events:auto;align-self:center;margin-bottom:max(8px,env(safe-area-inset-bottom));display:none;align-items:center;gap:14px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:8px 10px 8px 16px;max-width:min(94vw,560px);box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.nodepanel.show{display:flex}
+.np-info{min-width:0}
+.np-name{font-weight:900;font-size:16px}
+.np-sub{font-size:12px;color:var(--muted)}
+.stars{color:var(--gold);letter-spacing:1px}
+.np-extra{font-size:12px;display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+.reward{color:#80deea}
+.rank{font-weight:900}
+
+#modal{pointer-events:auto;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.panel{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:14px 16px;width:min(94vw,640px);max-height:92vh;overflow:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+.panel.narrow{width:min(92vw,440px)}
+.panel.wide{width:min(96vw,720px)}
+h2{font-size:20px;font-weight:900;text-align:center;margin-bottom:8px;color:var(--gold);letter-spacing:1px}
+h2.bad{color:#ff5252}
+h3{font-size:12px;margin:10px 0 6px;color:#cfd8dc;text-transform:uppercase;letter-spacing:1px}
+p{font-size:14px;line-height:1.45;margin:6px 0;text-align:center}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.btns.col{flex-direction:column;align-items:stretch}
+.rankrow{display:flex;gap:14px;align-items:center;justify-content:center}
+.rankbig{font-size:84px;font-weight:900;line-height:1;text-shadow:0 4px 0 #000;min-width:80px;text-align:center;font-style:italic}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex:1}
+.cell{background:rgba(255,255,255,.06);border-radius:8px;padding:6px 8px;text-align:center}
+.cell b{display:block;font-size:16px}
+.cell span{font-size:11px;color:var(--muted)}
+.newskill{background:rgba(128,222,234,.12);border:1px solid #80deea;border-radius:10px;padding:8px 10px;margin-top:8px;display:flex;flex-direction:column;gap:2px;text-align:center;font-size:13px}
+.newskill b{color:#80deea}
+.tabs{display:flex;gap:6px;justify-content:center;margin:8px 0}
+.list{display:flex;flex-direction:column;gap:6px}
+.item{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border-radius:10px;padding:6px 8px}
+.item.locked{opacity:.55}
+.it-icon{width:38px;height:38px;border-radius:9px;background:#1d2533;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;flex:none}
+.it-icon canvas{width:32px;height:32px}
+.it-icon.up{background:#37474f;color:var(--gold)}
+.it-icon.pot{background:#ad1457}
+.it-body{flex:1;display:flex;flex-direction:column;min-width:0}
+.it-body b{font-size:14px}
+.it-body span{font-size:12px;color:var(--muted)}
+.it-body .stats{color:#b0bec5}
+.it-body small{color:var(--gold);font-weight:700}
+.shop-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.shop-head h2{margin:0;text-align:left}
+.coins{font-weight:900;color:#ffe082;white-space:nowrap}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.slotbtns{display:flex;gap:4px}
+.setrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.07);font-weight:700;font-size:14px}
+.seg{display:flex;gap:4px}
+.help table{width:100%;border-collapse:collapse;font-size:12.5px}
+.help td{padding:4px 6px;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:top}
+.help td:first-child{font-weight:800;color:var(--gold);white-space:nowrap}
+.help ul{padding-left:18px;font-size:12.5px;line-height:1.5}
+.help p{text-align:left}
+#toast{position:absolute;left:0;right:0;top:56px;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.toast{background:rgba(0,0,0,.85);border:1px solid var(--gold);color:#fff;padding:8px 14px;border-radius:10px;font-weight:700;font-size:13px;transition:opacity .4s,transform .4s;max-width:90vw;text-align:center}
+.toast.out{opacity:0;transform:translateY(-8px)}
+#rotate{pointer-events:auto;background:#0b0f16;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px}
+#rotate p{font-size:16px;font-weight:700}
+.phone{width:46px;height:78px;border:4px solid #fff;border-radius:10px;position:relative;animation:rot 2.2s ease-in-out infinite}
+.phone::after{content:"";position:absolute;left:50%;bottom:4px;width:10px;height:4px;margin-left:-5px;border-radius:2px;background:#fff}
+@keyframes rot{0%,20%{transform:rotate(0)}50%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+@media (max-height:400px){.panel{padding:10px 12px}h2{font-size:17px;margin-bottom:4px}.rankbig{font-size:60px}p{font-size:13px}.btns{margin-top:8px}.btn{min-height:36px;padding:8px 14px}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="safe-probe"></div>
+<div id="ui">
+  <div id="title" class="screen">
+    <div class="title-wrap">
+      <h1 class="logo">STICKMAN<br><span>ODYSSEY</span></h1>
+      <div class="tag">A journey across six lands</div>
+      <div class="menu" id="title-menu"></div>
+      <div class="foot" id="title-foot"></div>
+    </div>
+  </div>
+  <div id="maphud" class="screen">
+    <div class="topbar">
+      <div class="stat" id="mh-lvl"></div>
+      <div class="stat" id="mh-coins"></div>
+      <div class="stat" id="mh-pot"></div>
+      <div class="spacer"></div>
+      <button class="btn small" id="mh-gear">GEAR</button>
+      <button class="btn small" id="mh-set">SETTINGS</button>
+      <button class="btn small" id="mh-menu">MENU</button>
+    </div>
+    <div class="nodepanel" id="nodepanel"></div>
+  </div>
+  <div id="modal" class="screen"><div class="panel" id="modal-panel"></div></div>
+  <div id="toast"></div>
+  <div id="rotate" class="screen">
+    <div class="phone"></div>
+    <p>Turn your phone sideways<br>for the best experience</p>
+    <button class="btn small" id="rotate-ok">PLAY ANYWAY</button>
+  </div>
+</div>
+<script>
+/*GAME_JS*/
+</script>
+</body>
+</html>
