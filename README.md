@@ -7,6 +7,10 @@ no ads and no internet needed once it's on your device.
 
 ![icon](icons/icon-192.png)
 
+> **Also in this repository: [Crown Duel](crown-duel/)**, a real-time card battle game for
+> phones. Battle the AI offline or duel a friend online with a room code. Once GitHub Pages
+> is on, it lives at `https://<your-user>.github.io/<repo>/crown-duel/`.
+
 ## Play it on your phone
 
 ### Option A — install it like an app (recommended, works offline)
@@ -106,3 +110,5 @@ NODE_PATH=$(npm root -g) node tools/make-icons.cjs                   # regenerat
   안드로이드는 **앱 설치**, 아이폰은 **공유 → 홈 화면에 추가** 를 누르면 인터넷 없이도 실행됩니다.
 - **파일로 하기:** `index.html` 하나에 게임 전체가 들어 있으니, 내려받아 모바일 브라우저(크롬 등)로 열면 됩니다.
 - **조작:** 화면 왼쪽을 드래그해서 이동, 오른쪽 버튼으로 공격·점프·대시·스킬. 휴대폰을 가로로 들고 하세요.
+- **다른 게임:** 같은 저장소의 [`crown-duel/`](crown-duel/) 폴더에 실시간 카드 대전 게임 **Crown Duel(크라운 듀얼)** 이 있습니다.
+  오프라인으로 AI와 대전하거나, 방 코드로 친구와 온라인 대전을 할 수 있습니다.
