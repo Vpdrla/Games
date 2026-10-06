@@ -10,6 +10,10 @@ no ads and no internet needed once it's on your device.
 > **Also in this repository: [Crown Duel](crown-duel/)**, a real-time card battle game for
 > phones. Battle the AI offline or duel a friend online with a room code. Once GitHub Pages
 > is on, it lives at `https://<your-user>.github.io/<repo>/crown-duel/`.
+>
+> **And [Dawnkeeper](dawnkeeper/)**, a one-thumb roguelite survivor game: hold off an endless
+> horde until dawn, pick upgrades, evolve weapons. Fully offline. It lives at
+> `https://<your-user>.github.io/<repo>/dawnkeeper/`.
 
 ## Play it on your phone
 
@@ -112,3 +116,5 @@ NODE_PATH=$(npm root -g) node tools/make-icons.cjs                   # regenerat
 - **조작:** 화면 왼쪽을 드래그해서 이동, 오른쪽 버튼으로 공격·점프·대시·스킬. 휴대폰을 가로로 들고 하세요.
 - **다른 게임:** 같은 저장소의 [`crown-duel/`](crown-duel/) 폴더에 실시간 카드 대전 게임 **Crown Duel(크라운 듀얼)** 이 있습니다.
   오프라인으로 AI와 대전하거나, 방 코드로 친구와 온라인 대전을 할 수 있습니다.
+- **또 다른 게임:** [`dawnkeeper/`](dawnkeeper/) 폴더에 한 손가락으로 즐기는 로그라이트 서바이버 게임 **Dawnkeeper(던키퍼)** 가 있습니다.
+  끝없이 몰려오는 괴물들을 막아내며 새벽까지 버티고, 레벨업마다 무기를 고르고 진화시키세요. 인터넷 없이 플레이됩니다.
