@@ -1,6 +1,6 @@
 // Headless runs driven by the autopilot: checks the simulation for crashes, NaN and runaway
 // entity counts, and prints balance numbers (survival time, level curve, weapon damage).
-// Usage: node dawnkeeper/tools/sim-test.cjs [runs-per-stage=4] [--power=0|max] [--stage=N] [--char=key] [--quick] [--verbose]
+// Usage: node dawnkeeper/tools/sim-test.cjs [runs-per-stage=4] [--power=0|mid|max|lb] [--stage=N] [--char=key] [--quick] [--verbose]
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
@@ -8,11 +8,11 @@ const vm = require('node:vm');
 const jsDir = path.join(__dirname, '..', 'src', 'js');
 const files = ['01-util.js', '02-data.js', '04-grid.js', '05-run.js', '06-weapons.js', '07-enemies.js', '08-bot.js'];
 const code = files.map((f) => fs.readFileSync(path.join(jsDir, f), 'utf8')).join('\n') +
-  '\n;globalThis.__api = { Run, Bot, STAGES, CHARACTERS, CHAR_KEYS, BASE_WEAPONS, POWERUPS, POWERUP_KEYS, WEAPONS, SIM_DT, ENEMY_CAP };';
+  '\n;globalThis.__api = { Run, Bot, STAGES, CHARACTERS, CHAR_KEYS, BASE_WEAPONS, POWERUPS, POWERUP_KEYS, LIMIT_BREAK_KEYS, WEAPONS, SIM_DT, ENEMY_CAP };';
 const ctx = { console, Math, Set, Map, Object, Array, JSON, Number, String, Infinity, NaN, isFinite, Int32Array, Float32Array };
 vm.createContext(ctx);
 vm.runInContext(code, ctx);
-const { Run, Bot, STAGES, CHAR_KEYS, BASE_WEAPONS, POWERUPS, POWERUP_KEYS, SIM_DT, ENEMY_CAP } = ctx.__api;
+const { Run, Bot, STAGES, CHAR_KEYS, BASE_WEAPONS, POWERUPS, POWERUP_KEYS, LIMIT_BREAK_KEYS, SIM_DT, ENEMY_CAP } = ctx.__api;
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const a = args.find((x) => x.startsWith('--' + k + '=')); return a ? a.split('=')[1] : d; };
@@ -23,8 +23,10 @@ const powerMode = opt('power', '0');
 const onlyStage = opt('stage', null);
 const onlyChar = opt('char', null);
 const power = {};
-if (powerMode === 'max') for (const k of POWERUP_KEYS) power[k] = POWERUPS[k].max;
+if (powerMode === 'max' || powerMode === 'lb') for (const k of POWERUP_KEYS) power[k] = POWERUPS[k].max;
 else if (powerMode === 'mid') for (const k of POWERUP_KEYS) power[k] = Math.ceil(POWERUPS[k].max / 2);
+// lb: every Limit Break rank bought, which adds one normal rank (5 x 1/5) on top of max
+if (powerMode === 'lb') for (const k of LIMIT_BREAK_KEYS) power[k] += 1;
 
 const results = [];
 let failures = 0;

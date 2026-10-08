@@ -7,10 +7,10 @@ const ONLINE_LEVEL = 6; // "tournament standard": every card and tower is this l
 const LEVEL_MULT = (lvl) => Math.pow(1.1, lvl - 1);
 
 const RARITY = {
-  common: { name: 'Common', color: '#9fb4c8', dark: '#4f6275', copies: [2, 4, 10, 20, 50, 100, 200, 400, 800], xp: 1 },
-  rare: { name: 'Rare', color: '#ff9f2e', dark: '#9a4d00', copies: [1, 2, 4, 8, 16, 32, 64, 128, 256], xp: 1.5 },
-  epic: { name: 'Epic', color: '#c05cff', dark: '#5e1c8f', copies: [1, 1, 2, 3, 4, 6, 10, 15, 20], xp: 2 },
-  legendary: { name: 'Legendary', color: '#3ff0d0', dark: '#0f7a6b', copies: [1, 1, 1, 1, 2, 2, 3, 3, 4], xp: 3 },
+  common: { name: 'Common', color: '#9fb4c8', dark: '#4f6275', copies: [2, 4, 10, 20, 40, 80, 150, 250, 400], xp: 1 },
+  rare: { name: 'Rare', color: '#ff9f2e', dark: '#9a4d00', copies: [1, 2, 4, 8, 16, 28, 48, 80, 120], xp: 1.5 },
+  epic: { name: 'Epic', color: '#c05cff', dark: '#5e1c8f', copies: [1, 1, 2, 3, 4, 6, 9, 12, 16], xp: 2 },
+  legendary: { name: 'Legendary', color: '#3ff0d0', dark: '#0f7a6b', copies: [1, 1, 1, 1, 2, 2, 3, 3, 3], xp: 3 },
 };
 const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary'];
 const UPGRADE_GOLD = [5, 20, 50, 150, 400, 1000, 2000, 4000, 8000];
@@ -97,7 +97,7 @@ const CARDS = {
   pump: { name: 'Elixir Pump', rarity: 'rare', cost: 6, type: 'building', unit: 'pump', arena: 5, desc: 'Pumps out 1 elixir every 8.5 seconds while it stands.' },
 
   stormmage: { name: 'Storm Mage', rarity: 'legendary', cost: 4, type: 'troop', unit: 'stormmage', arena: 6, desc: 'Zaps two targets at once, stunning them. Blasts the area when deployed.' },
-  tunneler: { name: 'Tunneler', rarity: 'legendary', cost: 3, type: 'troop', unit: 'tunneler', arena: 6, anywhere: true, desc: 'Digs underground and pops up anywhere in the arena.' },
+  tunneler: { name: 'Tunneler', rarity: 'legendary', cost: 3, type: 'troop', unit: 'tunneler', arena: 7, anywhere: true, desc: 'Digs underground and pops up anywhere in the arena.' },
   log: { name: 'Log', rarity: 'legendary', cost: 2, type: 'spell', arena: 6, spell: 'log', dmg: 200, halfW: 1.9, travel: 10.5, speed: 7, towerMult: 0.2, knock: 1.0, desc: 'A spiked log that rolls forward, knocking back ground troops.' },
 };
 const CARD_KEYS = Object.keys(CARDS);
@@ -120,9 +120,30 @@ function arenaIndex(trophies) {
   return a;
 }
 
-// Cards that can drop in chests at a given arena.
+// Cards of a given arena and below (AI decks; chests add every owned card on top).
 function cardsForArena(a) {
   return CARD_KEYS.filter((k) => CARDS[k].arena <= a);
+}
+
+// ---- AI matchmaking tables ----
+// Card level an opponent "should" have at a trophy count; the AI sits halfway between this and your deck.
+const AI_EXPECTED = [[0, 1], [200, 3], [450, 4.8], [750, 5.8], [1100, 6.5], [1500, 7.1], [2000, 7.7], [2600, 8.4], [3600, 10]];
+const AI_GAP = [-1.0, -0.8, -0.6, -0.4, -0.3, -0.3, -0.2, -0.1]; // per-arena level offset (the main difficulty knob)
+const AI_CAP_ABOVE = 0.3; // below 2600 the AI is never more than this many levels above your deck
+const AI_FLOOR_BELOW = 3; // ...and never more than this many levels below the expected curve
+const AI_TOP_RAMP = 0.001; // extra levels per trophy above 2600 (bounded ladder in the top arena)
+const AI_TOP_RAMP_MAX = 0.6;
+const AI_MERCY = -0.5; // "Comeback match" after a losing streak
+const AI_SKILL_CAP = 0.85;
+const AI_SKILL_STEP = 0.10; // skill gained per arena
+
+function expectedLevel(t) {
+  const E = AI_EXPECTED;
+  if (t <= E[0][0]) return E[0][1];
+  for (let i = 1; i < E.length; i++) {
+    if (t <= E[i][0]) return lerp(E[i - 1][1], E[i][1], (t - E[i - 1][0]) / (E[i][0] - E[i - 1][0]));
+  }
+  return E[E.length - 1][1];
 }
 
 const statCache = new Map();

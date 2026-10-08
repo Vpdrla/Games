@@ -48,15 +48,20 @@ file). Download it and open it in a mobile browser. Progress is saved in the bro
   (wipe the screen).
 - Mini-bosses arrive at **5:00** and **10:00**. At **15:00** the master of the night appears.
   Beat it and the dawn breaks: you win.
-- Gold from every run buys permanent **Power-ups**. Achievements unlock new heroes, weapons
-  and stages.
+- Every run pays gold, even a short one: coins you pick up, gold for every second survived
+  (at least 40 gold per run) and a big bonus at dawn. The result screen breaks it down and shows
+  your next unlock. Gold buys permanent **Power-ups**; once every power-up is maxed, **Limit Break**
+  adds five more small ranks to Might, Max Health, Cooldown, Area and Growth.
+- Achievements unlock new heroes, weapons and stages. The first ones come within a run or two:
+  **Bram** (reach level 10 in a run), **Kira** (defeat 1,000 enemies), **Vesper** (defeat a
+  mini-boss) and **Orin** (open 8 chests). Locked heroes show their progress on the hero screen.
 
 ## Modes
 
 | Mode | What it is |
 | --- | --- |
 | **Full Night** | The real thing: 15 minutes, three bosses, the dawn. Clearing a stage unlocks the next one. |
-| **Quick Night** | The same night squeezed into 5 minutes. Faster levels, weaker monsters, less gold. |
+| **Quick Night** | The same night squeezed into 5 minutes. Faster levels, weaker monsters, 60% gold. Two Quick wins on a stage count as clearing it and unlock the next stage. Survival achievements count night time, so a 5-minute Quick win counts as 15 minutes. |
 | **Endless** | Unlocked per stage once you clear it. The night never ends and bosses keep coming. |
 | **Daily Night** | A new challenge every day: a fixed stage, hero and two twists (for example *Swarming Night* or *Glass Lantern*). First finish of the day gives bonus gold. |
 
@@ -78,9 +83,10 @@ file). Download it and open it in a mobile browser. Progress is saved in the bro
   Plus swarms that sweep across the screen, rings that close in, and golden elites.
 - **12 bosses** with telegraphed slams, dashes, projectile rings, spirals, volleys,
   summons, teleports and an enraged second phase.
-- **6 heroes** with their own starting weapon and perk: Lumen, Aria, Bram, Kira, Vesper, Orin.
-- **17 power-ups** to buy with gold (refund any time), **27 achievements**, a codex of
-  weapons, items and monsters, rerolls, skips and banishes.
+- **6 heroes** with their own starting weapon and perk: Lumen and Aria from the start, then Bram,
+  Kira, Vesper and Orin from early achievements.
+- **17 power-ups** to buy with gold plus **Limit Break** ranks once they are all maxed (refund any
+  time), **32 achievements**, a codex of weapons, items and monsters, rerolls, skips and banishes.
 - Synthesized music for every stage that gets more intense as the night goes on, sound
   effects (gem pickups rise in pitch as you chain them), vibration, damage numbers and
   screen shake. Graphics quality drops automatically on slower phones.
@@ -102,7 +108,7 @@ node dawnkeeper/build.mjs   # bundle src/ -> index.html and stamp sw.js
 Tests and tools (Playwright with Chromium):
 
 ```bash
-node dawnkeeper/tools/sim-test.cjs 3 [--power=0|mid|max] [--quick]          # autopilot runs in Node: crashes, NaN, balance numbers
+node dawnkeeper/tools/sim-test.cjs 3 [--power=0|mid|max|lb] [--quick]       # autopilot runs in Node: crashes, NaN, balance numbers (lb = max + all Limit Break ranks)
 NODE_PATH=$(npm root -g) node dawnkeeper/tools/smoke-test.cjs [shots-dir]   # every menu, a run, level-ups, chest, boss, frame rate, results
 NODE_PATH=$(npm root -g) node dawnkeeper/tools/make-icons.cjs               # regenerates the app icons
 ```
@@ -121,8 +127,12 @@ NODE_PATH=$(npm root -g) node dawnkeeper/tools/make-icons.cjs               # re
 - **진화:** 무기를 8레벨까지 올리고 짝이 되는 아이템을 가진 채 상자를 열면 무기가 훨씬 강하게 진화합니다.
   (레벨업 카드에 필요한 아이템이 표시됩니다.)
 - **보스:** 5분, 10분에 중간 보스, 15분에 최종 보스가 나옵니다. 금빛 정예 몬스터와 보스는 보물 상자를 떨어뜨립니다.
-- **영구 강화:** 판마다 모은 골드로 파워업을 사서 점점 강해집니다. 업적을 달성하면 새 영웅·무기·스테이지가 열립니다.
-- **모드:** 15분 정식 모드, 5분 빠른 모드, 스테이지 클리어 후 열리는 무한 모드, 매일 바뀌는 **오늘의 밤** 도전.
+- **영구 강화:** 판마다 골드를 받습니다(주운 동전 + 버틴 시간만큼 + 새벽 보너스, 한 판 최소 40골드). 골드로 파워업을 사서
+  점점 강해지고, 파워업을 모두 최대로 올리면 **한계 돌파**가 열립니다.
+- **영웅·업적:** 업적을 달성하면 새 영웅·무기·스테이지가 열립니다. 브람(한 판에서 10레벨), 키라(적 1,000마리),
+  베스퍼(중간 보스 처치), 오린(상자 8개)은 처음 몇 판 안에 열리고, 잠긴 영웅 카드에 진행도가 표시됩니다.
+- **모드:** 15분 정식 모드, 5분 빠른 모드(골드 60%, 같은 스테이지를 두 번 이기면 클리어로 인정되어 다음 스테이지가 열림),
+  스테이지 클리어 후 열리는 무한 모드, 매일 바뀌는 **오늘의 밤** 도전.
 - **설치해서 하기 (추천):** 저장소 **Settings → Pages** 에서 이 게임이 있는 브랜치와 `/ (root)` 를 선택해 저장하면
   `https://<사용자명>.github.io/<저장소>/dawnkeeper/` 주소가 생깁니다. 휴대폰으로 열고
   안드로이드는 **앱 설치**, 아이폰은 **공유 → 홈 화면에 추가** 를 누르면 인터넷 없이도 실행됩니다.

@@ -78,6 +78,8 @@ html,body{position:fixed;inset:0;overflow:hidden;background:#0d1b33;color:var(--
 .slot .st{font-size:10.5px;font-weight:900;text-align:center;line-height:1.1;text-shadow:0 1px 2px #000}
 .slot .st.g{color:#8dff8d}
 .slot .st.y{color:#ffe070}
+.slot .st.q{color:#9fc4ff}
+.slot .st.sm{font-size:9.5px;color:#cfd8e8}
 .slot .ar{position:absolute;left:4px;top:3px;font-size:9px;color:#cfd8e8;font-weight:800}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(111,220,111,.0)}50%{box-shadow:0 0 14px 2px rgba(111,220,111,.55)}}
 .minis{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -88,6 +90,44 @@ html,body{position:fixed;inset:0;overflow:hidden;background:#0d1b33;color:var(--
 .mini .pb{height:6px;background:#0b1224;border-radius:3px;overflow:hidden;margin-top:4px}
 .mini .pb i{display:block;height:100%;background:linear-gradient(90deg,#ffe070,#ffae1a)}
 .mini.ready{border-color:#6fdc6f;animation:pulse 1.2s ease-in-out infinite}
+.mini .bk{display:inline-block;background:#2fa84a;border-radius:7px;padding:0 5px;font-size:9.5px;font-weight:900;vertical-align:1px;white-space:nowrap}
+/* battle page: arena progress, BATTLE sub-label and the Crown Road strip */
+.arena .tr{display:flex;flex-direction:column;align-items:flex-end;text-align:right}
+.arena .nx{color:#ffe070;font-weight:800}
+#b-battle small{display:block;font-size:11px;font-weight:800;letter-spacing:0;white-space:pre-line;line-height:1.25}
+#b-battle small:empty{display:none}
+#road-h{cursor:pointer;margin-bottom:-4px}
+#road{display:flex;gap:6px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:6px;cursor:pointer;touch-action:manipulation}
+#road .node{position:relative;flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 2px 4px;border-radius:10px;border:2px solid transparent;background:rgba(0,0,0,.22)}
+#road .node.gate{background:rgba(160,90,255,.2)}
+#road .node.done{opacity:.55}
+#road .node.next{border-color:var(--gold);animation:pulse 1.2s ease-in-out infinite}
+#road .ic{position:relative;height:48px;width:100%;display:flex;align-items:center;justify-content:center}
+#road .ic img{height:48px;width:auto;max-width:100%;object-fit:contain}
+#road .ic.two img{height:42px;margin:0 -5px}
+#road .ic.two img:first-child{transform:rotate(-7deg)}
+#road .ic.two img:nth-child(2){transform:rotate(7deg) translateY(2px)}
+#road .ck{position:absolute;right:4px;bottom:-2px;width:18px;height:18px;border-radius:50%;background:#2fa84a;border:2px solid #fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center}
+#road .more{position:absolute;right:2px;top:-3px;background:#3d8bff;border:1.5px solid #fff;border-radius:8px;padding:0 4px;font-size:9.5px;font-weight:900}
+#road .node b{font-size:10.5px;font-weight:900;display:flex;align-items:center;gap:2px;white-space:nowrap}
+#road .node .tro,.rrow .tro,#rs-road .tro{width:11px;height:11px}
+#road .node small{font-size:10.5px;color:var(--muted);font-weight:700;white-space:nowrap}
+#road .node.next small{color:#ffe070}
+/* Crown Road modal */
+#road-all{display:flex;flex-direction:column;gap:6px}
+.rrow{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.05);border:2px solid transparent;border-radius:12px;padding:6px}
+.rrow.gate{background:rgba(160,90,255,.18)}
+.rrow.done{opacity:.55}
+.rrow.next{border-color:var(--gold)}
+.rrow .rt{flex:none;width:56px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.rrow .rt b{font-size:13px;display:flex;align-items:center;gap:3px}
+.rrow .rt small{font-size:10px;color:var(--muted);font-weight:700;white-space:nowrap}
+.rrow.next .rt small{color:#ffe070}
+.rrow .rr{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:6px}
+.rrow .gt{width:100%;font-size:11px;font-weight:900;color:#e6c8ff}
+.ri{min-width:54px;max-width:86px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+.ri img{height:44px;width:auto;max-width:54px;object-fit:contain}
+.ri span{font-size:9.5px;font-weight:800;line-height:1.1;color:#dfe8f5;overflow-wrap:anywhere}
 h2{font-size:21px;font-weight:900;text-align:center;color:var(--gold);letter-spacing:.5px;text-shadow:0 2px 3px rgba(0,0,0,.6)}
 h3{font-size:13px;font-weight:900;color:#cfe0ff;text-transform:uppercase;letter-spacing:1px;margin:2px 2px 0;display:flex;justify-content:space-between;align-items:center}
 h3 small{font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:700}
@@ -120,6 +160,10 @@ p{font-size:14px;line-height:1.45}
 .offer b{font-size:13px}
 .offer small{font-size:11px;color:var(--muted)}
 .offer.done{opacity:.5}
+.offer.wide{flex-direction:row;text-align:left;gap:10px;padding:8px 10px}
+.offer.wide img{width:56px;flex:none}
+.offer.wide .d{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.req .btn{width:100%;margin-top:4px;padding:4px 2px}
 .field{display:flex;gap:8px;align-items:center}
 input.txt{flex:1;min-width:0;background:#0b1224;border:2px solid #3a5585;border-radius:12px;color:#fff;font:inherit;font-weight:800;font-size:16px;padding:9px 12px;outline:none;user-select:text;-webkit-user-select:text;touch-action:manipulation}
 input.txt:focus{border-color:#6ab8ff}
@@ -171,6 +215,44 @@ input.code{text-transform:uppercase;letter-spacing:6px;text-align:center;font-si
 .reveal .nw{background:#ff3b3b;border-radius:8px;padding:2px 8px;font-size:12px;font-weight:900}
 .loot{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .loot .cc .lv{font-size:12px}
+.loot>*{min-width:0}
+.loot.c3{grid-template-columns:repeat(3,1fr);gap:8px 12px;padding:0 6px}
+.loot.sm{display:flex;flex-wrap:wrap;justify-content:center;gap:5px}
+.loot.sm>*{width:calc((100% - 25px) / 6)}
+.loot.sm .cc .lv{font-size:10px}
+.loot.sm .cc .up{width:16px;height:16px;font-size:10px;border-width:1.5px}
+.loot.sm .cc .nw{font-size:8px;padding:0 3px}
+.cc .tag,.tag{display:block;width:max-content;max-width:100%;margin:2px auto 0;background:rgba(0,0,0,.45);border-radius:6px;padding:0 5px;font-size:9.5px;font-weight:900;color:#cfe0ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag.u{background:#2fa84a;color:#fff;font-size:8.5px;padding:0 4px}
+.pills{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:2px}
+.pill{background:rgba(255,255,255,.14);border-radius:8px;padding:2px 8px;font-size:11px;font-weight:900}
+.pill.u{background:#2fa84a}
+/* result screen */
+.tbar{width:100%;display:flex;flex-direction:column;gap:4px}
+.tbar .tl{font-size:12.5px;font-weight:900;display:flex;align-items:center;justify-content:center;gap:5px;text-align:center}
+.rbar{width:100%;height:12px;background:rgba(0,0,0,.5);border-radius:6px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.rbar i{display:block;height:100%;background:linear-gradient(90deg,#ffe070,#ff9f2e);transition:width .8s ease-out}
+.tbar .pr{font-size:12px;font-weight:900;color:#8fd0ff;text-align:center}
+.chip{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.08);border-radius:10px;padding:4px 8px;font-weight:900;font-size:12.5px;white-space:nowrap}
+.chip img{width:24px;height:auto}
+.chip .muted{font-size:11px;font-weight:700}
+.cline{width:100%;display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.25);border-radius:12px;padding:6px 10px}
+.cline img{width:52px;flex:none}
+.cline b{font-size:14px}
+.cline small{display:block;font-size:11.5px;color:var(--muted);font-weight:700}
+.cline.col{flex-direction:column;align-items:center;text-align:center;gap:6px}
+.cline.col .loot{width:100%}
+#rs-road{width:100%;display:flex;flex-direction:column;gap:6px}
+#rs-road .rtitle{font-size:12px;font-weight:900;color:var(--gold);text-align:center;text-transform:uppercase;letter-spacing:1px}
+#rs-road .rg{background:rgba(160,90,255,.14);border-radius:12px;padding:6px;display:flex;flex-direction:column;gap:6px}
+#rs-road .rh{font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;gap:4px}
+#rs-road .nx{font-size:12px;color:var(--muted);text-align:center;line-height:1.35}
+#rs-road .nx b{color:#fff}
+.result .cb{color:#8fd0ff;font-weight:900;font-size:13px}
+.btns .btn.skip{flex:none;min-width:0;padding:4px 18px;background:rgba(255,255,255,.14);box-shadow:none}
+/* save upgrade gift */
+.gift{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border-radius:10px;padding:7px 10px;font-weight:800;font-size:13.5px}
+.gift .e{flex:none;width:20px;display:flex;justify-content:center}
 .pop{animation:pop .35s cubic-bezier(.3,1.6,.5,1)}
 @keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
 .shake{animation:shk .5s ease-in-out infinite}
@@ -374,10 +456,10 @@ const ONLINE_LEVEL = 6; // "tournament standard": every card and tower is this l
 const LEVEL_MULT = (lvl) => Math.pow(1.1, lvl - 1);
 
 const RARITY = {
-  common: { name: 'Common', color: '#9fb4c8', dark: '#4f6275', copies: [2, 4, 10, 20, 50, 100, 200, 400, 800], xp: 1 },
-  rare: { name: 'Rare', color: '#ff9f2e', dark: '#9a4d00', copies: [1, 2, 4, 8, 16, 32, 64, 128, 256], xp: 1.5 },
-  epic: { name: 'Epic', color: '#c05cff', dark: '#5e1c8f', copies: [1, 1, 2, 3, 4, 6, 10, 15, 20], xp: 2 },
-  legendary: { name: 'Legendary', color: '#3ff0d0', dark: '#0f7a6b', copies: [1, 1, 1, 1, 2, 2, 3, 3, 4], xp: 3 },
+  common: { name: 'Common', color: '#9fb4c8', dark: '#4f6275', copies: [2, 4, 10, 20, 40, 80, 150, 250, 400], xp: 1 },
+  rare: { name: 'Rare', color: '#ff9f2e', dark: '#9a4d00', copies: [1, 2, 4, 8, 16, 28, 48, 80, 120], xp: 1.5 },
+  epic: { name: 'Epic', color: '#c05cff', dark: '#5e1c8f', copies: [1, 1, 2, 3, 4, 6, 9, 12, 16], xp: 2 },
+  legendary: { name: 'Legendary', color: '#3ff0d0', dark: '#0f7a6b', copies: [1, 1, 1, 1, 2, 2, 3, 3, 3], xp: 3 },
 };
 const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary'];
 const UPGRADE_GOLD = [5, 20, 50, 150, 400, 1000, 2000, 4000, 8000];
@@ -464,7 +546,7 @@ const CARDS = {
   pump: { name: 'Elixir Pump', rarity: 'rare', cost: 6, type: 'building', unit: 'pump', arena: 5, desc: 'Pumps out 1 elixir every 8.5 seconds while it stands.' },
 
   stormmage: { name: 'Storm Mage', rarity: 'legendary', cost: 4, type: 'troop', unit: 'stormmage', arena: 6, desc: 'Zaps two targets at once, stunning them. Blasts the area when deployed.' },
-  tunneler: { name: 'Tunneler', rarity: 'legendary', cost: 3, type: 'troop', unit: 'tunneler', arena: 6, anywhere: true, desc: 'Digs underground and pops up anywhere in the arena.' },
+  tunneler: { name: 'Tunneler', rarity: 'legendary', cost: 3, type: 'troop', unit: 'tunneler', arena: 7, anywhere: true, desc: 'Digs underground and pops up anywhere in the arena.' },
   log: { name: 'Log', rarity: 'legendary', cost: 2, type: 'spell', arena: 6, spell: 'log', dmg: 200, halfW: 1.9, travel: 10.5, speed: 7, towerMult: 0.2, knock: 1.0, desc: 'A spiked log that rolls forward, knocking back ground troops.' },
 };
 const CARD_KEYS = Object.keys(CARDS);
@@ -487,9 +569,30 @@ function arenaIndex(trophies) {
   return a;
 }
 
-// Cards that can drop in chests at a given arena.
+// Cards of a given arena and below (AI decks; chests add every owned card on top).
 function cardsForArena(a) {
   return CARD_KEYS.filter((k) => CARDS[k].arena <= a);
+}
+
+// ---- AI matchmaking tables ----
+// Card level an opponent "should" have at a trophy count; the AI sits halfway between this and your deck.
+const AI_EXPECTED = [[0, 1], [200, 3], [450, 4.8], [750, 5.8], [1100, 6.5], [1500, 7.1], [2000, 7.7], [2600, 8.4], [3600, 10]];
+const AI_GAP = [-1.0, -0.8, -0.6, -0.4, -0.3, -0.3, -0.2, -0.1]; // per-arena level offset (the main difficulty knob)
+const AI_CAP_ABOVE = 0.3; // below 2600 the AI is never more than this many levels above your deck
+const AI_FLOOR_BELOW = 3; // ...and never more than this many levels below the expected curve
+const AI_TOP_RAMP = 0.001; // extra levels per trophy above 2600 (bounded ladder in the top arena)
+const AI_TOP_RAMP_MAX = 0.6;
+const AI_MERCY = -0.5; // "Comeback match" after a losing streak
+const AI_SKILL_CAP = 0.85;
+const AI_SKILL_STEP = 0.10; // skill gained per arena
+
+function expectedLevel(t) {
+  const E = AI_EXPECTED;
+  if (t <= E[0][0]) return E[0][1];
+  for (let i = 1; i < E.length; i++) {
+    if (t <= E[i][0]) return lerp(E[i - 1][1], E[i][1], (t - E[i - 1][0]) / (E[i][0] - E[i - 1][0]));
+  }
+  return E[E.length - 1][1];
 }
 
 const statCache = new Map();
@@ -4260,28 +4363,32 @@ const Net = {
 
 // ===== 09-save.js =====
 // ---------- Profile, collection, chests and rewards (saved in localStorage) ----------
-const SAVE_KEY = 'crown-duel-save-v1';
+const SAVE_KEY = 'crown-duel-save-v1'; // v2 saves keep this key; loadGame upgrades v1 data in place
 let SAVE = null;
 
 const CHESTS = {
   silver: { name: 'Silver Chest', time: 3 * 60, cards: 7, gold: [16, 28], col: '#c9d4de', dark: '#6d7c8a', rare: 0.14, epic: 0.012, leg: 0.0015 },
-  gold: { name: 'Golden Chest', time: 10 * 60, cards: 22, gold: [60, 110], col: '#ffcf40', dark: '#a86a00', rare: 0.16, epic: 0.02, leg: 0.002 },
-  magic: { name: 'Magical Chest', time: 30 * 60, cards: 50, gold: [180, 320], col: '#c15cff', dark: '#5a1a8f', rare: 0.2, epic: 0.05, leg: 0.006, minEpic: 2 },
-  giant: { name: 'Giant Chest', time: 30 * 60, cards: 120, gold: [380, 640], col: '#4fb4ff', dark: '#1a5a9a', rare: 0.15, epic: 0.012, leg: 0.001 },
-  epic: { name: 'Epic Chest', time: 60 * 60, cards: 10, gold: [0, 0], col: '#b04aff', dark: '#4a0f7a', only: 'epic' },
-  legendary: { name: 'Legendary Chest', time: 2 * 60 * 60, cards: 1, gold: [0, 0], col: '#3ff0d0', dark: '#0f7a6b', only: 'legendary' },
+  gold: { name: 'Golden Chest', time: 8 * 60, cards: 22, gold: [60, 110], col: '#ffcf40', dark: '#a86a00', rare: 0.16, epic: 0.02, leg: 0.002 },
+  magic: { name: 'Magical Chest', time: 20 * 60, cards: 50, gold: [180, 320], col: '#c15cff', dark: '#5a1a8f', rare: 0.2, epic: 0.05, leg: 0.006, minEpic: 2 },
+  giant: { name: 'Giant Chest', time: 20 * 60, cards: 120, gold: [380, 640], col: '#4fb4ff', dark: '#1a5a9a', rare: 0.15, epic: 0.012, leg: 0.001 },
+  epic: { name: 'Epic Chest', time: 30 * 60, cards: 10, gold: [0, 0], col: '#b04aff', dark: '#4a0f7a', only: 'epic' },
+  legendary: { name: 'Legendary Chest', time: 60 * 60, cards: 1, gold: [0, 0], col: '#3ff0d0', dark: '#0f7a6b', only: 'legendary' },
   free: { name: 'Free Chest', time: 0, cards: 5, gold: [20, 40], col: '#7fe08a', dark: '#2a7a3a', rare: 0.14, epic: 0.01, leg: 0.001, gems: [0, 3] },
   crown: { name: 'Crown Chest', time: 0, cards: 30, gold: [120, 220], col: '#ffe070', dark: '#b07a00', rare: 0.18, epic: 0.03, leg: 0.004, gems: [4, 10] },
 };
 const CHEST_CYCLE = 'SSGSSSGSMSSGSSSGSSHSSGSSESSSGSSMSSGSSLSS'.split('').map((c) => ({ S: 'silver', G: 'gold', M: 'magic', H: 'giant', E: 'epic', L: 'legendary' }[c]));
-const FREE_CHEST_EVERY = 4 * 60 * 60 * 1000;
-const CROWNS_FOR_CHEST = 10;
+const UNLOCK_LANES = 2; // won chests unlock by themselves, two at a time, in the order they were won
+const FREE_CHEST_EVERY = 3 * 60 * 60 * 1000;
+const FREE_CHEST_MAX = 3; // free chests waiting at most
+const CROWNS_FOR_CHEST = 8;
+const CROWN_BANK = 16; // crowns keep counting up to two Crown Chests' worth
+const TOP_MIN = ARENAS[ARENAS.length - 1].min; // 2600: the top arena, where the Legend Road and the bounded ladder start
 
 function defaultSave() {
   const cards = {};
   for (const k of STARTER_DECK) cards[k] = { lvl: 1, n: 0 };
   return {
-    v: 1,
+    v: 2,
     name: 'Player' + randi(1000, 9999),
     trophies: 0, best: 0,
     gold: 150, gems: 60,
@@ -4289,26 +4396,29 @@ function defaultSave() {
     cards,
     decks: [STARTER_DECK.slice(), STARTER_DECK.slice(), STARTER_DECK.slice()],
     deck: 0,
-    chests: [null, null, null, null],
+    chests: [null, null, null, null], // { type, arena, seed, wonAt, unlockAt }
     cycle: 0,
     crowns: 0,
     free: null,
     shop: null,
-    stats: { wins: 0, losses: 0, draws: 0, three: 0, onlineWins: 0, onlineLosses: 0, bestStreak: 0, streak: 0, played: 0 },
+    stats: { wins: 0, losses: 0, draws: 0, three: 0, onlineWins: 0, onlineLosses: 0, bestStreak: 0, streak: 0, played: 0, lstreak: 0 },
     settings: { sfx: true, music: true, vibrate: true },
     tutorial: false,
     arenaSeen: 0,
     fresh: {},
+    road: 0, // Crown Road claim index: ROAD[0..road-1] are paid
   };
 }
 
 function loadGame() {
   const d0 = defaultSave();
+  SAVE = d0;
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (raw) {
       const d = JSON.parse(raw);
       SAVE = Object.assign(d0, d);
+      SAVE.v = d.v | 0;
       SAVE.stats = Object.assign(defaultSave().stats, d.stats || {});
       SAVE.settings = Object.assign(defaultSave().settings, d.settings || {});
       SAVE.fresh = d.fresh || {};
@@ -4318,14 +4428,20 @@ function loadGame() {
       SAVE.decks = SAVE.decks.map((dk) => (Array.isArray(dk) && dk.length === 8 && dk.every((k) => SAVE.cards[k]) && new Set(dk).size === 8 ? dk : STARTER_DECK.slice()));
       if (!(SAVE.deck >= 0 && SAVE.deck < 3)) SAVE.deck = 0;
       if (!Array.isArray(SAVE.chests) || SAVE.chests.length !== 4) SAVE.chests = [null, null, null, null];
-      return;
     }
   } catch (e) { /* corrupted or unavailable storage: start fresh */ }
-  SAVE = d0;
+  // Older saves get the one-time Crown Road catch-up; the UI shows SAVE.pendingGift once, then deletes it.
+  if (!(SAVE.v >= 2)) {
+    try { SAVE.pendingGift = migrateV2(); } catch (e) { SAVE.v = 2; /* never pay the back-pay twice */ }
+  }
+  SAVE.road = SAVE.road | 0;
+  SAVE.crowns = Math.min(CROWN_BANK, SAVE.crowns | 0);
+  scheduleChests();
 }
 
 function saveGame() {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (e) { /* storage unavailable */ }
+  // pendingGift is UI state for this session only
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE, (k, v) => (k === 'pendingGift' ? undefined : v))); } catch (e) { /* storage unavailable */ }
 }
 
 function resetGame() {
@@ -4391,20 +4507,55 @@ function addKingXp(n) {
   return ups;
 }
 
+// Mean level of your 8 best cards. New cards arrive one level below it, so they are playable at once.
+function top8Avg() {
+  const lv = Object.keys(SAVE.cards).map((k) => SAVE.cards[k].lvl).sort((a, b) => b - a).slice(0, 8);
+  return lv.reduce((a, b) => a + b, 0) / Math.max(1, lv.length);
+}
+
+function newCardLevel() {
+  return clamp(Math.floor(top8Avg()) - 1, 1, MAX_LEVEL - 1);
+}
+
+// Chest, shop and Instant Loot finds. Returns true when the card is new.
 function addCards(k, n) {
   const had = !!SAVE.cards[k];
   if (!had) {
-    SAVE.cards[k] = { lvl: 1, n: n - 1 };
+    SAVE.cards[k] = { lvl: newCardLevel(), n: n - 1 };
     SAVE.fresh[k] = true;
   } else SAVE.cards[k].n += n;
   return !had;
+}
+
+// Copies of a maxed card are worth 5 gold each.
+function capCopies(k) {
+  const rec = SAVE.cards[k];
+  if (rec && rec.lvl >= MAX_LEVEL && rec.n > 0) { SAVE.gold += rec.n * 5; rec.n = 0; }
+}
+
+// Crown Road and arena gate grants. A new card comes with exactly one upgrade's worth of copies (it shows
+// the upgrade arrow at once); an owned card gets one upgrade's worth. Returns null for a maxed card.
+function grantCard(k) {
+  const r = RARITY[CARDS[k].rarity];
+  const c = SAVE.cards[k];
+  if (!c) {
+    const L = newCardLevel();
+    SAVE.cards[k] = { lvl: L, n: r.copies[L - 1] };
+    SAVE.fresh[k] = true;
+    return { key: k, lvl: L, n: r.copies[L - 1] + 1, isNew: true };
+  }
+  if (c.lvl >= MAX_LEVEL) return null;
+  const n = r.copies[c.lvl - 1];
+  c.n += n;
+  return { key: k, lvl: c.lvl, n, isNew: false };
 }
 
 // ---- chests ----
 function rollChest(type, arena, seed) {
   const def = CHESTS[type];
   const rng = new RNG(seed || (Date.now() & 0xffffffff));
-  const pool = cardsForArena(arena);
+  // the arena's cards plus every card you own, so sneak-peek cards keep dropping before their arena
+  const pool = CARD_KEYS.filter((k) => CARDS[k].arena <= arena || SAVE.cards[k]);
   const byR = (r) => pool.filter((k) => CARDS[k].rarity === r);
   const out = [];
   const addStack = (rar, n) => {
@@ -4452,9 +4603,8 @@ function grantChest(loot) {
   const res = [];
   for (const c of loot.cards) {
     const isNew = addCards(c.key, c.n);
-    const rec = SAVE.cards[c.key];
-    if (rec.lvl >= MAX_LEVEL && rec.n > 0) { SAVE.gold += rec.n * 5; rec.n = 0; }
-    res.push({ key: c.key, n: c.n, isNew });
+    capCopies(c.key);
+    res.push({ key: c.key, n: c.n, isNew, lvl: SAVE.cards[c.key].lvl });
   }
   SAVE.gold += loot.gold;
   SAVE.gems += loot.gems;
@@ -4464,35 +4614,84 @@ function grantChest(loot) {
 
 function chestSlotFree() { return SAVE.chests.findIndex((c) => !c); }
 
+// Returns null when all 4 slots are full (the caller pays Instant Loot instead; the cycle does not advance).
 function awardChest() {
   const i = chestSlotFree();
   if (i < 0) return null;
   const type = CHEST_CYCLE[SAVE.cycle % CHEST_CYCLE.length];
   SAVE.cycle++;
-  SAVE.chests[i] = { type, arena: curArena(), unlockAt: 0, seed: randi(1, 1e9) };
+  SAVE.chests[i] = { type, arena: curArena(), unlockAt: 0, seed: randi(1, 1e9), wonAt: Date.now() };
+  scheduleChests();
   return SAVE.chests[i];
 }
 
+// 'empty' | 'ready' | 'unlocking' (timer running in a lane) | 'queued' (waiting for a lane) | 'locked' (legacy, no unlockAt)
 function chestState(ch) {
   if (!ch) return 'empty';
   if (!ch.unlockAt) return 'locked';
-  return Date.now() >= ch.unlockAt ? 'ready' : 'unlocking';
+  const now = Date.now();
+  if (now >= ch.unlockAt) return 'ready';
+  return now >= ch.unlockAt - CHESTS[ch.type].time * 1000 ? 'unlocking' : 'queued';
 }
 
+// Plans every waiting chest into UNLOCK_LANES lanes, oldest win first. unlockAt is set ahead of time,
+// so the queue keeps running while the app is closed. Call after any change to the slots.
+function scheduleChests() {
+  const now = Date.now(), lanes = [], q = [];
+  for (const c of SAVE.chests) {
+    if (!c) continue;
+    const s = chestState(c);
+    if (s === 'unlocking') lanes.push(c.unlockAt);
+    else if (s === 'queued' || s === 'locked') q.push(c);
+  }
+  while (lanes.length < UNLOCK_LANES) lanes.push(now);
+  q.sort((a, b) => (a.wonAt || 0) - (b.wonAt || 0));
+  for (const c of q) {
+    lanes.sort((x, y) => x - y);
+    c.unlockAt = lanes[0] + CHESTS[c.type].time * 1000;
+    lanes[0] = c.unlockAt;
+  }
+}
+
+// Kept for older callers; with the automatic queue it only reports whether a lane is busy.
 function anyUnlocking() { return SAVE.chests.some((c) => chestState(c) === 'unlocking'); }
 
+// Also prices queued chests (their whole remaining wait).
 function gemsToOpen(ch) {
   const ms = ch.unlockAt ? Math.max(0, ch.unlockAt - Date.now()) : CHESTS[ch.type].time * 1000;
   return Math.max(1, Math.ceil(ms / 1000 / 60 / 6));
 }
 
-// Free chests build up every few hours (at most two waiting).
+// Slot chests open at the arena they were won in or your current one, whichever is higher.
+function chestOpenArena(ch) {
+  return Math.max(ch.arena | 0, curArena());
+}
+
+// Takes the chest out of slot i (a ready one, or any one paid with gems when payGems is set) and
+// re-plans the queue. Returns { type, arena, seed, gems } for the chest reveal, or null.
+function takeSlotChest(i, payGems) {
+  const ch = SAVE.chests[i];
+  if (!ch) return null;
+  let gems = 0;
+  if (chestState(ch) !== 'ready') {
+    if (!payGems) return null;
+    gems = gemsToOpen(ch);
+    if (SAVE.gems < gems) return null;
+    SAVE.gems -= gems;
+  }
+  SAVE.chests[i] = null;
+  scheduleChests();
+  saveGame();
+  return { type: ch.type, arena: chestOpenArena(ch), seed: ch.seed, gems };
+}
+
+// Free chests build up every few hours (at most FREE_CHEST_MAX waiting).
 function freeState() {
   const now = Date.now();
   let f = SAVE.free;
   if (!f || typeof f.n !== 'number') f = SAVE.free = { n: 1, at: now + FREE_CHEST_EVERY };
-  while (f.n < 2 && now >= f.at) { f.n++; f.at += FREE_CHEST_EVERY; }
-  if (f.n >= 2) f.at = now + FREE_CHEST_EVERY;
+  while (f.n < FREE_CHEST_MAX && now >= f.at) { f.n++; f.at += FREE_CHEST_EVERY; }
+  if (f.n >= FREE_CHEST_MAX) f.at = now + FREE_CHEST_EVERY;
   return f;
 }
 
@@ -4509,60 +4708,307 @@ function nextFreeChestIn() {
   return f.n > 0 ? 0 : Math.max(0, f.at - Date.now());
 }
 
+// Crown Chest: every CROWNS_FOR_CHEST crowns; a second chest's worth can be banked (CROWN_BANK).
+function crownChestReady() { return SAVE.crowns >= CROWNS_FOR_CHEST; }
+
+function takeCrownChest() {
+  if (SAVE.crowns < CROWNS_FOR_CHEST) return false;
+  SAVE.crowns -= CROWNS_FOR_CHEST;
+  saveGame();
+  return true;
+}
+
 // ---- shop ----
 function todayKey() {
   const d = new Date();
   return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
 }
 
+// Local calendar day as a number. The shop only re-rolls when it moves forward, so setting the
+// clock back can't hand out another free pack or reset the Card Request limit.
+function dayNum() {
+  const d = new Date();
+  return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
+}
+
 function refreshShop() {
-  const day = todayKey();
-  if (SAVE.shop && SAVE.shop.day === day) return SAVE.shop;
+  const day = todayKey(), dn = dayNum();
+  if (SAVE.shop && (SAVE.shop.day === day || (SAVE.shop.dn | 0) >= dn)) {
+    // a shop rolled before v2 gets today's free pack too
+    if (!SAVE.shop.offers.some((o) => o.kind === 'pack')) SAVE.shop.offers.unshift({ kind: 'pack', n: 1, price: 0, cur: 'free', bought: false });
+    SAVE.shop.req = SAVE.shop.req | 0;
+    return SAVE.shop;
+  }
   const rng = new RNG(hashStr(day + SAVE.name));
   const pool = cardsForArena(curArena());
   const pick = (r) => { const l = pool.filter((k) => CARDS[k].rarity === r); return l.length ? rng.pick(l) : null; };
-  const offers = [];
+  const offers = [{ kind: 'pack', n: 1, price: 0, cur: 'free' }]; // one free Deck Pack a day
   const c1 = pick('common'), c2 = pick('common'), r1 = pick('rare'), e1 = pick('epic');
-  if (c1) offers.push({ key: c1, n: 10, price: 150, cur: 'gold' });
-  if (r1) offers.push({ key: r1, n: 3, price: 360, cur: 'gold' });
-  if (e1) offers.push({ key: e1, n: 1, price: 1200, cur: 'gold' });
-  if (c2 && c2 !== c1) offers.push({ key: c2, n: 20, price: 280, cur: 'gold' });
-  SAVE.shop = { day, offers: offers.map((o) => Object.assign(o, { bought: false })) };
+  if (c1) offers.push({ kind: 'card', key: c1, n: 10, price: 150, cur: 'gold' });
+  if (r1) offers.push({ kind: 'card', key: r1, n: 3, price: 360, cur: 'gold' });
+  if (e1) offers.push({ kind: 'card', key: e1, n: 1, price: 1200, cur: 'gold' });
+  if (c2 && c2 !== c1) offers.push({ kind: 'card', key: c2, n: 20, price: 280, cur: 'gold' });
+  SAVE.shop = { day, dn, offers: offers.map((o) => Object.assign(o, { bought: false })), req: 0 };
   saveGame();
   return SAVE.shop;
 }
 
+// Today's free Deck Pack. Returns the copies granted (deckPack list) or null if already taken.
+function claimFreePack() {
+  const o = refreshShop().offers.find((x) => x.kind === 'pack');
+  if (!o || o.bought) return null;
+  o.bought = true;
+  const got = deckPack(curArena(), o.n || 1);
+  saveGame();
+  return got;
+}
+
+// Buys daily offer i. Returns { kind: 'pack', cards } or { kind: 'card', key, n, isNew }, or null.
+function buyOffer(i) {
+  const o = refreshShop().offers[i];
+  if (!o || o.bought) return null;
+  if (o.kind === 'pack') { const cards = claimFreePack(); return cards && { kind: 'pack', cards }; }
+  if (SAVE.gold < o.price) return null;
+  SAVE.gold -= o.price;
+  o.bought = true;
+  const isNew = addCards(o.key, o.n);
+  capCopies(o.key);
+  saveGame();
+  return { kind: 'card', key: o.key, n: o.n, isNew };
+}
+
+// Card Request: a gem sink for copies of any card in the current deck that is not maxed.
+const CARD_REQUEST = {
+  common: { n: 20, gems: 30 },
+  rare: { n: 6, gems: 40 },
+  epic: { n: 2, gems: 60 },
+  legendary: { n: 1, gems: 120 },
+};
+const CARD_REQUESTS_PER_DAY = 3;
+
+function cardRequestsLeft() {
+  return Math.max(0, CARD_REQUESTS_PER_DAY - (refreshShop().req | 0));
+}
+
+// What a request for card k would give: { key, n, gems }, or null if k is not a current deck card or is maxed.
+function cardRequestOffer(k) {
+  const c = SAVE.cards[k];
+  if (!c || c.lvl >= MAX_LEVEL || !curDeck().includes(k)) return null;
+  const q = CARD_REQUEST[CARDS[k].rarity];
+  return { key: k, n: q.n, gems: q.gems };
+}
+
+function buyCardRequest(k) {
+  const o = cardRequestOffer(k);
+  const shop = refreshShop();
+  if (!o || (shop.req | 0) >= CARD_REQUESTS_PER_DAY || SAVE.gems < o.gems) return null;
+  SAVE.gems -= o.gems;
+  shop.req = (shop.req | 0) + 1;
+  SAVE.cards[k].n += o.n;
+  saveGame();
+  return o;
+}
+
 const SHOP_CHESTS = [
-  { type: 'magic', gems: 90 },
-  { type: 'giant', gems: 140 },
-  { type: 'epic', gems: 180 },
-  { type: 'legendary', gems: 350 },
+  { type: 'magic', gems: 40 },
+  { type: 'giant', gems: 60 },
+  { type: 'epic', gems: 80 },
+  { type: 'legendary', gems: 150 },
 ];
-const GOLD_PACKS = [{ gold: 250, gems: 20 }, { gold: 1500, gems: 100 }];
+const GOLD_PACKS = [{ gold: 500, gems: 25 }, { gold: 3000, gems: 120 }];
+
+// Pays for SHOP_CHESTS[i]. Returns { type, arena } for the chest reveal, or null.
+function buyShopChest(i) {
+  const c = SHOP_CHESTS[i];
+  if (!c || SAVE.gems < c.gems) return null;
+  SAVE.gems -= c.gems;
+  saveGame();
+  return { type: c.type, arena: curArena() };
+}
+
+// Buys GOLD_PACKS[i]. Returns the gold added, or 0.
+function buyGoldPack(i) {
+  const g = GOLD_PACKS[i];
+  if (!g || SAVE.gems < g.gems) return 0;
+  SAVE.gems -= g.gems;
+  SAVE.gold += g.gold;
+  saveGame();
+  return g.gold;
+}
+
+// ---- Crown Road ----
+// A named reward track claimed in order as your BEST trophy count passes each node (so a loss never takes
+// anything back and nothing is paid twice). Rewards: ['card', keys] those cards (one upgrade's worth of
+// copies if owned) · ['gate', a] every card of arena a not owned yet · ['chest', type] opened on the spot
+// at the node's arena · ['gold', n] · ['gems', n] · ['pack', n] n Deck Packs.
+const CROWN_ROAD = [
+  // Meadow Grounds
+  { t: 30, rewards: [['card', ['speargobs']]] },
+  { t: 60, rewards: [['chest', 'gold']] },
+  { t: 90, rewards: [['card', ['bomber']]] },
+  { t: 120, rewards: [['pack', 1]] },
+  { t: 150, rewards: [['card', ['horde']]] },
+  { t: 175, rewards: [['card', ['drakeling']]] },
+  { t: 200, rewards: [['gate', 1]] }, // Bone Pit: Imps, Tombstone, Necromancer, Shieldmaiden
+  { t: 250, rewards: [['pack', 1]] },
+  { t: 300, rewards: [['chest', 'gold']] },
+  { t: 350, rewards: [['card', ['barbarians', 'cannon']]] }, // sneak peek
+  { t: 400, rewards: [['gold', 150], ['gems', 10]] },
+  { t: 450, rewards: [['gate', 2], ['chest', 'gold']] }, // Barbarian Bowl: Berserker, Lancer
+  { t: 500, rewards: [['pack', 1]] },
+  { t: 550, rewards: [['chest', 'gold']] },
+  { t: 600, rewards: [['card', ['sprite', 'zap']]] },
+  { t: 650, rewards: [['pack', 1]] },
+  { t: 700, rewards: [['gold', 250], ['gems', 10]] },
+  { t: 750, rewards: [['gate', 3], ['chest', 'magic']] }, // Frozen Peak: Freeze, Frost Mage
+  { t: 800, rewards: [['pack', 1]] },
+  { t: 860, rewards: [['chest', 'gold']] },
+  { t: 920, rewards: [['card', ['boar', 'inferno']]] },
+  { t: 980, rewards: [['pack', 1]] },
+  { t: 1040, rewards: [['gold', 350], ['gems', 15]] },
+  { t: 1100, rewards: [['gate', 4], ['chest', 'gold']] }, // Jungle Temple: Bomb Balloon, Poison
+  { t: 1170, rewards: [['pack', 1]] },
+  { t: 1240, rewards: [['chest', 'gold']] },
+  { t: 1310, rewards: [['card', ['firemage', 'pump']]] },
+  { t: 1380, rewards: [['pack', 1]] },
+  { t: 1440, rewards: [['gold', 450], ['gems', 15]] },
+  { t: 1500, rewards: [['gate', 5], ['chest', 'giant']] }, // Lava Forge: Juggernaut, Stone Golem
+  { t: 1580, rewards: [['pack', 1]] },
+  { t: 1660, rewards: [['chest', 'gold']] },
+  { t: 1740, rewards: [['card', ['log']]] },
+  { t: 1820, rewards: [['pack', 1]] },
+  { t: 1900, rewards: [['gold', 550], ['gems', 20]] },
+  { t: 2000, rewards: [['gate', 6], ['chest', 'magic']] }, // Storm Summit: Storm Mage
+  { t: 2090, rewards: [['pack', 1]] },
+  { t: 2180, rewards: [['chest', 'gold']] },
+  { t: 2270, rewards: [['chest', 'magic']] },
+  { t: 2360, rewards: [['pack', 1]] },
+  { t: 2450, rewards: [['gold', 700], ['gems', 20]] },
+  { t: 2530, rewards: [['chest', 'epic']] },
+  { t: 2600, rewards: [['gate', 7], ['chest', 'legendary'], ['gems', 50]] }, // Royal Crown: Tunneler
+];
+
+// Legend Road after the top arena: every 100 trophies from 2700 to 9900, a Legendary Chest on each 1000.
+const LEGEND_CYCLE = [['pack', 2], ['chest', 'gold'], ['gold', 1000], ['chest', 'magic']];
+const ROAD = CROWN_ROAD.concat((() => {
+  const out = [];
+  let n = 0;
+  for (let t = TOP_MIN + 100; t <= 9900; t += 100) {
+    out.push({ t, rewards: [t % 1000 === 0 ? ['chest', 'legendary'] : LEGEND_CYCLE[n++ % LEGEND_CYCLE.length]] });
+  }
+  return out;
+})());
+
+// Trophies of the road node that first hands over card k (null for starter cards).
+function roadNodeFor(k) {
+  for (const node of CROWN_ROAD) {
+    for (const [kind, arg] of node.rewards) {
+      if ((kind === 'card' && arg.includes(k)) || (kind === 'gate' && CARDS[k].arena === arg)) return node.t;
+    }
+  }
+  return null;
+}
+
+// Trophies a win is worth before the opponent adjustment (shrinks on the ladder above 2600).
+function winTrophies(t) {
+  return t >= TOP_MIN ? Math.max(10, 30 - Math.floor((t - TOP_MIN) / 100)) : 30;
+}
+
+// Rough number of wins from the current trophies to t.
+function winsTo(t) {
+  return Math.max(0, Math.ceil((t - SAVE.trophies) / winTrophies(SAVE.trophies)));
+}
+
+// Deck Pack: copies of every card in the current deck, scaled by arena a (5/2/1/0 at A1, 16/5/1/1 at A7).
+function deckPack(a, count) {
+  const m = 20 + 7 * a, got = []; // 20 x (1 + 0.35a), kept whole so halves round up exactly (5 x 3.1 = 15.5 -> 16)
+  for (const k of curDeck()) {
+    const r = CARDS[k].rarity;
+    const n = (r === 'common' ? Math.round(m / 4) : r === 'rare' ? Math.round((3 * m) / 40) : r === 'epic' ? Math.max(1, Math.round(m / 50)) : a >= 6 ? 1 : 0) * (count || 1);
+    if (n <= 0) continue;
+    const isNew = addCards(k, n);
+    capCopies(k);
+    got.push({ key: k, n, isNew, lvl: SAVE.cards[k].lvl });
+  }
+  return got;
+}
+
+// Pays every road node up to SAVE.best that has not been paid yet. Called from applyResult (AI battles)
+// and migrateV2 only. Returns one entry per node for the result screen:
+// { t, rewards, cards: [{ key, n, isNew, lvl }], gold, gems, chest: type|null, packs }.
+function claimRoad() {
+  const out = [];
+  while (SAVE.road < ROAD.length && ROAD[SAVE.road].t <= SAVE.best) {
+    const node = ROAD[SAVE.road++];
+    const a = arenaIndex(node.t);
+    const g = { t: node.t, rewards: node.rewards, cards: [], gold: 0, gems: 0, chest: null, packs: 0 };
+    const add = (list) => {
+      for (const x of list) {
+        if (!x) continue;
+        const ex = g.cards.find((c) => c.key === x.key);
+        if (ex) { ex.n += x.n; ex.isNew = ex.isNew || x.isNew; ex.lvl = SAVE.cards[x.key].lvl; } else g.cards.push(Object.assign({}, x));
+      }
+    };
+    for (const [kind, arg] of node.rewards) {
+      if (kind === 'card') add(arg.map((k) => grantCard(k)));
+      else if (kind === 'gate') add(CARD_KEYS.filter((k) => CARDS[k].arena === arg && !SAVE.cards[k]).map((k) => grantCard(k)));
+      else if (kind === 'chest') {
+        const loot = rollChest(arg, a, randi(1, 1e9));
+        add(grantChest(loot));
+        g.gold += loot.gold;
+        g.gems += loot.gems;
+        g.chest = arg;
+      } else if (kind === 'gold') { SAVE.gold += arg; g.gold += arg; }
+      else if (kind === 'gems') { SAVE.gems += arg; g.gems += arg; }
+      else if (kind === 'pack') { add(deckPack(a, arg)); g.packs += arg; }
+    }
+    out.push(g);
+  }
+  return out;
+}
 
 // ---- opponents & rewards ----
+// AI mean card level for the current trophies before any mercy. It follows your 8 best cards, not the
+// deck you picked, so stuffing the deck with low-level cards can't make every opponent weak.
+function aiBaseMean() {
+  const t = SAVE.trophies, a = arenaIndex(t), mine = top8Avg(), E = expectedLevel(t);
+  const ramp = Math.min(AI_TOP_RAMP_MAX, Math.max(0, t - TOP_MIN) * AI_TOP_RAMP);
+  let base = 0.5 * E + 0.5 * mine + AI_GAP[a] + ramp; // you keep half of every upgrade
+  base = Math.min(base, mine + AI_CAP_ABOVE + ramp); // never more than +0.3 above you below 2600
+  base = Math.max(base, E - AI_FLOOR_BELOW); // arena floor: only binds for decks far below the curve
+  return base + (t < 60 ? -1 : 0);
+}
+
+// "Comeback match": after 2 straight AI losses (3 in the top arena) the next opponent is a bit weaker.
+// Only announced when the mercy actually changes the opponent (not when its level is already at 1 or 10).
+function comebackDue() {
+  if ((SAVE.stats.lstreak || 0) < (SAVE.trophies >= TOP_MIN ? 3 : 2)) return false;
+  const b = aiBaseMean();
+  return clamp(b + AI_MERCY, 1, MAX_LEVEL) < clamp(b, 1, MAX_LEVEL);
+}
+
 function aiOpponent(training) {
   const t = SAVE.trophies;
   const a = arenaIndex(t);
   const rng = new RNG(Date.now() & 0xffffff);
   const deck = buildAIDeck(training ? 0 : a, rng);
-  const expected = 1 + t / 330;
-  const mine = avgDeckLevel(curDeck());
-  const offset = [-1, -0.5, -0.2, 0, 0.2, 0.4, 0.6, 0.8][a];
-  const mean = training ? Math.max(1, mine - 1) : clamp(0.5 * expected + 0.5 * mine + offset + (t < 60 ? -1 : 0), 1, MAX_LEVEL);
+  const comeback = !training && comebackDue();
+  const mean = training ? Math.max(1, avgDeckLevel(curDeck()) - 1) : clamp(aiBaseMean() + (comeback ? AI_MERCY : 0), 1, MAX_LEVEL);
   const levels = {};
   for (const k of CARD_KEYS) levels[k] = clamp(Math.round(mean + rng.range(-0.5, 0.5)), 1, MAX_LEVEL);
-  const king = clamp(Math.round(training ? SAVE.king - 1 : 0.5 * SAVE.king + 0.5 * mean + (a >= 5 ? 0.5 : 0)), 1, MAX_LEVEL);
-  const skill = training ? 0.05 : t < 60 ? 0.1 : clamp(0.18 + a * 0.115, 0, 1);
+  const king = clamp(Math.round(training ? SAVE.king - 1 : 0.5 * SAVE.king + 0.5 * mean), 1, MAX_LEVEL);
+  const skill = training ? 0.05 : t < 60 ? 0.1 : Math.min(AI_SKILL_CAP, 0.18 + a * AI_SKILL_STEP);
   const name = training ? 'Training Dummy' : rng.pick(AI_NAMES);
   const trophies = training ? 0 : Math.max(0, t + rng.int(-40, 40));
-  return { deck, levels, king, skill, name, trophies };
+  return { deck, levels, king, skill, name, trophies, comeback };
 }
 
 // Called once a battle has ended; returns what was earned for the result screen.
+// AI battles pay trophies, gold, a chest (or Instant Loot when the slots are full), king XP and Crown Road
+// nodes. Training pays 5 gold for a win. Online battles pay gold and a chest only (no trophies or road).
 function applyResult(r) {
-  // r: { mode, win (bool), draw (bool), myCrowns, theirCrowns }
-  const out = { trophies: 0, gold: 0, chest: null, crowns: 0, arenaUp: null, crownChest: false };
+  // r: { mode, win (bool), draw (bool), myCrowns, theirCrowns, oppTrophies, reason }
+  const out = { trophies: 0, gold: 0, chest: null, bonus: null, crowns: 0, crownsLost: 0, arenaUp: null, crownChest: false, xp: 0, kingUps: 0, road: [], protected: false, comeback: false };
   const st = SAVE.stats;
   st.played++;
   if (r.mode === 'training') {
@@ -4572,25 +5018,43 @@ function applyResult(r) {
     return out;
   }
   const online = r.mode === 'host' || r.mode === 'guest';
+  const t = SAVE.trophies;
   const a = curArena();
+  const myCrowns = r.myCrowns | 0;
+  // giving up pays nothing, so surrender loops can't farm loss gold, XP or comeback matches
+  const quit = !online && !r.win && !r.draw && r.reason === 'surrender';
   if (r.win) {
     if (online) st.onlineWins++; else st.wins++;
     st.streak++;
     st.bestStreak = Math.max(st.bestStreak, st.streak);
-    if (r.myCrowns >= 3) st.three++;
-    out.gold = 15 + a * 6 + r.myCrowns * 3;
-    if (!online) out.trophies = 28 + Math.min(4, Math.max(-4, Math.round((r.oppTrophies - SAVE.trophies) / 25)));
+    if (myCrowns >= 3) st.three++;
     out.chest = awardChest();
+    if (online) out.gold = 15 + a * 6 + myCrowns * 3;
+    else {
+      out.gold = 20 + a * 8 + myCrowns * 4;
+      const opp = Number.isFinite(r.oppTrophies) ? r.oppTrophies : t;
+      out.trophies = winTrophies(t) + clamp(Math.round((opp - t) / 25), -3, 3);
+      st.lstreak = 0;
+      // Instant Loot: with every slot full the win pays a Silver Chest on the spot (the cycle does not advance)
+      if (!out.chest) {
+        const loot = rollChest('silver', a, randi(1, 1e9));
+        out.bonus = { loot, got: grantChest(loot) };
+      }
+    }
   } else if (r.draw) {
     st.draws++;
     st.streak = 0;
-    out.gold = 5;
+    out.gold = online ? 5 : 8 + a * 2;
   } else {
     if (online) st.onlineLosses++; else st.losses++;
     st.streak = 0;
     if (!online) {
-      const floor = ARENAS[arenaIndex(SAVE.trophies)].min;
-      out.trophies = -Math.min(16, Math.max(0, SAVE.trophies - floor));
+      out.gold = quit ? 0 : 4 + a * 2 + myCrowns * 2;
+      if (!quit) st.lstreak = (st.lstreak || 0) + 1;
+      // never below the arena floor; out.protected tells the result screen the loss was cut short
+      const want = t >= TOP_MIN ? 30 : 12;
+      out.trophies = -Math.min(want, Math.max(0, t - ARENAS[a].min));
+      out.protected = -out.trophies < want;
     }
   }
   const before = arenaIndex(SAVE.trophies);
@@ -4599,12 +5063,64 @@ function applyResult(r) {
   const after = arenaIndex(SAVE.trophies);
   if (after > before && after > SAVE.arenaSeen) { out.arenaUp = after; SAVE.arenaSeen = after; }
   SAVE.gold += out.gold;
-  out.crowns = r.myCrowns;
+  // crowns: an AI win always counts at least one; up to two chests' worth are banked
+  const earned = !online && r.win ? Math.max(1, myCrowns) : myCrowns;
   const prev = SAVE.crowns;
-  SAVE.crowns = Math.min(CROWNS_FOR_CHEST, SAVE.crowns + r.myCrowns);
-  out.crownChest = prev < CROWNS_FOR_CHEST && SAVE.crowns >= CROWNS_FOR_CHEST;
+  SAVE.crowns = Math.min(CROWN_BANK, prev + earned);
+  out.crowns = SAVE.crowns - prev; // banked
+  out.crownsLost = earned - out.crowns; // past the full bank
+  out.crownChest = Math.floor(SAVE.crowns / CROWNS_FOR_CHEST) > Math.floor(prev / CROWNS_FOR_CHEST);
+  if (!online) {
+    out.xp = r.win ? 4 : quit ? 0 : 2;
+    out.kingUps = addKingXp(out.xp);
+    out.road = claimRoad();
+    out.comeback = comebackDue();
+  }
   saveGame();
   return out;
+}
+
+// ---- save upgrade ----
+// v1 -> v2, run once from loadGame: hand over missing arena cards, raise lagging cards, back-pay the Crown
+// Road up to your best, and put waiting chests into the automatic queue. Nothing is reset or lowered.
+// Returns the gift for one "Crown Road catch-up" modal:
+// { cards: [grantCard result], raised: [{ key, from, to }], road: [claimRoad entry], gold, gems, copies }.
+function migrateV2() {
+  if (SAVE.v >= 2) return null;
+  const gift = { cards: [], raised: [], road: [], gold: 0, gems: 0, copies: 0 };
+  // 1. every card of the arenas you have reached (Tunneler only at 2600 now)
+  const ab = arenaIndex(SAVE.best);
+  for (const k of CARD_KEYS) {
+    if (CARDS[k].arena <= ab && !SAVE.cards[k]) { const g = grantCard(k); if (g) gift.cards.push(g); }
+  }
+  // 2. no card more than 2 levels under your best 8 (copies are kept)
+  const floorL = clamp(Math.floor(top8Avg()) - 2, 1, MAX_LEVEL);
+  for (const k of Object.keys(SAVE.cards)) {
+    const c = SAVE.cards[k];
+    if (c.lvl < floorL) { gift.raised.push({ key: k, from: c.lvl, to: floorL }); c.lvl = floorL; }
+  }
+  // 3. every road node up to your best trophies, exactly once
+  SAVE.road = 0;
+  gift.road = claimRoad();
+  for (const g of gift.road) {
+    gift.gold += g.gold;
+    gift.gems += g.gems;
+    for (const c of g.cards) gift.copies += c.n;
+  }
+  // 4. chests: ready and unlocking ones keep their timer (never longer than the new one); locked ones queue up
+  const now = Date.now();
+  SAVE.chests.forEach((ch, i) => {
+    if (!ch) return;
+    if (!ch.wonAt) ch.wonAt = now - (4 - i) * 1000;
+    if (ch.unlockAt > now) ch.unlockAt = Math.min(ch.unlockAt, now + CHESTS[ch.type].time * 1000);
+  });
+  scheduleChests();
+  // 5-6. crowns bank, new fields
+  SAVE.crowns = Math.min(CROWN_BANK, SAVE.crowns | 0);
+  SAVE.stats.lstreak = 0;
+  SAVE.v = 2;
+  saveGame();
+  return gift;
 }
 
 // ===== 10-battle.js =====
@@ -5037,6 +5553,151 @@ function chestImg(type, open) {
   return u;
 }
 
+// Crown Road rewards that are not cards or chests: a pile of coins, a gem and a Deck Pack.
+function rewardImg(kind) {
+  const ck = 'rw:' + kind;
+  let u = imgCache.get(ck);
+  if (u) return u;
+  const cv = makeCanvas(120, 120);
+  const x = cv.getContext('2d');
+  x.translate(60, 64);
+  x.scale(38, 38);
+  x.fillStyle = 'rgba(0,0,0,0.3)';
+  ellipse(x, 0, 1.0, 1.15, 0.26);
+  x.fill();
+  if (kind === 'gold') {
+    for (const [sx, sy, n] of [[-0.6, 0.85, 3], [0.62, 0.85, 2], [0, 0.95, 5]]) {
+      for (let i = 0; i < n; i++) ell(x, sx, sy - i * 0.24, 0.5, 0.2, i === n - 1 ? '#ffe070' : '#e8a800', 0.06);
+    }
+  } else if (kind === 'gems') {
+    poly(x, [-0.9, -0.2, -0.5, -0.8, 0.5, -0.8, 0.9, -0.2, 0, 0.95], '#1fc75a', 0.08);
+    poly(x, [-0.5, -0.8, 0.5, -0.8, 0.32, -0.2, -0.32, -0.2], '#9fffb0', 0.05);
+    poly(x, [-0.32, -0.2, 0.32, -0.2, 0, 0.95], '#5ae88a', 0.04);
+    x.fillStyle = 'rgba(255,255,255,0.85)';
+    circle(x, -0.3, -0.55, 0.08);
+    x.fill();
+  } else {
+    // two cards and a gold band: a pack of copies for the whole deck
+    x.save();
+    x.rotate(-0.25);
+    rrect(x, -0.8, -1.05, 1.3, 1.75, 0.16, '#2f5fa8', 0.07);
+    x.restore();
+    x.save();
+    x.rotate(0.12);
+    rrect(x, -0.5, -1.0, 1.3, 1.75, 0.16, '#5aa9ff', 0.07);
+    rrect(x, -0.5, 0.05, 1.3, 0.34, 0.03, GOLDC, 0.05);
+    poly(x, [-0.2, -0.2, -0.2, -0.62, 0.0, -0.42, 0.15, -0.72, 0.3, -0.42, 0.5, -0.62, 0.5, -0.2], GOLDC, 0.05);
+    x.restore();
+  }
+  u = cv.toDataURL();
+  imgCache.set(ck, u);
+  return u;
+}
+
+// A card not found yet: the frame with its subject as a dark silhouette (gate cards on the Crown Road).
+function silhouetteImg(key, w) {
+  const ck = 'sil:' + key + '@' + w;
+  let u = imgCache.get(ck);
+  if (u) return u;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const cw = Math.round(w * dpr), ch = Math.round(w * 1.24 * dpr);
+  const S = cw / 100, H = ch / S;
+  // the subject alone, drawn like cardArt does, then filled with one dark colour
+  const sub = makeCanvas(cw, ch);
+  const s = sub.getContext('2d');
+  s.scale(S, S);
+  const c = CARDS[key];
+  const o = { c: TEAM_COLORS[0], dir: 1, back: false, walk: 0.1, moving: false, t: 0.3, atk: -1, id: 1, aimX: 1, aimY: 0.2, attacking: true, charging: false };
+  if (c.type === 'spell') drawSpellIcon(s, c.spell, 50, H * 0.52);
+  else {
+    const un = c.unit, uh = UNIT_H[un] || 1.2, n = Math.min(c.count || 1, 3);
+    const sc = Math.min(58, (H * 0.62) / (uh + (UNITS[un].air ? 0.3 : 0))) * (n > 1 ? 0.8 : 1);
+    for (let i = n - 1; i >= 0; i--) {
+      s.save();
+      s.translate(50 + (n === 1 ? 0 : (i - (n - 1) / 2) * 24), H * 0.86 - (n > 1 && i === 1 ? 6 : 0) - (UNITS[un].air ? sc * 0.25 : 0));
+      s.scale(sc, sc);
+      UNIT_ART[un](s, Object.assign({}, o, { id: i + 1 }));
+      s.restore();
+    }
+  }
+  s.setTransform(1, 0, 0, 1, 0, 0);
+  s.globalCompositeOperation = 'source-in';
+  s.fillStyle = '#070b16';
+  s.fillRect(0, 0, cw, ch);
+  const cv = makeCanvas(cw, ch);
+  const x = cv.getContext('2d');
+  x.save();
+  x.scale(S, S);
+  roundRect(x, 2, 2, 96, H - 4, 12);
+  x.fillStyle = '#3a4560';
+  x.fill();
+  roundRect(x, 8, 8, 84, H - 16, 8);
+  const bg = x.createLinearGradient(0, 8, 0, H - 8);
+  bg.addColorStop(0, '#5d6f94');
+  bg.addColorStop(1, '#2a3552');
+  x.fillStyle = bg;
+  x.fill();
+  x.restore();
+  x.drawImage(sub, 0, 0);
+  x.save();
+  x.scale(S, S);
+  outlineText(x, '?', 50, H * 0.3, 34, '#ffe070');
+  x.restore();
+  u = cv.toDataURL();
+  imgCache.set(ck, u);
+  return u;
+}
+
+// Compact countdown for the chest slots: 83 s -> "1:23", 3723 s -> "1:02:03"
+function fmtClock(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  const p = (n) => (n < 10 ? '0' : '') + n;
+  return h ? h + ':' + p(m) + ':' + p(ss) : m + ':' + p(ss);
+}
+
+// 1412 -> "1,412"
+function fmtInt(n) {
+  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+const plural = (n, word) => n + ' ' + word + (n === 1 ? '' : 's');
+
+// Cards an arena gate hands over (the arena's cards no earlier road node gives), rarest first.
+function gateKeys(t, a) {
+  return CARD_KEYS.filter((k) => CARDS[k].arena === a && roadNodeFor(k) === t)
+    .sort((p, q) => RARITY_ORDER.indexOf(CARDS[q].rarity) - RARITY_ORDER.indexOf(CARDS[p].rarity));
+}
+
+// One entry per thing a road node gives: { kind, img, name, card (key, for cards), gate (unclaimed gate cards are silhouettes) }.
+function roadItems(node) {
+  const out = [];
+  for (const [kind, arg] of node.rewards) {
+    if (kind === 'card') for (const k of arg) out.push({ kind, img: cardImg(k, 60), name: CARDS[k].name, card: k });
+    else if (kind === 'gate') {
+      for (const k of gateKeys(node.t, arg)) {
+        if (node.t > SAVE.best && SAVE.cards[k]) continue; // already yours: the gate won't grant it again
+        out.push({ kind, img: cardImg(k, 60), name: CARDS[k].name, card: k, gate: true });
+      }
+    }
+    else if (kind === 'chest') out.push({ kind, img: chestImg(arg), name: CHESTS[arg].name });
+    else if (kind === 'gold') out.push({ kind, img: rewardImg('gold'), name: fmtInt(arg) + ' gold' });
+    else if (kind === 'gems') out.push({ kind, img: rewardImg('gems'), name: arg + ' gems' });
+    else if (kind === 'pack') out.push({ kind, img: rewardImg('pack'), name: arg > 1 ? arg + ' Deck Packs' : 'Deck Pack' });
+  }
+  return out;
+}
+
+const roadNodeName = (node) => roadItems(node).map((it) => it.name).join(' + ');
+const roadGate = (node) => { const g = node.rewards.find((r) => r[0] === 'gate'); return g ? g[1] : -1; };
+
+// A small card tile for reward lists: art, copies, NEW, an upgrade arrow and an optional level tag.
+function lootCell(g, w, showLvl) {
+  const rec = SAVE.cards[g.key];
+  const cell = `<div class="cc"><img src="${cardImg(g.key, w)}" alt=""><div class="lv">x${g.n}</div>${g.isNew ? '<span class="nw">NEW</span>' : ''}${rec && canUpgrade(g.key) ? '<span class="up">↑</span>' : ''}</div>`;
+  return showLvl && rec ? `<div>${cell}<span class="tag">Lv ${rec.lvl}</span></div>` : cell;
+}
+
 function arenaPreview(cv, a) {
   const theme = ARENAS[a];
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -5065,7 +5726,11 @@ const UI = {
 
   init() {
     for (const b of document.querySelectorAll('#nav button')) b.addEventListener('click', () => { Sound.play('click'); this.page(b.dataset.p); });
-    $('modal').addEventListener('pointerdown', (e) => { if (e.target === $('modal') && this.modalDismiss) this.closeModal(); });
+    $('modal').addEventListener('pointerdown', (e) => {
+      if (e.target !== $('modal') || !this.modalDismiss) return;
+      const d = this.closeModal();
+      if (typeof d === 'function') d();
+    });
   },
 
   showScreen(name) {
@@ -5101,13 +5766,16 @@ const UI = {
     cardsBtn.classList.toggle('dot', up && this.pageName !== 'cards');
     const shopBtn = document.querySelector('#nav button[data-p="shop"]');
     const shop = refreshShop();
-    shopBtn.classList.toggle('dot', this.pageName !== 'shop' && shop.offers.some((o) => !o.bought) && !SAVE.shopSeen);
+    // today's free Deck Pack is waiting, or there are deals not seen today
+    const freePack = shop.offers.some((o) => o.kind === 'pack' && !o.bought);
+    shopBtn.classList.toggle('dot', this.pageName !== 'shop' && (freePack || (shop.offers.some((o) => !o.bought) && SAVE.shopSeen !== todayKey())));
   },
 
   // Called about once per second while the home screen is visible.
   tick() {
     if (!$('home').classList.contains('show')) return;
     if (this.pageName === 'battle') this.renderChests();
+    if (this.slotTick) this.slotTick();
   },
 
   // ---- battle page ----
@@ -5116,12 +5784,15 @@ const UI = {
     const ar = ARENAS[a];
     const next = ARENAS[a + 1];
     const prog = next ? clamp((SAVE.trophies - ar.min) / (next.min - ar.min), 0, 1) * 100 : 100;
+    const toNext = next ? Math.ceil((next.min - SAVE.trophies) / 30) : 0;
     $('p-battle').innerHTML = `<div class="inner">
       <div class="arena"><canvas id="arena-cv"></canvas>
         <div class="lbl"><div><div class="ai">Arena ${a + 1}</div><div class="an">${esc(ar.name)}</div></div>
-        <div><div class="tp"><i class="tro"></i>${SAVE.trophies}</div>${next ? `<div class="prog"><i style="width:${prog}%"></i></div><div class="ai">Next: ${next.min}</div>` : '<div class="ai">Top arena!</div>'}</div></div>
+        <div class="tr"><div class="tp"><i class="tro"></i>${SAVE.trophies}</div>${next ? `<div class="prog"><i style="width:${prog}%"></i></div><div class="ai">Next: ${next.min}</div><div class="ai nx">${esc(next.name)} in ${plural(toNext, 'win')}</div>` : '<div class="ai">Top arena!</div>'}</div></div>
       </div>
-      <button class="btn gold big" id="b-battle">⚔️ BATTLE</button>
+      <h3 id="road-h">Crown Road <small>View all ›</small></h3>
+      <div id="road">${this.roadStrip()}</div>
+      <button class="btn gold big" id="b-battle">⚔️ BATTLE<small id="b-sub"></small></button>
       <div class="row"><button class="btn blue small" id="b-train">🎯 Training</button><button class="btn purple small" id="b-online">🌐 Play Online</button></div>
       <div class="chests" id="chests"></div>
       <div class="minis" id="minis"></div>
@@ -5130,113 +5801,189 @@ const UI = {
     $('b-battle').onclick = () => Game.startAIBattle(false);
     $('b-train').onclick = () => Game.startAIBattle(true);
     $('b-online').onclick = () => this.page('online');
+    $('road').onclick = $('road-h').onclick = () => { Sound.play('click'); this.roadModal(); };
     this.renderChests();
   },
 
+  // What the next AI battle brings, shown under the BATTLE label.
+  battleSub() {
+    const parts = [];
+    if (comebackDue()) parts.push('💪 Comeback match');
+    if (chestSlotFree() < 0) parts.push('Slots full: wins give Instant Loot');
+    return parts.join('\n');
+  },
+
+  // The last claimed Crown Road node and the next three.
+  roadStrip() {
+    const r = SAVE.road;
+    let start = Math.max(0, r - 1);
+    if (start + 4 > ROAD.length) start = Math.max(0, ROAD.length - 4);
+    return ROAD.slice(start, start + 4).map((node, j) => {
+      const i = start + j, done = i < r;
+      const items = roadItems(node);
+      const first = items[0];
+      const two = items.length > 1 && items[1].card && first.card && !first.gate;
+      const icon = (it) => `<img class="${it.card ? 'cd' : ''}" src="${it.gate && !done ? silhouetteImg(it.card, 48) : it.img}" alt="">`;
+      const more = items.length - (two ? 2 : 1);
+      return `<div class="node ${done ? 'done' : ''} ${i === r ? 'next' : ''} ${roadGate(node) >= 0 ? 'gate' : ''}">
+        <div class="ic ${two ? 'two' : ''}">${icon(first)}${two ? icon(items[1]) : ''}${done ? '<span class="ck">✓</span>' : more > 0 ? `<span class="more">+${more}</span>` : ''}</div>
+        <b><i class="tro"></i>${node.t}</b><small>${done ? 'Claimed' : plural(winsTo(node.t), 'win')}</small></div>`;
+    }).join('');
+  },
+
+  // Every node of the current and next arena (and the gate after them).
+  roadModal() {
+    const a = curArena();
+    const lo = ARENAS[a].min;
+    const hi = ARENAS[a + 2] ? ARENAS[a + 2].min : Math.max(SAVE.best, TOP_MIN) + 1000;
+    const rows = ROAD.map((node, i) => ({ node, i })).filter((x) => x.node.t >= lo && x.node.t <= hi).map(({ node, i }) => {
+      const done = i < SAVE.road;
+      const gate = roadGate(node);
+      const items = roadItems(node).map((it) => `<div class="ri"><img class="${it.card ? 'cd' : ''}" src="${it.gate && !done ? silhouetteImg(it.card, 44) : it.img}" alt=""><span>${it.gate && !done ? '???' : esc(it.name)}</span></div>`).join('');
+      return `<div class="rrow ${done ? 'done' : ''} ${i === SAVE.road ? 'next' : ''} ${gate >= 0 ? 'gate' : ''}">
+        <div class="rt"><b><i class="tro"></i>${node.t}</b><small>${done ? '✓ Claimed' : plural(winsTo(node.t), 'win')}</small></div>
+        <div class="rr">${gate >= 0 ? `<div class="gt">Arena ${gate + 1}: ${esc(ARENAS[gate].name)}${done ? '' : ' · Unlocks at ' + node.t}</div>` : ''}${items}</div></div>`;
+    }).join('');
+    this.modal(`<h2>Crown Road</h2>
+      <p class="center muted small">A reward every 1 to 3 wins, paid once when your best trophies reach it. Each arena's cards arrive at its gate, ready to play.</p>
+      <div id="road-all">${rows}</div>
+      <div class="btns"><button class="btn gold" id="ra-ok">Close</button></div>`, true);
+    $('ra-ok').onclick = () => this.closeModal();
+    const nx = document.querySelector('#road-all .next');
+    const panel = $('modal-panel');
+    if (nx) panel.scrollTop += nx.getBoundingClientRect().top - panel.getBoundingClientRect().top - panel.clientHeight / 3;
+  },
+
+  // Chest slots and the two mini chests. Runs every second, so the elements are kept and only their
+  // contents change (taps and test handles stay attached).
   renderChests() {
     const box = $('chests');
     if (!box) return;
-    const unlocking = anyUnlocking();
-    box.innerHTML = SAVE.chests.map((ch, i) => {
+    if (box.children.length !== SAVE.chests.length) {
+      box.innerHTML = SAVE.chests.map((_, i) => `<div class="slot" data-i="${i}"></div>`).join('');
+      for (const el of box.children) el.onclick = () => { if (SAVE.chests[+el.dataset.i]) this.chestSlot(+el.dataset.i); };
+    }
+    const now = Date.now();
+    SAVE.chests.forEach((ch, i) => {
+      const el = box.children[i];
       const st = chestState(ch);
-      if (st === 'empty') return `<div class="slot"><div class="st muted">Chest slot</div></div>`;
-      const def = CHESTS[ch.type];
-      let label;
-      if (st === 'ready') label = '<div class="st g">OPEN!</div>';
-      else if (st === 'unlocking') label = `<div class="st y">${fmtDuration(ch.unlockAt - Date.now())}</div><div class="st">⚡${gemsToOpen(ch)}</div>`;
-      else label = unlocking ? `<div class="st">${fmtDuration(def.time * 1000)}</div>` : `<div class="st y">Tap to unlock</div><div class="st">${fmtDuration(def.time * 1000)}</div>`;
-      return `<div class="slot full ${st === 'ready' ? 'ready' : ''}" data-i="${i}"><span class="ar">A${ch.arena + 1}</span><img src="${chestImg(ch.type)}" alt="">${label}</div>`;
-    }).join('');
-    for (const el of box.querySelectorAll('.slot.full')) el.onclick = () => this.chestSlot(+el.dataset.i);
-    const free = nextFreeChestIn();
-    const fs = freeState();
+      let cls = 'slot', html = '<div class="st muted">Chest slot</div>';
+      if (st !== 'empty') {
+        let label;
+        if (st === 'ready') label = '<div class="st g">OPEN!</div>';
+        else if (st === 'unlocking') label = `<div class="st y">${fmtClock(ch.unlockAt - now)}</div><div class="st">⚡${gemsToOpen(ch)}</div>`;
+        else label = `<div class="st q">Queued</div>${ch.unlockAt ? `<div class="st sm">opens in ${fmtClock(ch.unlockAt - now)}</div>` : ''}`;
+        cls = 'slot full' + (st === 'ready' ? ' ready' : '');
+        html = `<span class="ar">A${chestOpenArena(ch) + 1}</span><img src="${chestImg(ch.type)}" alt="">${label}`;
+      }
+      if (el.className !== cls) el.className = cls;
+      if (el._h !== html) { el.innerHTML = html; el._h = html; }
+    });
+    const sub = $('b-sub');
+    if (sub) { const t = this.battleSub(); if (sub.textContent !== t) sub.textContent = t; }
     const minis = $('minis');
     if (!minis) return;
-    minis.innerHTML = `<div class="mini ${free <= 0 ? 'ready' : ''}" id="m-free"><img src="${chestImg('free')}" alt=""><div><b>Free Chest</b><small>${free <= 0 ? 'Ready! (' + fs.n + ')' : 'Next in ' + fmtDuration(free)}</small></div></div>
-      <div class="mini ${SAVE.crowns >= CROWNS_FOR_CHEST ? 'ready' : ''}" id="m-crown"><img src="${chestImg('crown')}" alt=""><div style="flex:1;min-width:0"><b>Crown Chest</b><small>${SAVE.crowns >= CROWNS_FOR_CHEST ? 'Ready!' : SAVE.crowns + ' / ' + CROWNS_FOR_CHEST + ' crowns'}</small><div class="pb"><i style="width:${(SAVE.crowns / CROWNS_FOR_CHEST) * 100}%"></i></div></div></div>`;
-    $('m-free').onclick = () => {
-      if (!takeFreeChest()) { this.toast('The next free chest arrives in ' + fmtDuration(nextFreeChestIn())); return; }
-      this.openChest('free', curArena());
-    };
-    $('m-crown').onclick = () => {
-      if (SAVE.crowns < CROWNS_FOR_CHEST) { this.toast('Win crowns by destroying enemy towers.'); return; }
-      SAVE.crowns = 0;
-      saveGame();
-      this.openChest('crown', curArena());
-    };
+    if (!$('m-free')) {
+      minis.innerHTML = '<div class="mini" id="m-free"></div><div class="mini" id="m-crown"></div>';
+      $('m-free').onclick = () => {
+        if (!takeFreeChest()) { this.toast('The next free chest arrives in ' + fmtDuration(nextFreeChestIn())); return; }
+        this.openChest('free', curArena());
+      };
+      $('m-crown').onclick = () => {
+        if (!takeCrownChest()) { this.toast('Win crowns by destroying enemy towers.'); return; }
+        this.openChest('crown', curArena());
+      };
+    }
+    const free = nextFreeChestIn();
+    const fs = freeState();
+    // crowns bank up to two chests: "+1 banked" means one is ready to open, the bar fills toward the next
+    const banked = Math.floor(SAVE.crowns / CROWNS_FOR_CHEST);
+    const toward = SAVE.crowns - banked * CROWNS_FOR_CHEST;
+    const full = SAVE.crowns >= CROWN_BANK;
+    const set = (el, cls, html) => { if (el.className !== cls) el.className = cls; if (el._h !== html) { el.innerHTML = html; el._h = html; } };
+    set($('m-free'), 'mini' + (free <= 0 ? ' ready' : ''), `<img src="${chestImg('free')}" alt=""><div><b>Free Chest</b><small>${free <= 0 ? 'Ready! (' + fs.n + '/' + FREE_CHEST_MAX + ')' : 'Next in ' + fmtDuration(free)}</small></div>`);
+    set($('m-crown'), 'mini' + (banked ? ' ready' : ''), `<img src="${chestImg('crown')}" alt=""><div style="flex:1;min-width:0"><b>Crown Chest${banked ? ` <span class="bk">+${banked} banked</span>` : ''}</b><small>${full ? 'Bank full: open one!' : toward + ' / ' + CROWNS_FOR_CHEST + ' crowns'}</small><div class="pb"><i style="width:${full ? 100 : (toward / CROWNS_FOR_CHEST) * 100}%"></i></div></div>`);
   },
 
+  // A ready chest opens at once; any other shows its timer and the gem price to open it now.
   chestSlot(i) {
     const ch = SAVE.chests[i];
-    const st = chestState(ch);
-    const def = CHESTS[ch.type];
-    if (st === 'ready') {
-      SAVE.chests[i] = null;
-      saveGame();
-      this.openChest(ch.type, ch.arena, ch.seed);
+    if (!ch) return;
+    if (chestState(ch) === 'ready') {
+      const r = takeSlotChest(i, false);
+      if (r) this.openChest(r.type, r.arena, r.seed);
       return;
     }
-    const gems = gemsToOpen(ch);
-    const canStart = st === 'locked' && !anyUnlocking();
+    const def = CHESTS[ch.type];
+    const a = chestOpenArena(ch);
     this.modal(`<h2>${def.name}</h2>
-      <div class="chestbox"><img class="big" src="${chestImg(ch.type)}" alt=""></div>
-      <p class="center muted">Arena ${ch.arena + 1} · about ${Math.round(def.cards * (1 + ch.arena * 0.35))} cards${def.only ? ' (' + def.only + ')' : ''}</p>
-      <p class="center">${st === 'unlocking' ? 'Unlocking: ' + fmtDuration(ch.unlockAt - Date.now()) + ' left' : 'Unlock time: ' + fmtDuration(def.time * 1000)}</p>
-      <div class="btns">
-        ${canStart ? '<button class="btn green" id="c-start">Start unlock</button>' : ''}
-        <button class="btn purple" id="c-gems" ${SAVE.gems < gems ? 'disabled' : ''}>Open now ⚡${gems}</button>
-      </div>
-      ${st === 'locked' && !canStart ? '<p class="center muted small">Another chest is already unlocking.</p>' : ''}
+      <div class="chestbox" style="min-height:0"><img class="big" src="${chestImg(ch.type)}" alt=""></div>
+      <p class="center muted">Arena ${a + 1} · about ${Math.round(def.cards * (1 + a * 0.35))} cards${def.only ? ' (' + def.only + ')' : ''}</p>
+      <p class="center" id="c-time"></p>
+      <div class="btns"><button class="btn purple" id="c-gems"></button></div>
+      <p class="center muted small">Chests unlock by themselves, two at a time, in the order you won them.</p>
       <div class="btns"><button class="btn small" id="c-close">Close</button></div>`, true);
-    if ($('c-start')) $('c-start').onclick = () => {
-      ch.unlockAt = Date.now() + def.time * 1000;
-      saveGame();
-      this.closeModal();
-      this.renderChests();
-      Sound.play('click');
+    // kept live by tick() while the modal is open
+    this.slotTick = () => {
+      if (SAVE.chests[i] !== ch || !this.modalOpen() || !$('c-time')) { this.slotTick = null; return; }
+      const st = chestState(ch);
+      const gems = st === 'ready' ? 0 : gemsToOpen(ch);
+      $('c-time').innerHTML = st === 'ready' ? '<b style="color:#8dff8d">Ready to open!</b>' : `Opens in <b>${fmtDuration(ch.unlockAt - Date.now())}</b>${st === 'unlocking' ? '' : ' (queued)'}`;
+      const b = $('c-gems');
+      b.innerHTML = gems ? `Open now ⚡${gems}` : 'Open';
+      b.disabled = SAVE.gems < gems;
     };
+    this.slotTick();
     $('c-gems').onclick = () => {
-      if (SAVE.gems < gems) return;
-      SAVE.gems -= gems;
-      SAVE.chests[i] = null;
-      saveGame();
+      const r = takeSlotChest(i, true);
+      if (!r) return;
+      this.slotTick = null;
       this.refreshTop();
-      this.openChest(ch.type, ch.arena, ch.seed);
+      this.openChest(r.type, r.arena, r.seed);
     };
-    $('c-close').onclick = () => this.closeModal();
+    $('c-close').onclick = () => { this.slotTick = null; this.closeModal(); };
   },
 
-  // Chest opening: tap the chest, then tap through the cards.
+  // Chest opening: tap the chest, then tap through the cards (or skip to the summary).
   openChest(type, arena, seed) {
+    const before = new Set(curDeck().filter((k) => canUpgrade(k)));
     const loot = rollChest(type, arena, seed);
     const got = grantChest(loot);
     this.refreshTop();
+    const ups = curDeck().filter((k) => canUpgrade(k) && !before.has(k)).length;
     const def = CHESTS[type];
+    const skip = '<div class="btns"><button class="btn tiny skip" id="c-skip">Skip ›</button></div>';
     let step = -1;
     const show = () => {
       if (step < 0) {
-        this.modal(`<h2>${def.name}</h2><div class="chestbox" id="cb"><img class="shake" src="${chestImg(type)}" alt=""><p class="muted">Tap to open!</p></div>`, false);
+        this.modal(`<h2>${def.name}</h2><div class="chestbox" id="cb"><img class="shake" src="${chestImg(type)}" alt=""><p class="muted">Tap to open!</p></div>${skip}`, false);
       } else if (step < got.length) {
         const g = got[step];
         const c = CARDS[g.key], r = RARITY[c.rarity];
         const rec = SAVE.cards[g.key];
         const need = upgradeCost(g.key);
+        const inDeck = curDeck().includes(g.key);
+        const tags = (inDeck ? '<span class="pill">In deck</span>' : '') + (canUpgrade(g.key) ? '<span class="pill u">UPGRADE READY</span>' : '');
         this.modal(`<h2 style="color:${r.color}">${esc(c.name)}</h2>
           <div class="chestbox" id="cb"><div class="reveal pop"><img src="${cardImg(g.key, 130)}" style="width:130px" alt="">
           <div class="cnt">x${g.n}</div>${g.isNew ? '<div class="nw">NEW CARD!</div>' : ''}
-          <div class="muted small">${r.name} · Level ${rec.lvl}${need ? ' · ' + rec.n + '/' + need.copies + ' to upgrade' : ' · Max level'}</div></div>
-          <p class="muted small">${got.length - step - 1} more</p></div>`, false);
+          <div class="muted small">${r.name} · Level ${rec.lvl}${need ? ' · ' + rec.n + '/' + need.copies + ' to upgrade' : ' · Max level'}</div>
+          ${tags ? `<div class="pills">${tags}</div>` : ''}</div>
+          <p class="muted small">${got.length - step - 1} more</p></div>${skip}`, false);
         Sound.play(c.rarity === 'legendary' ? 'legendary' : c.rarity === 'epic' ? 'epic' : 'cardflip');
       } else {
         this.modal(`<h2>${def.name}</h2>
-          <div class="loot">${got.map((g) => `<div class="cc"><img src="${cardImg(g.key, 80)}" alt=""><div class="lv">x${g.n}</div>${g.isNew ? '<span class="nw">NEW</span>' : ''}</div>`).join('')}</div>
+          <div class="loot">${got.map((g) => lootCell(g, 80)).join('')}</div>
           <div class="rw">${loot.gold ? `<div class="res"><i class="coin"></i>+${loot.gold}</div>` : ''}${loot.gems ? `<div class="res"><i class="gem"></i>+${loot.gems}</div>` : ''}</div>
-          <div class="btns"><button class="btn gold" id="c-ok">Collect</button></div>`, false);
+          <div class="btns">${ups ? `<button class="btn green" id="c-cards">Cards ↑${ups}</button>` : ''}<button class="btn gold" id="c-ok">Collect</button></div>`, false);
         Sound.play('coin');
-        $('c-ok').onclick = () => { this.closeModal(); this.render(); this.refreshTop(); this.refreshNav(); };
+        const done = () => { this.closeModal(); this.render(); this.refreshTop(); this.refreshNav(); };
+        $('c-ok').onclick = done;
+        if ($('c-cards')) $('c-cards').onclick = () => { done(); this.page('cards'); };
         return;
       }
       $('cb').onclick = () => { step++; if (step === 0) Sound.play('chest'); show(); };
+      $('c-skip').onclick = () => { if (step < 0) Sound.play('chest'); step = got.length; show(); };
     };
     show();
   },
@@ -5247,10 +5994,10 @@ const UI = {
     const owned = CARD_KEYS.filter((k) => SAVE.cards[k] && !deck.includes(k));
     owned.sort((a, b) => CARDS[a].cost - CARDS[b].cost || RARITY_ORDER.indexOf(CARDS[a].rarity) - RARITY_ORDER.indexOf(CARDS[b].rarity));
     const locked = CARD_KEYS.filter((k) => !SAVE.cards[k]);
-    locked.sort((a, b) => CARDS[a].arena - CARDS[b].arena);
+    locked.sort((a, b) => (roadNodeFor(a) || 0) - (roadNodeFor(b) || 0));
     const cell = (k, inDeck) => {
       const rec = SAVE.cards[k];
-      if (!rec) return `<div class="cc locked" data-k="${k}"><img src="${cardImg(k, 90)}" alt=""><div class="lv">Arena ${CARDS[k].arena + 1}</div></div>`;
+      if (!rec) return `<div class="cc locked" data-k="${k}"><img src="${cardImg(k, 90)}" alt=""><div class="lv">Crown Road<br><i class="tro"></i>${roadNodeFor(k)}</div></div>`;
       const u = upgradeCost(k);
       const pct = u ? clamp(rec.n / u.copies, 0, 1) * 100 : 100;
       const up = canUpgrade(k);
@@ -5265,8 +6012,8 @@ const UI = {
       ${this.swapKey ? `<div class="status"><img src="${cardImg(this.swapKey, 40)}" style="width:34px" alt="">Tap a card in your deck to replace it. <button class="btn tiny" id="sw-x">Cancel</button></div>` : ''}
       <div class="deckgrid"><div class="grid">${deck.map((k) => wrap(k, true)).join('')}</div></div>
       <h3>Collection <small>${Object.keys(SAVE.cards).length}/${CARD_KEYS.length} found</small></h3>
-      <div class="grid">${owned.map((k) => wrap(k, false)).join('') || '<p class="muted">All your cards are in the deck.</p>'}</div>
-      ${locked.length ? `<h3>Not found yet <small>Win chests to unlock</small></h3><div class="grid">${locked.map((k) => `<div>${cell(k)}</div>`).join('')}</div>` : ''}
+      <div class="grid">${owned.map((k) => wrap(k, false)).join('') || '<p class="muted" style="grid-column:1/-1">All your cards are in the deck.</p>'}</div>
+      ${locked.length ? `<h3>Not found yet <small>Unlock on the Crown Road</small></h3><div class="grid">${locked.map((k) => `<div>${cell(k)}</div>`).join('')}</div>` : ''}
     </div>`;
     for (const b of document.querySelectorAll('#p-cards [data-d]')) b.onclick = () => { SAVE.deck = +b.dataset.d; saveGame(); this.swapKey = null; this.renderCards(); };
     if ($('sw-x')) $('sw-x').onclick = () => { this.swapKey = null; this.renderCards(); };
@@ -5309,7 +6056,7 @@ const UI = {
         <div class="rar" style="color:${r.color}">${r.name} ${c.type}${rec ? ' · Level ' + lvl : ''}</div>
         <p class="muted" style="margin-top:6px;font-size:13px">${esc(c.desc)}</p></div></div>
       <table class="stt">${rows}</table>
-      ${!rec ? `<p class="center muted">Unlocks in Arena ${c.arena + 1}: ${esc(ARENAS[c.arena].name)} (${ARENAS[c.arena].min} trophies)</p>` : ''}
+      ${!rec && roadNodeFor(k) != null ? `<p class="center muted">Unlocks on the Crown Road at ${fmtInt(roadNodeFor(k))} trophies (about ${plural(Math.max(1, winsTo(roadNodeFor(k))), 'win')})</p>` : ''}
       ${rec && u ? `<p class="center small muted">Cards: ${rec.n} / ${u.copies} · Upgrade cost: ${u.gold} gold · +${u.xp} XP</p>` : ''}
       <div class="btns">
         ${rec && !inDeck ? '<button class="btn blue" id="ci-use">Use</button>' : ''}
@@ -5323,17 +6070,18 @@ const UI = {
       Sound.play('upgrade');
       this.refreshTop();
       this.closeModal();
-      this.renderCards();
+      this.render();
       this.refreshNav();
       this.toast(`${c.name} upgraded to level ${res.lvl}! +${res.xp} XP`);
-      if (res.kingUps) setTimeout(() => this.kingLevelUp(), 400);
+      if (res.kingUps) setTimeout(() => this.kingLevelUp(res.kingUps), 400);
     };
     $('ci-x').onclick = () => this.closeModal();
   },
 
-  kingLevelUp() {
+  // n: levels gained at once (each one paid 10 gems)
+  kingLevelUp(n) {
     Sound.play('levelup');
-    this.modal(`<h2>King Level ${SAVE.king}!</h2><p class="center">Your towers are stronger now.</p><div class="rw"><div class="res"><i class="gem"></i>+10</div></div><div class="btns"><button class="btn gold" id="kl-ok">Great!</button></div>`, true);
+    this.modal(`<h2>King Level ${SAVE.king}!</h2><p class="center">Your towers are stronger now.</p><div class="rw"><div class="res"><i class="gem"></i>+${10 * (n || 1)}</div></div><div class="btns"><button class="btn gold" id="kl-ok">Great!</button></div>`, true);
     $('kl-ok').onclick = () => this.closeModal();
     this.refreshTop();
   },
@@ -5342,48 +6090,66 @@ const UI = {
   renderShop() {
     SAVE.shopSeen = todayKey();
     const shop = refreshShop();
+    const left = cardRequestsLeft();
+    const offers = shop.offers.map((o, i) => ({ o, i }));
+    const pack = offers.find((x) => x.o.kind === 'pack');
+    const deals = offers.filter((x) => x.o.kind !== 'pack');
     $('p-shop').innerHTML = `<div class="inner">
       <h3>Daily deals <small>New offers every day</small></h3>
-      <div class="shopgrid">${shop.offers.map((o, i) => `<div class="offer ${o.bought ? 'done' : ''}"><img src="${cardImg(o.key, 90)}" alt=""><b>${esc(CARDS[o.key].name)} x${o.n}</b>
+      ${pack ? `<div class="offer wide ${pack.o.bought ? 'done' : ''}"><img src="${rewardImg('pack')}" alt=""><div class="d"><b>Free Deck Pack</b><small>Copies for all 8 cards in your deck</small></div>
+        <button class="btn small ${pack.o.bought ? '' : 'green'}" data-o="${pack.i}" ${pack.o.bought ? 'disabled' : ''}>${pack.o.bought ? 'Claimed' : 'Free'}</button></div>` : ''}
+      <div class="shopgrid">${deals.map(({ o, i }) => `<div class="offer ${o.bought ? 'done' : ''}"><img src="${cardImg(o.key, 90)}" alt=""><b>${esc(CARDS[o.key].name)} x${o.n}</b>
         <button class="btn small ${o.bought ? '' : 'gold'}" data-o="${i}" ${o.bought || SAVE.gold < o.price ? 'disabled' : ''}>${o.bought ? 'Sold' : `<i class="coin"></i> ${o.price}`}</button></div>`).join('')}</div>
+      <h3>Card Request <small>${CARD_REQUESTS_PER_DAY - left}/${CARD_REQUESTS_PER_DAY} today</small></h3>
+      <div class="grid req">${curDeck().map((k) => {
+        const q = cardRequestOffer(k);
+        return `<div><div class="cc" data-q="${k}"><img src="${cardImg(k, 90)}" alt=""><div class="lv">${q ? 'x' + q.n : 'MAX'}</div></div>
+          <button class="btn tiny purple" data-r="${k}" ${!q || !left || SAVE.gems < q.gems ? 'disabled' : ''}>${q ? `<i class="gem"></i> ${q.gems}` : 'Max'}</button></div>`;
+      }).join('')}</div>
+      <p class="center muted small">${left ? 'Pick any card in your deck. ' + plural(left, 'request') + ' left today.' : 'No requests left today. More tomorrow!'}</p>
       <h3>Chests</h3>
       <div class="shopgrid">${SHOP_CHESTS.map((c, i) => `<div class="offer"><img src="${chestImg(c.type)}" alt=""><b>${CHESTS[c.type].name}</b><small>Arena ${curArena() + 1} rewards</small>
         <button class="btn small purple" data-c="${i}" ${SAVE.gems < c.gems ? 'disabled' : ''}><i class="gem"></i> ${c.gems}</button></div>`).join('')}</div>
       <h3>Gold</h3>
-      <div class="shopgrid">${GOLD_PACKS.map((g, i) => `<div class="offer"><div style="font-size:34px">💰</div><b>${g.gold} gold</b>
+      <div class="shopgrid">${GOLD_PACKS.map((g, i) => `<div class="offer"><img src="${rewardImg('gold')}" alt=""><b>${fmtInt(g.gold)} gold</b>
         <button class="btn small purple" data-g="${i}" ${SAVE.gems < g.gems ? 'disabled' : ''}><i class="gem"></i> ${g.gems}</button></div>`).join('')}</div>
       <p class="center muted small">Everything is earned in the game. No real money, no ads.</p>
     </div>`;
+    const after = () => { Sound.play('coin'); this.refreshTop(); this.renderShop(); this.refreshNav(); };
+    const once = () => { const now = Date.now(); if (now - (this.lastBuy || 0) < 450) return false; this.lastBuy = now; return true; };
     for (const b of document.querySelectorAll('#p-shop [data-o]')) b.onclick = () => {
-      const o = shop.offers[+b.dataset.o];
-      if (o.bought || SAVE.gold < o.price) return;
-      SAVE.gold -= o.price;
-      o.bought = true;
-      const isNew = addCards(o.key, o.n);
-      saveGame();
-      Sound.play('coin');
-      this.toast(`${isNew ? 'New card: ' : ''}${CARDS[o.key].name} x${o.n}`);
-      this.refreshTop();
-      this.renderShop();
+      if (!once()) return;
+      const res = buyOffer(+b.dataset.o);
+      if (!res) return;
+      if (res.kind === 'pack') { this.refreshTop(); this.packReveal('Deck Pack', res.cards); return; }
+      this.toast(`${res.isNew ? 'New card: ' : ''}${CARDS[res.key].name} x${res.n}`);
+      after();
     };
+    for (const b of document.querySelectorAll('#p-shop [data-r]')) b.onclick = () => {
+      if (!once()) return;
+      const res = buyCardRequest(b.dataset.r);
+      if (!res) return;
+      this.toast(`Card Request: ${CARDS[res.key].name} x${res.n}`);
+      after();
+    };
+    for (const el of document.querySelectorAll('#p-shop .req .cc')) el.onclick = () => this.cardInfo(el.dataset.q);
     for (const b of document.querySelectorAll('#p-shop [data-c]')) b.onclick = () => {
-      const c = SHOP_CHESTS[+b.dataset.c];
-      if (SAVE.gems < c.gems) return;
-      SAVE.gems -= c.gems;
-      saveGame();
+      if (!once()) return;
+      const res = buyShopChest(+b.dataset.c);
+      if (!res) return;
       this.refreshTop();
-      this.openChest(c.type, curArena());
+      this.openChest(res.type, res.arena);
     };
-    for (const b of document.querySelectorAll('#p-shop [data-g]')) b.onclick = () => {
-      const g = GOLD_PACKS[+b.dataset.g];
-      if (SAVE.gems < g.gems) return;
-      SAVE.gems -= g.gems;
-      SAVE.gold += g.gold;
-      saveGame();
-      Sound.play('coin');
-      this.refreshTop();
-      this.renderShop();
-    };
+    for (const b of document.querySelectorAll('#p-shop [data-g]')) b.onclick = () => { if (once() && buyGoldPack(+b.dataset.g)) after(); };
+  },
+
+  // Deck Pack reveal: one summary of the copies every deck card got.
+  packReveal(title, got) {
+    Sound.play('chest');
+    this.modal(`<h2>${esc(title)}</h2><p class="center muted small">Copies for every card in your deck</p>
+      <div class="loot">${got.map((g) => lootCell(g, 80)).join('')}</div>
+      <div class="btns"><button class="btn gold" id="pk-ok">Collect</button></div>`, false);
+    $('pk-ok').onclick = () => { this.closeModal(); this.render(); this.refreshTop(); this.refreshNav(); };
   },
 
   // ---- online page ----
@@ -5507,37 +6273,106 @@ const UI = {
     $('bm-sur').onclick = () => { this.closeModal(); scene.resume(); scene.surrender(); };
   },
 
+  // Result screen, built around progress: trophy bar, rewards, the chest's place in the queue and the Crown Road.
   resultModal(scene, r, rw) {
     const my = scene.myTeam;
     const res = scene.result;
     const online = !!scene.link;
+    const ai = r.mode === 'ai';
     const title = r.draw ? 'Draw' : r.win ? 'Victory!' : 'Defeat';
     const reason = { surrender: r.win ? 'Your opponent surrendered.' : 'You surrendered.', disconnect: 'Your opponent disconnected.', tiebreak: 'Decided by the weakest tower.' }[res.reason] || '';
+    // trophy bar inside the arena band, animated from the old count to the new one
+    let tbar = '';
+    if (ai) {
+      const t1 = SAVE.trophies, t0 = t1 - rw.trophies;
+      const a = arenaIndex(t1), next = ARENAS[a + 1];
+      let lo, hi, label;
+      if (next) {
+        lo = ARENAS[a].min;
+        hi = next.min;
+        label = `${fmtInt(t1)} / ${fmtInt(hi)} · ${esc(next.name)} in ${plural(winsTo(hi), 'win')}`;
+      } else {
+        const node = ROAD[SAVE.road];
+        hi = node ? node.t : t1;
+        lo = node ? hi - 100 : 0;
+        label = node ? `${fmtInt(t1)} · next Legend reward at ${fmtInt(hi)}` : `${fmtInt(t1)} · Legend Road complete!`;
+      }
+      const pct = (t) => (hi > lo ? clamp((t - lo) / (hi - lo), 0, 1) * 100 : 100);
+      const from = arenaIndex(t0) < a ? 0 : pct(t0);
+      tbar = `<div id="rs-tbar" class="tbar" data-to="${pct(t1)}"><div class="tl"><i class="tro"></i>${label}</div>
+        <div class="rbar"><i style="width:${from}%"></i></div>${rw.protected ? '<div class="pr">🛡 Trophies protected</div>' : ''}</div>`;
+    }
+    // reward chips
+    const crownTxt = crownChestReady() ? 'chest ready' : SAVE.crowns + '/' + CROWNS_FOR_CHEST;
+    const chips = [
+      ai ? `<div class="chip"><i class="tro"></i>${rw.trophies > 0 ? '+' : rw.trophies < 0 ? '−' : '±'}${Math.abs(rw.trophies)}</div>` : '',
+      rw.gold ? `<div class="chip"><i class="coin"></i>+${rw.gold}</div>` : '',
+      rw.crowns || rw.crownsLost ? `<div class="chip">👑 +${rw.crowns} <span class="muted">(${rw.crownsLost ? 'bank full' : crownTxt})</span></div>` : '',
+      rw.xp ? `<div class="chip">⭐ +${rw.xp} XP</div>` : '',
+    ].join('');
+    // where the chest went (or the Instant Loot paid instead)
+    let chest = '';
     const ch = rw.chest;
+    if (ch) {
+      const slot = SAVE.chests.indexOf(ch) + 1;
+      const st = chestState(ch);
+      chest = `<div class="cline"><img src="${chestImg(ch.type)}" alt=""><div><b>${CHESTS[ch.type].name}</b>${slot ? ' → slot ' + slot : ''}<small>${st === 'ready' ? 'ready to open' : (st === 'unlocking' ? 'unlocking · opens in ' : 'queued · opens in ') + fmtDuration(ch.unlockAt - Date.now())}</small></div></div>`;
+    } else if (rw.bonus) {
+      chest = `<div class="cline col"><div><b>Slots full: Instant Loot</b><small>A Silver Chest's worth, paid on the spot</small></div>
+        <div class="loot sm">${rw.bonus.got.map((g) => lootCell(g, 50)).join('')}</div>
+        ${rw.bonus.loot.gold ? `<div class="chip"><i class="coin"></i>+${rw.bonus.loot.gold}</div>` : ''}</div>`;
+    } else if (r.win && online) chest = '<p class="muted small center">Chest slots are full, so no chest this time.</p>';
+    else if (ai && !r.win && rw.gold > 0) chest = `<p class="muted small center">${r.draw ? 'A draw' : 'Defeat'} still pays: +${rw.gold} gold${rw.crowns ? ', crowns counted' : ''}.</p>`;
+    else if (ai && !r.win && r.reason === 'surrender') chest = '<p class="muted small center">Surrendered: no rewards for this battle.</p>';
+    // Crown Road nodes claimed by this battle, then the next one
+    let road = '';
+    if (ai) {
+      const got = rw.road.map((g) => {
+        const node = ROAD.find((n) => n.t === g.t);
+        const gate = node ? roadGate(node) : -1;
+        // the header names the node (a gate by its arena); gold and gems, chest loot included, are chips
+        const name = gate >= 0 ? ARENAS[gate].name + ' gate' : node ? roadItems(node).filter((it) => it.kind !== 'gold' && it.kind !== 'gems').map((it) => it.name).join(' + ') : '';
+        const extra = [
+          gate >= 0 && g.chest ? `<div class="chip"><img src="${chestImg(g.chest)}" alt="">${CHESTS[g.chest].name}</div>` : '',
+          g.gold ? `<div class="chip"><i class="coin"></i>+${fmtInt(g.gold)}</div>` : '',
+          g.gems ? `<div class="chip"><i class="gem"></i>+${g.gems}</div>` : '',
+        ].join('');
+        return `<div class="rg"><div class="rh"><i class="tro"></i>${g.t}${name ? ' · ' + esc(name) : ''}</div>
+          ${g.cards.length ? `<div class="loot sm">${g.cards.map((c) => lootCell(c, 50, true)).join('')}</div>` : ''}
+          ${extra ? `<div class="rw">${extra}</div>` : ''}</div>`;
+      }).join('');
+      const nx = ROAD[SAVE.road];
+      road = `<div id="rs-road">${got ? '<div class="rtitle">Crown Road reward' + (rw.road.length > 1 ? 's' : '') + '!</div>' + got : ''}
+        ${nx ? `<div class="nx">Next: <b>${esc(roadNodeName(nx))}</b> at ${fmtInt(nx.t)} (${plural(winsTo(nx.t), 'win')})</div>` : ''}</div>`;
+    }
+    const ups = curDeck().filter((k) => canUpgrade(k)).length;
     this.modal(`<div class="result">
       <h2 style="font-size:30px;color:${r.draw ? '#fff' : r.win ? '#8fd0ff' : '#ff8a8a'}">${title}</h2>
       <div class="crowns"><div class="c"><i class="crn b"></i>${res.crowns[my]}</div><span class="muted" style="font-size:16px">vs</span><div class="c">${res.crowns[1 - my]}<i class="crn r"></i></div></div>
       <div class="muted small">${esc(scene.names[my])} vs ${esc(scene.names[1 - my])}</div>
       ${reason ? `<div class="muted small">${reason}</div>` : ''}
-      <div class="rw">
-        ${rw.trophies ? `<div class="res"><i class="tro"></i>${rw.trophies > 0 ? '+' : ''}${rw.trophies}</div>` : ''}
-        ${rw.gold ? `<div class="res"><i class="coin"></i>+${rw.gold}</div>` : ''}
-        ${rw.crowns ? `<div class="res">👑 +${rw.crowns}</div>` : ''}
-      </div>
-      ${ch ? `<div class="chestbox" style="min-height:0"><img src="${chestImg(ch.type)}" style="width:90px" alt=""><div class="small">You won a <b>${CHESTS[ch.type].name}</b>!</div></div>` : r.win && r.mode !== 'training' ? '<p class="muted small center">Chest slots are full, so no chest this time.</p>' : ''}
+      ${tbar}
+      ${chips ? `<div class="rw">${chips}</div>` : ''}
+      ${chest}
       ${rw.crownChest ? '<p class="small center" style="color:#ffe070">👑 Crown Chest is ready!</p>' : ''}
       ${rw.arenaUp != null ? `<p class="center" style="color:#ffe070;font-weight:900">New arena unlocked: ${esc(ARENAS[rw.arenaUp].name)}!</p>` : ''}
+      ${road}
       <div class="btns" style="width:100%">
+        ${ups && !online ? `<button class="btn green" id="rs-cards">Cards ↑${ups}</button>` : ''}
         ${online ? `<button class="btn green" id="rs-again" ${Lobby.link && !Lobby.link.closed ? '' : 'disabled'}>Rematch</button>` : ''}
         <button class="btn gold" id="rs-ok">${online ? 'Leave' : 'OK'}</button>
       </div>
+      ${rw.comeback ? '<div class="small cb">💪 Next match: Comeback match</div>' : ''}
       ${online ? '<div class="muted small" id="rs-note"></div>' : ''}
     </div>`, false);
+    const bar = document.querySelector('#rs-tbar .rbar i');
+    if (bar) requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = $('rs-tbar').dataset.to + '%'; }));
     $('rs-ok').onclick = () => {
       this.closeModal();
       if (online) Lobby.leave();
-      Game.toHome(rw.arenaUp);
+      Game.toHome(rw);
     };
+    if ($('rs-cards')) $('rs-cards').onclick = () => { this.closeModal(); Game.toHome(rw, 'cards'); };
     if ($('rs-again')) $('rs-again').onclick = () => {
       $('rs-again').disabled = true;
       Lobby.requestRematch();
@@ -5553,13 +6388,45 @@ const UI = {
     n.textContent = Lobby.rematch.me && Lobby.rematch.them ? 'Starting…' : Lobby.rematch.me ? 'Waiting for your opponent…' : Lobby.rematch.them ? 'Your opponent wants a rematch!' : '';
   },
 
-  arenaUnlocked(a) {
-    const cards = CARD_KEYS.filter((k) => CARDS[k].arena === a);
+  // granted: the cards the arena gate just handed over ({ key, n, lvl, isNew }); then: runs after the modal closes.
+  arenaUnlocked(a, granted, then) {
+    const top = a === ARENAS.length - 1;
+    const list = granted && granted.length ? granted : CARD_KEYS.filter((k) => CARDS[k].arena === a && SAVE.cards[k]).map((k) => ({ key: k, n: 0, lvl: SAVE.cards[k].lvl }));
     Sound.play('levelup');
     this.modal(`<h2>New Arena!</h2><p class="center" style="font-size:18px;font-weight:900">${esc(ARENAS[a].name)}</p>
-      ${cards.length ? `<p class="center muted small">New cards can now drop from chests:</p><div class="loot">${cards.map((k) => `<div class="cc"><img src="${cardImg(k, 80)}" alt=""></div>`).join('')}</div>` : '<p class="center">You reached the top arena. Legendary!</p>'}
-      <div class="btns"><button class="btn gold" id="au-ok">Awesome</button></div>`, true);
-    $('au-ok').onclick = () => this.closeModal();
+      ${top ? '<p class="center">You reached the top arena! Tunneler joins your deck options, and the Legend Road pays a reward every 100 trophies from here.</p>' : ''}
+      ${list.length ? `<p class="center muted small">${granted && granted.length ? 'Added to your collection:' : 'Arena cards:'}</p><div class="loot c3">${list.map((g) => {
+        const rec = SAVE.cards[g.key];
+        return `<div><div class="cc"><img src="${cardImg(g.key, 80)}" alt=""><div class="lv">Lvl ${rec ? rec.lvl : g.lvl}</div>${g.isNew ? '<span class="nw">NEW</span>' : ''}</div>${canUpgrade(g.key) ? '<span class="tag u">Upgrade ready</span>' : ''}</div>`;
+      }).join('')}</div>` : ''}
+      <div class="btns"><button class="btn gold" id="au-ok">Awesome</button></div>`, true, then);
+    $('au-ok').onclick = () => { this.closeModal(); if (then) then(); };
+  },
+
+  // One-time "Crown Road catch-up" for saves from before the progression update (gift from migrateV2).
+  migrationGift(gift) {
+    if (!gift) return;
+    const fresh = [], seen = new Set();
+    for (const g of gift.cards.concat(...gift.road.map((e) => e.cards.filter((c) => c.isNew)))) {
+      if (!seen.has(g.key)) { seen.add(g.key); fresh.push(g); }
+    }
+    if (!fresh.length && !gift.raised.length && !gift.road.length) return;
+    const row = (icon, text) => `<div class="gift"><span class="e">${icon}</span><span>${text}</span></div>`;
+    const rows = [
+      fresh.length ? row('🃏', plural(fresh.length, 'new card') + ', ready to play') : '',
+      gift.raised.length ? row('⬆️', `${plural(gift.raised.length, 'card')} raised to level ${gift.raised[0].to}`) : '',
+      gift.road.length ? row('<i class="tro"></i>', `${plural(gift.road.length, 'Crown Road reward')} up to ${fmtInt(gift.road[gift.road.length - 1].t)} trophies`) : '',
+      gift.gold ? row('<i class="coin"></i>', `+${fmtInt(gift.gold)} gold`) : '',
+      gift.gems ? row('<i class="gem"></i>', `+${fmtInt(gift.gems)} gems`) : '',
+      gift.copies ? row('📦', `+${fmtInt(gift.copies)} card copies`) : '',
+    ].join('');
+    Sound.play('levelup');
+    this.modal(`<h2>Crown Road catch-up</h2>
+      <p class="center small">Progress got a big update: wins pay more, chests unlock by themselves and the new Crown Road hands out cards. Here is everything your trophies already earned.</p>
+      ${rows}
+      ${fresh.length ? `<div class="loot ${fresh.length > 8 ? 'sm' : ''}">${fresh.map((g) => `<div class="cc"><img src="${cardImg(g.key, 80)}" alt=""><div class="lv">Lvl ${SAVE.cards[g.key].lvl}</div><span class="nw">NEW</span>${canUpgrade(g.key) ? '<span class="up">↑</span>' : ''}</div>`).join('')}</div>` : ''}
+      <div class="btns"><button class="btn gold" id="mg-ok">Collect</button></div>`, true, () => this.render());
+    $('mg-ok').onclick = () => { this.closeModal(); this.render(); this.refreshTop(); this.refreshNav(); };
   },
 
   // ---- modal & toast ----
@@ -5961,6 +6828,12 @@ class HomeScene {
   pointer() {}
 }
 
+// The cards an arena gate handed over in this battle's Crown Road claims (for the New Arena modal).
+function gateCards(road, a) {
+  const e = (road || []).find((g) => g.t === ARENAS[a].min);
+  return e ? e.cards.filter((c) => c.isNew) : [];
+}
+
 // ---------- Game controller ----------
 const Game = {
   canvas: null, ctx: null, W: 360, H: 640, dpr: 1,
@@ -6009,6 +6882,12 @@ const Game = {
     c.addEventListener('pointercancel', (e) => { if (e.pointerId === this.ptrId) { this.ptrId = null; this.pointer('cancel', ...pos(e)); } });
     c.addEventListener('contextmenu', (e) => e.preventDefault());
     this.setScene(new HomeScene());
+    // a save from before the progression update: show its Crown Road catch-up once
+    const gift = SAVE.pendingGift;
+    if (gift) {
+      delete SAVE.pendingGift;
+      setTimeout(() => UI.migrationGift(gift), 400);
+    }
     const room = new URLSearchParams(location.search).get('room');
     if (room && /^[A-Za-z0-9]{4}$/.test(room)) {
       Lobby.pendingCode = room.toUpperCase();
@@ -6095,22 +6974,27 @@ const Game = {
     this.setScene(new BattleScene({
       mode: training ? 'training' : 'ai',
       decks: [curDeck().slice(), opp.deck], levels: [deckLevels(), opp.levels], kings: [SAVE.king, opp.king],
-      names: [SAVE.name, opp.name], subs: ['', training ? 'Practice match' : '🏆 ' + opp.trophies],
+      names: [SAVE.name, opp.name], subs: ['', training ? 'Practice match' : '🏆 ' + opp.trophies + (opp.comeback ? ' · Comeback match' : '')],
       arena: training ? 0 : curArena(), seed: randi(1, 1e9), aiSkill: opp.skill, oppTrophies: opp.trophies,
     }));
   },
 
   battleOver(scene) {
     const res = scene.result, my = scene.myTeam;
-    const r = { mode: scene.mode, win: res.winner === my, draw: res.winner === -1, myCrowns: res.crowns[my], theirCrowns: res.crowns[1 - my], oppTrophies: scene.cfg.oppTrophies || SAVE.trophies };
+    const r = { mode: scene.mode, win: res.winner === my, draw: res.winner === -1, myCrowns: res.crowns[my], theirCrowns: res.crowns[1 - my], oppTrophies: scene.cfg.oppTrophies || SAVE.trophies, reason: res.reason };
     const rw = applyResult(r);
     UI.resultModal(scene, r, rw);
   },
 
-  toHome(arenaUp) {
+  // Back to the menus after a battle (rw: its applyResult output). A new arena shows the cards its gate
+  // handed over, then a king level-up gained from battle XP.
+  toHome(rw, pageName) {
     this.setScene(new HomeScene());
-    UI.page('battle');
-    if (arenaUp != null) setTimeout(() => UI.arenaUnlocked(arenaUp), 250);
+    UI.page(pageName || 'battle');
+    if (!rw) return;
+    const king = () => { if (rw.kingUps) UI.kingLevelUp(rw.kingUps); };
+    if (rw.arenaUp != null) setTimeout(() => UI.arenaUnlocked(rw.arenaUp, gateCards(rw.road, rw.arenaUp), king), 250);
+    else if (rw.kingUps) setTimeout(king, 250);
   },
 
   frame(now) {
@@ -6138,6 +7022,7 @@ const Game = {
 window.__CD = {
   Game, UI, Lobby, Net,
   save: () => SAVE,
+  road: () => ROAD,
   scene: () => Game.scene,
   speed: (n) => { if (Game.scene) Game.scene.speed = n; },
   // lets tests hand the player's side to an AI

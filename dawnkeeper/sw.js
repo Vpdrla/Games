@@ -1,5 +1,5 @@
 // Service worker: caches the game so it launches and plays with no internet connection.
-const CACHE = 'dawnkeeper-2957339f0e73';
+const CACHE = 'dawnkeeper-25e948e246ed';
 const ASSETS = [
   './',
   './index.html',

@@ -241,10 +241,10 @@ STAGES.forEach((s, i) => { STAGE_INDEX[s.key] = i; });
 const CHARACTERS = {
   lumen: { name: 'Lumen', title: 'Lamplighter', weapon: 'slash', perk: '+10% max health', mods: { maxHp: 0.1 }, look: { cloak: '#e08a2a', hat: 'hood', trim: '#ffd27a', skin: '#ffd9b8' }, unlock: null },
   aria: { name: 'Aria', title: 'Star Mage', weapon: 'bolt', perk: '10% faster cooldowns', mods: { cd: -0.1 }, look: { cloak: '#7a4ad8', hat: 'witch', trim: '#ffd84a', skin: '#ffe0c8' }, unlock: null },
-  bram: { name: 'Bram', title: 'Oath Knight', weapon: 'aura', perk: '+1 armor, +20% max health, -10% speed', mods: { armor: 1, maxHp: 0.2, speed: -0.1 }, look: { cloak: '#5a6a88', hat: 'helm', trim: '#d8dde8', skin: '#f0c8a0' }, unlock: 'lv20' },
-  kira: { name: 'Kira', title: 'Wild Ranger', weapon: 'boomerang', perk: '+15% move speed', mods: { speed: 0.15 }, look: { cloak: '#3a8a4a', hat: 'hood2', trim: '#a8e060', skin: '#e8b890' }, unlock: 'survive10' },
-  vesper: { name: 'Vesper', title: 'Alchemist', weapon: 'flask', perk: '+15% area', mods: { area: 0.15 }, look: { cloak: '#b8343a', hat: 'goggles', trim: '#ffb060', skin: '#ffd0b0' }, unlock: 'boss1' },
-  orin: { name: 'Orin', title: 'Tinkerer', weapon: 'drones', perk: '+1 projectile, -20% max health', mods: { amount: 1, maxHp: -0.2 }, look: { cloak: '#2a7ab8', hat: 'cap', trim: '#8affc1', skin: '#f2c8a8' }, unlock: 'evolve1' },
+  bram: { name: 'Bram', title: 'Oath Knight', weapon: 'aura', perk: '+1 armor, +20% max health, -10% speed', mods: { armor: 1, maxHp: 0.2, speed: -0.1 }, look: { cloak: '#5a6a88', hat: 'helm', trim: '#d8dde8', skin: '#f0c8a0' }, unlock: 'lv10' },
+  kira: { name: 'Kira', title: 'Wild Ranger', weapon: 'boomerang', perk: '+15% move speed', mods: { speed: 0.15 }, look: { cloak: '#3a8a4a', hat: 'hood2', trim: '#a8e060', skin: '#e8b890' }, unlock: 'kill1k' },
+  vesper: { name: 'Vesper', title: 'Alchemist', weapon: 'flask', perk: '+15% area', mods: { area: 0.15 }, look: { cloak: '#b8343a', hat: 'goggles', trim: '#ffb060', skin: '#ffd0b0' }, unlock: 'mini1' },
+  orin: { name: 'Orin', title: 'Tinkerer', weapon: 'drones', perk: '+1 projectile, -20% max health', mods: { amount: 1, maxHp: -0.2 }, look: { cloak: '#2a7ab8', hat: 'cap', trim: '#8affc1', skin: '#f2c8a8' }, unlock: 'chests8' },
 };
 const CHAR_KEYS = Object.keys(CHARACTERS);
 
@@ -271,6 +271,13 @@ const POWERUPS = {
 const POWERUP_KEYS = Object.keys(POWERUPS);
 const powerCost = (k, rank) => Math.round(POWERUPS[k].cost * (1 + rank * 0.5));
 
+// Limit Break: a late gold sink that opens once every power-up is maxed. Each rank is worth one
+// fifth of a normal rank (5 ranks = +1 normal rank), so it barely moves the balance.
+const LIMIT_BREAK_KEYS = ['might', 'maxHp', 'cd', 'area', 'growth'];
+const LIMIT_RANKS = 5;
+const LIMIT_DESC = { might: '+1% damage', maxHp: '+2% max health', cd: '0.6% faster cooldowns', area: '+1% area', growth: '+0.8% experience' };
+const limitCost = (k, rank) => Math.round(4 * POWERUPS[k].cost * (1 + 0.5 * rank));
+
 // Daily Night modifiers.
 const DAILY_MODS = {
   swarm: { name: 'Swarming Night', desc: '+60% enemies, +30% experience' },
@@ -291,31 +298,40 @@ function xpNeed(L) {
 }
 
 // Achievements. prog(S, r) returns [current, goal]; S = save, r = live run summary or null.
+// Survival goals count night time (Quick Night runs it 3x faster). Stage clears count Full Night
+// wins only; Quick wins arrive through S.cleared once a stage has two of them.
+const nightOf = (S, r) => Math.max(S.stats.bestNight || 0, r ? r.night : 0);
+const clearedOf = (S, r, key) => (S.cleared[key] || (r && r.won && r.mode !== 'quick' && r.stage === key) ? 1 : 0);
 const ACHIEVEMENTS = [
-  { id: 'survive5', name: 'First Light', desc: 'Survive 5 minutes', prog: (S, r) => [Math.max(S.stats.bestTime, r ? r.time : 0), 300], reward: { gold: 100 } },
-  { id: 'survive10', name: 'Long Night', desc: 'Survive 10 minutes', prog: (S, r) => [Math.max(S.stats.bestTime, r ? r.time : 0), 600], reward: { char: 'kira' } },
-  { id: 'lv20', name: 'Rising Flame', desc: 'Reach level 20 in a run', prog: (S, r) => [Math.max(S.stats.maxLevel, r ? r.level : 0), 20], reward: { char: 'bram' } },
+  { id: 'survive1', name: 'First Steps', desc: 'Survive 1 minute', prog: (S, r) => [nightOf(S, r), 60], reward: { gold: 50 } },
+  { id: 'chest1', name: 'Lucky Find', desc: 'Open a chest', prog: (S, r) => [S.stats.chests + (r ? r.chests : 0), 1], reward: { gold: 50 } },
+  { id: 'kill250', name: 'Warming Up', desc: 'Defeat 250 enemies', prog: (S, r) => [S.stats.kills + (r ? r.kills : 0), 250], reward: { gold: 75 } },
+  { id: 'survive5', name: 'First Light', desc: 'Survive 5 minutes', prog: (S, r) => [nightOf(S, r), 300], reward: { gold: 100 } },
+  { id: 'survive10', name: 'Long Night', desc: 'Survive 10 minutes', prog: (S, r) => [nightOf(S, r), 600], reward: { gold: 300 } },
+  { id: 'lv10', name: 'Kindled', desc: 'Reach level 10 in a run', prog: (S, r) => [Math.max(S.stats.maxLevel, r ? r.level : 0), 10], reward: { char: 'bram', gold: 100 } },
+  { id: 'lv20', name: 'Rising Flame', desc: 'Reach level 20 in a run', prog: (S, r) => [Math.max(S.stats.maxLevel, r ? r.level : 0), 20], reward: { gold: 200 } },
   { id: 'lv30', name: 'Blazing', desc: 'Reach level 30 in a run', prog: (S, r) => [Math.max(S.stats.maxLevel, r ? r.level : 0), 30], reward: { weapon: 'beam' } },
   { id: 'lv50', name: 'Inferno Soul', desc: 'Reach level 50 in a run', prog: (S, r) => [Math.max(S.stats.maxLevel, r ? r.level : 0), 50], reward: { gold: 600 } },
-  { id: 'mini1', name: 'Giant Slayer', desc: 'Defeat a mini-boss', prog: (S, r) => [S.stats.minis + (r ? r.minis : 0), 1], reward: { gold: 150 } },
-  { id: 'boss1', name: 'Bringer of Dawn', desc: 'Defeat a final boss', prog: (S, r) => [S.stats.bosses + (r ? r.bosses : 0), 1], reward: { char: 'vesper' } },
-  { id: 'evolve1', name: 'Transmutation', desc: 'Evolve a weapon', prog: (S, r) => [Object.keys(Object.assign({}, S.evolved, r ? r.evolved : {})).length, 1], reward: { char: 'orin', weapon: 'drones' } },
+  { id: 'mini1', name: 'Giant Slayer', desc: 'Defeat a mini-boss', prog: (S, r) => [S.stats.minis + (r ? r.minis : 0), 1], reward: { char: 'vesper', gold: 150 } },
+  { id: 'boss1', name: 'Bringer of Dawn', desc: 'Defeat a final boss', prog: (S, r) => [S.stats.bosses + (r ? r.bosses : 0), 1], reward: { gold: 500 } },
+  { id: 'evolve1', name: 'Transmutation', desc: 'Evolve a weapon', prog: (S, r) => [Object.keys(Object.assign({}, S.evolved, r ? r.evolved : {})).length, 1], reward: { weapon: 'drones', gold: 150 } },
   { id: 'evolve6', name: 'Grand Alchemist', desc: 'Evolve 6 different weapons', prog: (S, r) => [Object.keys(Object.assign({}, S.evolved, r ? r.evolved : {})).length, 6], reward: { gold: 1000 } },
   { id: 'evolve12', name: 'Master of Light', desc: 'Evolve all 12 weapons', prog: (S, r) => [Object.keys(Object.assign({}, S.evolved, r ? r.evolved : {})).length, 12], reward: { gold: 3000 } },
-  { id: 'kill1k', name: 'Lamplit Path', desc: 'Defeat 1,000 enemies', prog: (S, r) => [S.stats.kills + (r ? r.kills : 0), 1000], reward: { gold: 100 } },
+  { id: 'kill1k', name: 'Lamplit Path', desc: 'Defeat 1,000 enemies', prog: (S, r) => [S.stats.kills + (r ? r.kills : 0), 1000], reward: { char: 'kira', gold: 100 } },
   { id: 'kill5k', name: 'Horde Breaker', desc: 'Defeat 5,000 enemies', prog: (S, r) => [S.stats.kills + (r ? r.kills : 0), 5000], reward: { weapon: 'orb' } },
   { id: 'kill25k', name: 'Endless Vigil', desc: 'Defeat 25,000 enemies', prog: (S, r) => [S.stats.kills + (r ? r.kills : 0), 25000], reward: { gold: 1500 } },
   { id: 'kill100k', name: 'Legend of the Lantern', desc: 'Defeat 100,000 enemies', prog: (S, r) => [S.stats.kills + (r ? r.kills : 0), 100000], reward: { gold: 5000 } },
   { id: 'run1k', name: 'One Thousand Lights', desc: 'Defeat 1,000 enemies in one run', prog: (S, r) => [Math.max(S.stats.bestKills, r ? r.kills : 0), 1000], reward: { gold: 200 } },
   { id: 'bats', name: 'Bat Swatter', desc: 'Defeat 500 bats', prog: (S, r) => [(S.stats.byType.bat || 0) + (r ? r.byType.bat || 0 : 0), 500], reward: { gold: 120 } },
-  { id: 'chests', name: 'Treasure Hunter', desc: 'Open 20 chests', prog: (S, r) => [S.stats.chests + (r ? r.chests : 0), 20], reward: { weapon: 'runes' } },
+  { id: 'chests8', name: 'Pathfinder', desc: 'Open 8 chests', prog: (S, r) => [S.stats.chests + (r ? r.chests : 0), 8], reward: { char: 'orin' } },
+  { id: 'chests', name: 'Treasure Hunter', desc: 'Open 12 chests', prog: (S, r) => [S.stats.chests + (r ? r.chests : 0), 12], reward: { weapon: 'runes' } },
   { id: 'arsenal', name: 'Full Arsenal', desc: 'Hold 6 weapons at once', prog: (S, r) => [Math.max(S.stats.maxWeapons, r ? r.weapons : 0), 6], reward: { gold: 250 } },
   { id: 'gold', name: 'Gold Hoarder', desc: 'Collect 5,000 gold in total', prog: (S, r) => [S.stats.goldEarned + (r ? r.gold : 0), 5000], reward: { gold: 500 } },
   { id: 'daily', name: 'Daily Devotion', desc: 'Finish a Daily Night', prog: (S) => [S.stats.dailies, 1], reward: { gold: 200 } },
-  { id: 'clear1', name: 'Graveyard Dawn', desc: 'Clear the Moonlit Graveyard', prog: (S, r) => [S.cleared.graveyard || (r && r.won && r.stage === 'graveyard') ? 1 : 0, 1], reward: { stage: 1 } },
-  { id: 'clear2', name: 'Thaw', desc: 'Clear the Frozen Wastes', prog: (S, r) => [S.cleared.frozen || (r && r.won && r.stage === 'frozen') ? 1 : 0, 1], reward: { stage: 2 } },
-  { id: 'clear3', name: 'Cooled Embers', desc: 'Clear the Ember Caverns', prog: (S, r) => [S.cleared.ember || (r && r.won && r.stage === 'ember') ? 1 : 0, 1], reward: { stage: 3 } },
-  { id: 'clear4', name: 'Dawnkeeper', desc: 'Defeat the Night Sovereign', prog: (S, r) => [S.cleared.void || (r && r.won && r.stage === 'void') ? 1 : 0, 1], reward: { gold: 2500 } },
+  { id: 'clear1', name: 'Graveyard Dawn', desc: 'Clear the Moonlit Graveyard', prog: (S, r) => [clearedOf(S, r, 'graveyard'), 1], reward: { stage: 1 } },
+  { id: 'clear2', name: 'Thaw', desc: 'Clear the Frozen Wastes', prog: (S, r) => [clearedOf(S, r, 'frozen'), 1], reward: { stage: 2 } },
+  { id: 'clear3', name: 'Cooled Embers', desc: 'Clear the Ember Caverns', prog: (S, r) => [clearedOf(S, r, 'ember'), 1], reward: { stage: 3 } },
+  { id: 'clear4', name: 'Dawnkeeper', desc: 'Defeat the Night Sovereign', prog: (S, r) => [clearedOf(S, r, 'void'), 1], reward: { gold: 2500 } },
   { id: 'heroes', name: 'Fellowship', desc: 'Clear a stage with 4 different heroes', prog: (S, r) => [Object.keys(Object.assign({}, S.heroClears, r && r.won ? { [r.char]: 1 } : {})).length, 4], reward: { gold: 800 } },
   { id: 'noheal', name: 'Iron Will', desc: 'Clear a stage without picking up a heart', prog: (S, r) => [S.stats.noHealClear || (r && r.won && !r.hearts) ? 1 : 0, 1], reward: { gold: 600 } },
   { id: 'endless20', name: 'Eternal Night', desc: 'Survive 20 minutes in Endless', prog: (S, r) => [Math.max(S.stats.bestEndless, r && r.endless ? r.time : 0), 1200], reward: { gold: 1500 } },
