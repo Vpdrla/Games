@@ -66,6 +66,7 @@ Connecting one or both phones to Wi-Fi usually fixes it.
   win pays **Instant Loot** on the spot instead, so no win is wasted.
 - Losses still pay gold and XP, and a loss never drops you out of an arena you reached.
   After two losses in a row the next opponent is a slightly easier **Comeback match**.
+  Below the top arena, opponents also ease off while you win fewer than half of your last 10 battles.
 - Collect copies of a card and spend gold to **upgrade** it (+10% hit points and damage per
   level). Upgrades and battles give XP that raises your **king level**, which makes your
   towers stronger.
@@ -135,7 +136,7 @@ NODE_PATH=$(npm root -g) node crown-duel/tools/make-icons.cjs               # re
 - **오프라인:** 인터넷 없이 AI와 대전(트로피·골드·상자 획득), 연습 모드도 있습니다.
 - **성장:** 이기면 트로피·골드와 상자를 받고, 상자는 두 개씩 자동으로 열립니다(슬롯이 가득 차면 즉시 보상).
   **크라운 로드**는 1~3승마다 카드·상자·덱 팩·골드·젬을 주고, 아레나 관문에서 그 아레나의 카드를 바로 쓸 수 있는 레벨로 줍니다.
-  져도 골드와 경험치를 받으며, 연패하면 조금 쉬운 **컴백 매치**가 나옵니다.
+  져도 골드와 경험치를 받으며, 연패하면 조금 쉬운 **컴백 매치**가 나옵니다. 최상위 아레나 전까지는 최근 10판 승률이 50% 아래일 때 상대도 조금 약해집니다.
 - **온라인:** 인터넷이 연결된 두 휴대폰이 직접 연결됩니다.
   **방 만들기**를 누르면 4자리 코드가 나오고, 친구가 **참가**에 코드를 입력(또는 공유 링크를 열기)하면 바로 대전이 시작됩니다.
   **빠른 대전**은 같은 시간에 찾는 사람과 자동으로 매칭합니다. 온라인 대전은 모든 카드가 6레벨로 공정하게 맞춰집니다.

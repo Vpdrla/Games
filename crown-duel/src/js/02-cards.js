@@ -13,7 +13,7 @@ const RARITY = {
   legendary: { name: 'Legendary', color: '#3ff0d0', dark: '#0f7a6b', copies: [1, 1, 1, 1, 2, 2, 3, 3, 3], xp: 3 },
 };
 const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary'];
-const UPGRADE_GOLD = [5, 20, 50, 150, 400, 1000, 2000, 4000, 8000];
+const UPGRADE_GOLD = [5, 20, 50, 150, 400, 1000, 2000, 4000, 12000];
 const UPGRADE_XP = [4, 5, 6, 10, 25, 50, 100, 200, 400];
 const KING_XP = [20, 50, 100, 200, 400, 800, 1600, 3000, 5000];
 
@@ -128,12 +128,17 @@ function cardsForArena(a) {
 // ---- AI matchmaking tables ----
 // Card level an opponent "should" have at a trophy count; the AI sits halfway between this and your deck.
 const AI_EXPECTED = [[0, 1], [200, 3], [450, 4.8], [750, 5.8], [1100, 6.5], [1500, 7.1], [2000, 7.7], [2600, 8.4], [3600, 10]];
-const AI_GAP = [-1.0, -0.8, -0.6, -0.4, -0.3, -0.3, -0.2, -0.1]; // per-arena level offset (the main difficulty knob)
+const AI_GAP = [-1.0, -0.8, -0.6, -0.4, -0.3, -0.4, -0.3, -0.1]; // per-arena level offset (the main difficulty knob)
 const AI_CAP_ABOVE = 0.3; // below 2600 the AI is never more than this many levels above your deck
 const AI_FLOOR_BELOW = 3; // ...and never more than this many levels below the expected curve
 const AI_TOP_RAMP = 0.001; // extra levels per trophy above 2600 (bounded ladder in the top arena)
 const AI_TOP_RAMP_MAX = 0.6;
 const AI_MERCY = -0.5; // "Comeback match" after a losing streak
+// Form: below the top arena the AI eases off while your recent win rate is under AI_FORM_TARGET
+const AI_FORM_WINDOW = 10; // AI battles remembered (surrenders don't count)
+const AI_FORM_TARGET = 0.5;
+const AI_FORM_SLOPE = 3; // levels per 100% of win rate under the target (40% -> -0.3, 30% -> -0.6)
+const AI_FORM_MAX = -0.9;
 const AI_SKILL_CAP = 0.85;
 const AI_SKILL_STEP = 0.10; // skill gained per arena
 

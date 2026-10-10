@@ -37,7 +37,7 @@ function defaultSave() {
     crowns: 0,
     free: null,
     shop: null,
-    stats: { wins: 0, losses: 0, draws: 0, three: 0, onlineWins: 0, onlineLosses: 0, bestStreak: 0, streak: 0, played: 0, lstreak: 0 },
+    stats: { wins: 0, losses: 0, draws: 0, three: 0, onlineWins: 0, onlineLosses: 0, bestStreak: 0, streak: 0, played: 0, lstreak: 0, form: [] },
     settings: { sfx: true, music: true, vibrate: true },
     tutorial: false,
     arenaSeen: 0,
@@ -611,8 +611,17 @@ function aiBaseMean() {
   const ramp = Math.min(AI_TOP_RAMP_MAX, Math.max(0, t - TOP_MIN) * AI_TOP_RAMP);
   let base = 0.5 * E + 0.5 * mine + AI_GAP[a] + ramp; // you keep half of every upgrade
   base = Math.min(base, mine + AI_CAP_ABOVE + ramp); // never more than +0.3 above you below 2600
+  if (t < TOP_MIN) base += formEase(); // struggling? the AI eases off (not in the top arena)
   base = Math.max(base, E - AI_FLOOR_BELOW); // arena floor: only binds for decks far below the curve
   return base + (t < 60 ? -1 : 0);
+}
+
+// Level offset from your last AI battles: 0 at a win rate of AI_FORM_TARGET or better, down to AI_FORM_MAX.
+function formEase() {
+  const f = Array.isArray(SAVE.stats.form) ? SAVE.stats.form : [];
+  if (f.length < 5) return 0;
+  const wr = f.reduce((s, x) => s + x, 0) / f.length;
+  return clamp((wr - AI_FORM_TARGET) * AI_FORM_SLOPE, AI_FORM_MAX, 0);
 }
 
 // "Comeback match": after 2 straight AI losses (3 in the top arena) the next opponent is a bit weaker.
@@ -693,6 +702,7 @@ function applyResult(r) {
       out.protected = -out.trophies < want;
     }
   }
+  if (!online && !quit) st.form = (Array.isArray(st.form) ? st.form : []).concat(r.win ? 1 : r.draw ? 0.5 : 0).slice(-AI_FORM_WINDOW);
   const before = arenaIndex(SAVE.trophies);
   SAVE.trophies = Math.max(0, SAVE.trophies + out.trophies);
   SAVE.best = Math.max(SAVE.best, SAVE.trophies);
