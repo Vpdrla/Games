@@ -1,5 +1,6 @@
 // Headless smoke test: boots the game on a portrait phone screen, clicks through the menus,
-// plays a full battle (a bot drives the player's side), opens chests and upgrades a card.
+// plays a full battle (a bot drives the player's side), checks the Crown Road and the result
+// screen, opens chests and upgrades a card.
 // Usage: NODE_PATH=$(npm root -g) node crown-duel/tools/smoke-test.cjs [screenshot-dir]
 const { chromium } = require('playwright');
 const path = require('node:path');
@@ -35,6 +36,7 @@ if (shots) fs.mkdirSync(shots, { recursive: true });
     await shot('02-page-' + p);
     await check('page ' + p);
   }
+  if (!(await page.$('#road'))) errors.push('battle page: the Crown Road strip (#road) is missing');
 
   // free chest
   await page.click('#m-free');
@@ -52,7 +54,8 @@ if (shots) fs.mkdirSync(shots, { recursive: true });
   await page.click('#b-battle');
   await wait(2200);
   await shot('04-battle-start');
-  await page.evaluate(() => { window.__CD.autoplay(0.8); window.__CD.speed(6); });
+  // weaken the enemy towers so the battle is a win: the result checks below need the win path
+  await page.evaluate(() => { const s = window.__CD.scene(); for (const t of s.sim.towers[1 - s.myTeam]) t.hp = 1; window.__CD.autoplay(0.8); window.__CD.speed(6); });
   await wait(6000);
   await shot('05-battle-mid');
   await check('battle');
@@ -63,8 +66,11 @@ if (shots) fs.mkdirSync(shots, { recursive: true });
   await wait(300);
   await shot('06-result');
   await check('result');
-  const res = await page.evaluate(() => ({ trophies: window.__CD.save().trophies, stats: window.__CD.save().stats, chests: window.__CD.save().chests }));
+  const res = await page.evaluate(() => ({ trophies: window.__CD.save().trophies, road: window.__CD.save().road, stats: window.__CD.save().stats, chests: window.__CD.save().chests }));
   console.log('after battle:', JSON.stringify(res));
+  if (!(await page.$('#rs-tbar'))) errors.push('result: the trophy bar (#rs-tbar) is missing');
+  if (res.stats.wins !== 1) errors.push('result: the first AI battle was not won (' + JSON.stringify(res.stats) + ')');
+  if (!(res.road >= 1)) errors.push('result: a win did not claim the first Crown Road node (road = ' + res.road + ')');
   await page.click('#rs-ok');
   await wait(500);
 
@@ -82,9 +88,9 @@ if (shots) fs.mkdirSync(shots, { recursive: true });
 
   // chest unlock via gems, card upgrade
   await page.evaluate(() => { const s = window.__CD.save(); s.gems = 999; s.gold = 5000; s.cards.knight.n = 50; });
-  const slot = await page.$('.slot.full');
-  if (slot) {
-    await slot.click();
+  if (!(await page.$('.slot.full'))) errors.push('home: no chest in a slot after the win');
+  else {
+    await page.click('.slot.full');
     await wait(200);
     await page.click('#c-gems');
     await wait(200);

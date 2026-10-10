@@ -19,6 +19,19 @@ function chestImg(boss) {
   return canvasUrl('chest:' + boss, () => DropSprites.get('chest', boss ? 1 : 0, 50 * DPR()));
 }
 function icon(k, px) { return Icons.url(k, px || 40); }
+// "1:00 / 5:00" for time goals, "620 / 1000" for the rest
+function achShown(a, cur, goal) {
+  const f = a.id.startsWith('survive') || a.id === 'endless20' ? fmtTime : fmtNum;
+  return f(Math.min(cur, goal)) + ' / ' + f(goal);
+}
+// The name of what an achievement unlocks, or '' when it unlocks nothing new.
+function unlockName(a) {
+  const r = a.reward;
+  if (r.char && !SAVE.chars.includes(r.char)) return CHARACTERS[r.char].name;
+  if (r.weapon && !SAVE.weapons.includes(r.weapon)) return WEAPONS[r.weapon].name;
+  if (r.stage && SAVE.stages <= r.stage) return STAGES[r.stage].name;
+  return '';
+}
 function tog(id, on, dis) { return `<button class="tog${on ? ' on' : ''}" id="${id}"${dis ? ' disabled' : ''}></button>`; }
 function goldTag(n) { return `<span class="res"><i class="coin"></i>${fmtNum(n)}</span>`; }
 
@@ -114,7 +127,7 @@ const UI = {
         <button class="btn big gold" id="h-play">▶ PLAY</button>
         <div class="daily${done ? ' done' : ''}" id="h-daily"><span class="moon">${done ? '✅' : '🌙'}</span><div><b>Daily Night${done ? ' · best ' + fmtTime(SAVE.daily.best) : ' · +150 gold'}</b>
           <small>${esc(STAGES[d.stage].name)} · ${esc(CHARACTERS[d.char].name)} · ${d.mods.map((m) => esc(DAILY_MODS[m].name)).join(', ')}</small></div></div>
-        <div class="row"><button class="btn" id="h-shop">⬆️ Power-ups</button><button class="btn" id="h-codex">📖 Codex</button></div>
+        <div class="row"><button class="btn${affordablePowers() ? ' dot' : ''}" id="h-shop">⬆️ Power-ups</button><button class="btn" id="h-codex">📖 Codex</button></div>
         <button class="btn" id="h-ach">🏆 Achievements <small class="muted">${achDone}/${ACHIEVEMENTS.length}</small></button>
         <div class="foot" id="h-foot"></div>
       </div>`;
@@ -164,16 +177,25 @@ const UI = {
   renderSetup() {
     const sel = SAVE.sel;
     const heroes = CHAR_KEYS.map((k) => {
-      const c = CHARACTERS[k], locked = !SAVE.chars.includes(k);
-      return `<div class="hero${sel.char === k ? ' sel' : ''}${locked ? ' locked' : ''}" data-h="${k}">${locked ? '<span class="lock">🔒</span>' : ''}<img src="${heroImg(k, 64)}"><b>${esc(c.name)}</b><small>${esc(c.title)}</small></div>`;
+      const c = CHARACTERS[k], locked = !SAVE.chars.includes(k), a = locked && ACHIEVEMENTS.find((x) => x.id === c.unlock);
+      let prog = '';
+      if (a) {
+        const [cur, goal] = a.prog(SAVE, null);
+        prog = `<small class="hp">${esc(a.desc)} · <span>${achShown(a, cur, goal)}</span></small><div class="bar"><i style="width:${(clamp(cur / goal, 0, 1) * 100).toFixed(1)}%"></i></div>`;
+      }
+      return `<div class="hero${sel.char === k ? ' sel' : ''}${locked ? ' locked' : ''}" data-h="${k}">${locked ? '<span class="lock">🔒</span>' : ''}<img src="${heroImg(k, 64)}"><b>${esc(c.name)}</b><small>${esc(c.title)}</small>${prog}</div>`;
     }).join('');
     const ch = CHARACTERS[sel.char];
+    const lockText = (i) => {
+      const q = SAVE.quickClears[STAGES[i - 1].key] || 0;
+      return 'Clear ' + STAGES[i - 1].name + ' (or win it twice on Quick Night)' + (q ? ' · ' + Math.min(q, 1) + '/2 Quick wins' : '');
+    };
     const stages = STAGES.map((s, i) => {
       const locked = i >= SAVE.stages, b = SAVE.best[s.key];
       const best = b && b.time ? `<span class="best">${b.won ? '☀️ Cleared · ' : ''}Best ${fmtTime(b.time)}</span>` : '';
       return `<div class="stage${sel.stage === i ? ' sel' : ''}${locked ? ' locked' : ''}" data-s="${i}" style="background:linear-gradient(90deg,${rgba(s.night, 0.95)},${rgba(s.ground[1], 0.75)})">
         <div class="sw" style="background:linear-gradient(135deg,${s.ground[1]},${s.accent})"></div>
-        <div class="si"><b>${locked ? '🔒 ' : ''}${esc(s.name)}</b><small>${locked ? 'Clear ' + esc(STAGES[i - 1].name) + ' to unlock' : esc(s.desc)}</small>${best}</div></div>`;
+        <div class="si"><b>${locked ? '🔒 ' : ''}${esc(s.name)}</b><small>${locked ? esc(lockText(i)) : esc(s.desc)}</small>${best}</div></div>`;
     }).join('');
     const canEndless = !!SAVE.cleared[STAGES[sel.stage].key];
     if (!canEndless) sel.endless = false;
@@ -186,7 +208,7 @@ const UI = {
         <h3>Stage</h3>
         <div class="stages">${stages}</div>
         <h3>Mode</h3>
-        <div class="seg" id="s-mode"><button data-m="normal" class="${sel.mode === 'normal' ? 'on' : ''}">Full Night<small>15:00 · boss at dawn</small></button><button data-m="quick" class="${sel.mode === 'quick' ? 'on' : ''}">Quick Night<small>5:00 · less gold</small></button></div>
+        <div class="seg" id="s-mode"><button data-m="normal" class="${sel.mode === 'normal' ? 'on' : ''}">Full Night<small>15:00 · boss at dawn</small></button><button data-m="quick" class="${sel.mode === 'quick' ? 'on' : ''}">Quick Night<small>5:00 · 60% gold · 2 wins clear a stage</small></button></div>
         <div class="card"><div class="setrow"><div>Endless night<small>${canEndless ? 'Keep fighting after dawn. Bosses keep coming.' : 'Clear this stage to unlock'}</small></div>${tog('s-end', sel.endless, !canEndless)}</div></div>
       </div>
       <div class="pfoot"><button class="btn big gold" id="s-go">START NIGHT</button></div>`;
@@ -195,7 +217,7 @@ const UI = {
       const k = h.dataset.h;
       if (!SAVE.chars.includes(k)) {
         Sound.play('error');
-        const a = ACHIEVEMENTS.find((x) => x.reward.char === k);
+        const a = ACHIEVEMENTS.find((x) => x.id === CHARACTERS[k].unlock);
         this.toast(`🔒 ${esc(CHARACTERS[k].name)}: ${a ? esc(a.desc) : 'locked'}`);
         return;
       }
@@ -205,7 +227,7 @@ const UI = {
     };
     for (const s of document.querySelectorAll('#setup .stage')) s.onclick = () => {
       const i = +s.dataset.s;
-      if (i >= SAVE.stages) { Sound.play('error'); this.toast('🔒 Clear ' + esc(STAGES[i - 1].name) + ' first'); return; }
+      if (i >= SAVE.stages) { Sound.play('error'); this.toast('🔒 ' + esc(lockText(i))); return; }
       Sound.play('click');
       sel.stage = i;
       this.renderSetup();
@@ -222,26 +244,35 @@ const UI = {
   renderShop() {
     let spent = 0;
     for (const k of POWERUP_KEYS) for (let r = 0; r < (SAVE.power[k] || 0); r++) spent += powerCost(k, r);
-    const cards = POWERUP_KEYS.map((k) => {
-      const p = POWERUPS[k], rank = SAVE.power[k] || 0, max = rank >= p.max, cost = max ? 0 : powerCost(k, rank);
-      const pips = Array.from({ length: p.max }, (_, i) => `<i class="${i < rank ? 'on' : ''}"></i>`).join('');
-      return `<div class="pu${max ? ' max' : ''}"><div class="t"><img src="${icon(p.icon, 36)}"><div><b>${esc(p.name)}</b><small>${esc(p.desc)}</small></div></div>
+    for (const k of LIMIT_BREAK_KEYS) for (let r = 0; r < (SAVE.limit[k] || 0); r++) spent += limitCost(k, r);
+    const card = (cls, ic, name, desc, rank, maxRank, cost, attr) => {
+      const max = rank >= maxRank;
+      const pips = Array.from({ length: maxRank }, (_, i) => `<i class="${i < rank ? 'on' : ''}"></i>`).join('');
+      return `<div class="pu${cls}${max ? ' max' : ''}"><div class="t"><img src="${icon(ic, 36)}"><div><b>${esc(name)}</b><small>${esc(desc)}</small></div></div>
         <div class="pips">${pips}</div>
-        <button class="btn small ${max ? '' : 'gold'}" data-k="${k}" ${max || SAVE.gold < cost ? 'disabled' : ''}>${max ? 'MAX' : '<i class="coin"></i>' + fmtNum(cost)}</button></div>`;
+        <button class="btn small ${max ? '' : cls ? 'purple' : 'gold'}" ${attr} ${max || SAVE.gold < cost ? 'disabled' : ''}>${max ? 'MAX' : '<i class="coin"></i>' + fmtNum(cost)}</button></div>`;
+    };
+    const cards = POWERUP_KEYS.map((k) => {
+      const p = POWERUPS[k], rank = SAVE.power[k] || 0;
+      return card('', p.icon, p.name, p.desc, rank, p.max, rank >= p.max ? 0 : powerCost(k, rank), `data-k="${k}"`);
     }).join('');
+    // Limit Break opens once everything above is maxed (its buttons use data-lb, never data-k)
+    let lb = '';
+    if (allPowerMaxed()) {
+      lb = `<h3>Limit Break <small>each rank = 1/5 of a power-up rank</small></h3><div class="pgrid">` + LIMIT_BREAK_KEYS.map((k) => {
+        const p = POWERUPS[k], rank = SAVE.limit[k] || 0;
+        return card(' lb', p.icon, p.name, LIMIT_DESC[k] + ' per rank', rank, LIMIT_RANKS, rank >= LIMIT_RANKS ? 0 : limitCost(k, rank), `data-lb="${k}"`);
+      }).join('') + `</div><h3>Power-ups <small>all maxed</small></h3>`;
+    }
     $('shop').innerHTML = `
       <div class="phead"><button class="iconbtn" id="sh-back" aria-label="Back">←</button><h2>Power-ups</h2>${goldTag(SAVE.gold)}</div>
       <div class="pbody scroll">
         <p class="muted" style="font-size:13px">Power-ups make every run stronger. Earn gold by picking up coins, opening chests and surviving.</p>
+        ${lb}
         <div class="pgrid">${cards}</div>
         <div class="card"><div class="setrow"><div>Refund everything<small>Get all ${fmtNum(spent)} gold back to rebuy differently</small></div><button class="btn small red" id="sh-refund" ${spent ? '' : 'disabled'}>Refund</button></div></div>
       </div>`;
-    $('sh-back').onclick = () => { Sound.play('click'); this.showScreen('home'); };
-    for (const b of document.querySelectorAll('#shop .pu button[data-k]')) b.onclick = () => {
-      const k = b.dataset.k, rank = SAVE.power[k] || 0, cost = powerCost(k, rank);
-      if (rank >= POWERUPS[k].max || SAVE.gold < cost) { Sound.play('error'); return; }
-      SAVE.gold -= cost;
-      SAVE.power[k] = rank + 1;
+    const bought = () => {
       saveGame();
       Sound.play('buy');
       Game.vibrate(20);
@@ -249,12 +280,28 @@ const UI = {
       this.renderShop();
       $('shop').querySelector('.pbody').scrollTop = y;
     };
+    $('sh-back').onclick = () => { Sound.play('click'); this.showScreen('home'); };
+    for (const b of document.querySelectorAll('#shop .pu button[data-k]')) b.onclick = () => {
+      const k = b.dataset.k, rank = SAVE.power[k] || 0, cost = powerCost(k, rank);
+      if (rank >= POWERUPS[k].max || SAVE.gold < cost) { Sound.play('error'); return; }
+      SAVE.gold -= cost;
+      SAVE.power[k] = rank + 1;
+      bought();
+    };
+    for (const b of document.querySelectorAll('#shop .pu button[data-lb]')) b.onclick = () => {
+      const k = b.dataset.lb, rank = SAVE.limit[k] || 0, cost = limitCost(k, rank);
+      if (!allPowerMaxed() || rank >= LIMIT_RANKS || SAVE.gold < cost) { Sound.play('error'); return; }
+      SAVE.gold -= cost;
+      SAVE.limit[k] = rank + 1;
+      bought();
+    };
     $('sh-refund').onclick = () => {
-      this.modal(`<h2>Refund all?</h2><p class="center">You get back <b>${fmtNum(spent)}</b> gold and all power-ups reset.</p><div class="btns"><button class="btn" id="r-no">Cancel</button><button class="btn red" id="r-yes">Refund</button></div>`, true);
+      this.modal(`<h2>Refund all?</h2><p class="center">You get back <b>${fmtNum(spent)}</b> gold and all power-ups${lb ? ' and Limit Breaks' : ''} reset.</p><div class="btns"><button class="btn" id="r-no">Cancel</button><button class="btn red" id="r-yes">Refund</button></div>`, true);
       $('r-no').onclick = () => this.closeModal();
       $('r-yes').onclick = () => {
         SAVE.gold += spent;
         SAVE.power = {};
+        SAVE.limit = {};
         saveGame();
         Sound.play('coin');
         this.closeModal();
@@ -301,7 +348,7 @@ const UI = {
   renderAchs() {
     const rows = ACHIEVEMENTS.map((a) => {
       const done = !!SAVE.ach[a.id], [cur, goal] = a.prog(SAVE, null), f = clamp(cur / goal, 0, 1);
-      const shown = goal >= 60 && a.id.startsWith('survive') || a.id === 'endless20' ? fmtTime(Math.min(cur, goal)) + ' / ' + fmtTime(goal) : fmtNum(Math.min(cur, goal)) + ' / ' + fmtNum(goal);
+      const shown = achShown(a, cur, goal);
       return `<div class="ach${done ? ' done' : ''}"><div class="ic">${done ? '🏆' : '🔸'}</div><div class="d"><b>${esc(a.name)}</b><small>${esc(a.desc)}</small>
         <div class="rw">Reward: ${esc(rewardText(a))}</div>${done ? '' : `<div class="bar"><i style="width:${(f * 100).toFixed(1)}%"></i></div><small>${shown}</small>`}</div></div>`;
     }).join('');
@@ -470,19 +517,38 @@ const UI = {
     const top = dmg.length ? dmg[0][1] : 1;
     const rows = dmg.slice(0, 6).map(([k, v]) => `<div class="dmgrow"><img src="${icon(k, 24)}"><span class="nm">${esc(WEAPONS[k].name)}</span><div class="bar"><i style="width:${((v / top) * 100).toFixed(1)}%"></i></div><span class="v">${fmtNum(v)}</span></div>`).join('');
     const achs = out.ach.map((g) => `<div class="newach pop">🏆<div><b>${esc(g.a.name)}</b>${esc(g.text)}</div></div>`).join('');
-    const extra = run.won && !quit ? `<p class="center" style="color:#ffd84a;font-weight:800">Dawn bonus included!</p>` : '';
+    // where the gold came from
+    const P = out.parts || { pickups: out.gold, survival: 0 };
+    const achGold = out.ach.reduce((n, g) => n + (g.a.reward.gold || 0), 0);
+    const gl = (label, v, cls) => `<div class="gl${cls || ''}"><span>${label}</span><b>${v < 0 ? '−' : '+'}${fmtNum(Math.abs(v))}</b></div>`;
+    const glist = gl('Pickups', P.pickups) + gl('Survival', P.survival) + (P.dawn ? gl('Dawn bonus', P.dawn, ' sun') : '') +
+      (P.minimum ? gl('Minimum reward', P.minimum) : '') + (P.halved ? gl('Gave up (half)', -P.halved, ' neg') : '') +
+      (P.daily ? gl('Daily', P.daily) : '') + (achGold ? gl('Achievements', achGold) : '');
+    // the closest hero, weapon or stage still to unlock
+    let next = null;
+    for (const a of ACHIEVEMENTS) {
+      if (SAVE.ach[a.id] || !unlockName(a)) continue;
+      const [cur, goal] = a.prog(SAVE, null), f = clamp(cur / goal, 0, 1);
+      if (!next || f > next.f) next = { a, cur, goal, f };
+    }
+    const nextHtml = next ? `<div class="card nextun"><div class="gl"><span>Next unlock: <b>${esc(unlockName(next.a))}</b></span><b>${achShown(next.a, next.cur, next.goal)}</b></div>
+      <small>${esc(next.a.desc)}</small><div class="bar"><i style="width:${(next.f * 100).toFixed(1)}%"></i></div></div>` : '';
+    const nAfford = affordablePowers();
     this.modal(`<h2>${title}</h2>${sub ? `<p class="center muted">${sub}</p>` : ''}
       <div class="stats">
         <div class="stat"><b>${fmtTime(run.time)}</b><span>Survived</span></div>
         <div class="stat"><b>${run.level}</b><span>Level</span></div>
         <div class="stat"><b>${fmtNum(run.kills)}</b><span>Defeated</span></div>
       </div>
-      <div class="card" style="display:flex;justify-content:center;gap:8px;align-items:center;font-weight:900;font-size:18px"><i class="coin"></i> +${fmtNum(out.gold)} gold</div>
-      ${extra}
-      ${rows ? `<h3>Damage</h3>${rows}` : ''}
+      <div class="card goldsum">${glist}<div class="gl tot"><span><i class="coin"></i> Total</span><b>+${fmtNum(out.gold + achGold)} gold</b></div></div>
       ${achs}
+      ${nextHtml}
+      ${rows ? `<h3>Damage</h3>${rows}` : ''}
+      ${nAfford ? `<button class="btn green" id="r-shop">⬆️ ${nAfford} power-up${nAfford > 1 ? 's' : ''} affordable</button>` : ''}
       <div class="btns"><button class="btn" id="r-home">Home</button><button class="btn gold" id="r-again">Play again</button></div>`, false);
     $('r-home').onclick = () => { Sound.play('click'); this.closeModal(); Game.toHome(); };
+    const rs = $('r-shop');
+    if (rs) rs.onclick = () => { Sound.play('click'); this.closeModal(); Game.toHome(); this.showScreen('shop'); };
     $('r-again').onclick = () => { Sound.play('click'); this.closeModal(); Game.startRun(scene.cfg); };
     if (out.ach.length) setTimeout(() => Sound.play('unlock'), 500);
   },

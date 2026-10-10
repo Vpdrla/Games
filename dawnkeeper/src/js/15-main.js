@@ -340,6 +340,13 @@ const Game = {
     addEventListener('pointerdown', unlock, { passive: true });
     addEventListener('touchend', unlock, { passive: true });
     this.setScene(new HomeScene());
+    // achievements claimed by the save migration: one batch of toasts on the home screen
+    if (SAVE.pendingAch) {
+      const list = SAVE.pendingAch.map((g) => ({ a: ACHIEVEMENTS.find((x) => x.id === g.id), text: g.text })).filter((g) => g.a);
+      delete SAVE.pendingAch;
+      saveGame();
+      setTimeout(() => UI.achToasts(list), 600);
+    }
     this.frame = this.frame.bind(this);
     requestAnimationFrame(this.frame);
     this.registerSW();
