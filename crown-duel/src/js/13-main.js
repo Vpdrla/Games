@@ -25,6 +25,12 @@ class HomeScene {
   pointer() {}
 }
 
+// The cards an arena gate handed over in this battle's Crown Road claims (for the New Arena modal).
+function gateCards(road, a) {
+  const e = (road || []).find((g) => g.t === ARENAS[a].min);
+  return e ? e.cards.filter((c) => c.isNew) : [];
+}
+
 // ---------- Game controller ----------
 const Game = {
   canvas: null, ctx: null, W: 360, H: 640, dpr: 1,
@@ -73,6 +79,12 @@ const Game = {
     c.addEventListener('pointercancel', (e) => { if (e.pointerId === this.ptrId) { this.ptrId = null; this.pointer('cancel', ...pos(e)); } });
     c.addEventListener('contextmenu', (e) => e.preventDefault());
     this.setScene(new HomeScene());
+    // a save from before the progression update: show its Crown Road catch-up once
+    const gift = SAVE.pendingGift;
+    if (gift) {
+      delete SAVE.pendingGift;
+      setTimeout(() => UI.migrationGift(gift), 400);
+    }
     const room = new URLSearchParams(location.search).get('room');
     if (room && /^[A-Za-z0-9]{4}$/.test(room)) {
       Lobby.pendingCode = room.toUpperCase();
@@ -159,22 +171,27 @@ const Game = {
     this.setScene(new BattleScene({
       mode: training ? 'training' : 'ai',
       decks: [curDeck().slice(), opp.deck], levels: [deckLevels(), opp.levels], kings: [SAVE.king, opp.king],
-      names: [SAVE.name, opp.name], subs: ['', training ? 'Practice match' : '🏆 ' + opp.trophies],
+      names: [SAVE.name, opp.name], subs: ['', training ? 'Practice match' : '🏆 ' + opp.trophies + (opp.comeback ? ' · Comeback match' : '')],
       arena: training ? 0 : curArena(), seed: randi(1, 1e9), aiSkill: opp.skill, oppTrophies: opp.trophies,
     }));
   },
 
   battleOver(scene) {
     const res = scene.result, my = scene.myTeam;
-    const r = { mode: scene.mode, win: res.winner === my, draw: res.winner === -1, myCrowns: res.crowns[my], theirCrowns: res.crowns[1 - my], oppTrophies: scene.cfg.oppTrophies || SAVE.trophies };
+    const r = { mode: scene.mode, win: res.winner === my, draw: res.winner === -1, myCrowns: res.crowns[my], theirCrowns: res.crowns[1 - my], oppTrophies: scene.cfg.oppTrophies || SAVE.trophies, reason: res.reason };
     const rw = applyResult(r);
     UI.resultModal(scene, r, rw);
   },
 
-  toHome(arenaUp) {
+  // Back to the menus after a battle (rw: its applyResult output). A new arena shows the cards its gate
+  // handed over, then a king level-up gained from battle XP.
+  toHome(rw, pageName) {
     this.setScene(new HomeScene());
-    UI.page('battle');
-    if (arenaUp != null) setTimeout(() => UI.arenaUnlocked(arenaUp), 250);
+    UI.page(pageName || 'battle');
+    if (!rw) return;
+    const king = () => { if (rw.kingUps) UI.kingLevelUp(rw.kingUps); };
+    if (rw.arenaUp != null) setTimeout(() => UI.arenaUnlocked(rw.arenaUp, gateCards(rw.road, rw.arenaUp), king), 250);
+    else if (rw.kingUps) setTimeout(king, 250);
   },
 
   frame(now) {
@@ -202,6 +219,7 @@ const Game = {
 window.__CD = {
   Game, UI, Lobby, Net,
   save: () => SAVE,
+  road: () => ROAD,
   scene: () => Game.scene,
   speed: (n) => { if (Game.scene) Game.scene.speed = n; },
   // lets tests hand the player's side to an AI

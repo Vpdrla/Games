@@ -61,10 +61,21 @@ Connecting one or both phones to Wi-Fi usually fixes it.
 - After a side tower falls, you may deploy troops deeper into that lane.
 - Tied after 3 minutes? **Overtime**: the next crown wins. Still tied after overtime:
   the player whose weakest tower has fewer hit points loses.
-- Win battles for **trophies** and **chests**. Chests hold cards and gold; collect copies
-  of a card and spend gold to **upgrade** it (+10% hit points and damage per level).
-  Upgrades also give XP that raises your **king level**, which makes your towers stronger.
-- Every few hours a **Free Chest** is ready, and every 10 crowns earns a **Crown Chest**.
+- A win gives **trophies**, gold and a **chest** that unlocks automatically, two at a time,
+  in the order you won them (even while the game is closed). When all 4 slots are full a
+  win pays **Instant Loot** on the spot instead, so no win is wasted.
+- Losses still pay gold and XP, and a loss never drops you out of an arena you reached.
+  After two losses in a row the next opponent is a slightly easier **Comeback match**.
+  Below the top arena, opponents also ease off while you win fewer than half of your last 10 battles.
+- Collect copies of a card and spend gold to **upgrade** it (+10% hit points and damage per
+  level). Upgrades and battles give XP that raises your **king level**, which makes your
+  towers stronger.
+- The **Crown Road** gives a reward every 1-3 wins (cards, chests, Deck Packs, gold, gems)
+  and hands over each arena's cards at its gate, ready to play at your level. Above 2,600
+  trophies the **Legend Road** pays a reward every 100 trophies.
+- A **Free Chest** arrives every 3 hours (up to 3 wait for you), every 8 crowns earn a
+  **Crown Chest**, and the shop has a free **Deck Pack** every day plus **Card Requests**
+  for copies of your deck cards.
 - Counter smartly: splash damage beats swarms, swarms and big hitters beat tanks,
   and buildings pull building-hunters away from your towers.
 
@@ -83,8 +94,9 @@ Connecting one or both phones to Wi-Fi usually fixes it.
   river jumping, crowd collisions, king tower activation, double elixir and overtime.
 - **AI opponent** that defends lanes, counters with the right card type, uses spells
   for value, builds pushes and supports its tanks.
-- **Progression**: trophies, 3 deck slots, card upgrades, king levels, 8 chest types
-  with unlock timers, a daily shop, emotes and battle stats.
+- **Progression**: trophies and the Crown Road, 3 deck slots, card upgrades, king levels,
+  8 chest types with a two-lane automatic unlock queue, a daily shop with a free Deck Pack
+  and Card Requests, emotes and battle stats.
 - Synthesized sound effects and music, vibration on big hits, and a portrait layout that
   fits small and large phones (it also works on tablets and desktops with a mouse).
 
@@ -106,7 +118,9 @@ Tests and tools (Playwright with Chromium; the online test also needs the `peer`
 
 ```bash
 node crown-duel/tools/sim-test.cjs 200                                      # AI-vs-AI battles in Node: crashes, stalemates, card win rates
-NODE_PATH=$(npm root -g) node crown-duel/tools/smoke-test.cjs [shots-dir]   # menus, a full battle, chests, upgrades, drag & drop
+node crown-duel/tools/career-sim.cjs 300 0.55 1,2,3,4,5,6,7,8 spec 0 attentive --assert   # simulated careers: progression pacing check
+node crown-duel/tools/migrate-test.cjs                                                    # old saves upgrade without losing anything
+NODE_PATH=$(npm root -g) node crown-duel/tools/smoke-test.cjs [shots-dir]   # menus, a full battle, Crown Road, chests, upgrades, drag & drop
 npm install --prefix /tmp/peer peer
 NODE_PATH=$(npm root -g):/tmp/peer/node_modules node crown-duel/tools/net-test.cjs   # two phones: room code, battle, rematch, quick match
 NODE_PATH=$(npm root -g) node crown-duel/tools/make-icons.cjs               # regenerates the app icons
@@ -120,6 +134,9 @@ NODE_PATH=$(npm root -g) node crown-duel/tools/make-icons.cjs               # re
 카드 8장으로 덱을 만들고, 병력·건물·주문을 아레나에 내려 상대의 타워를 먼저 부수면 이깁니다.
 
 - **오프라인:** 인터넷 없이 AI와 대전(트로피·골드·상자 획득), 연습 모드도 있습니다.
+- **성장:** 이기면 트로피·골드와 상자를 받고, 상자는 두 개씩 자동으로 열립니다(슬롯이 가득 차면 즉시 보상).
+  **크라운 로드**는 1~3승마다 카드·상자·덱 팩·골드·젬을 주고, 아레나 관문에서 그 아레나의 카드를 바로 쓸 수 있는 레벨로 줍니다.
+  져도 골드와 경험치를 받으며, 연패하면 조금 쉬운 **컴백 매치**가 나옵니다. 최상위 아레나 전까지는 최근 10판 승률이 50% 아래일 때 상대도 조금 약해집니다.
 - **온라인:** 인터넷이 연결된 두 휴대폰이 직접 연결됩니다.
   **방 만들기**를 누르면 4자리 코드가 나오고, 친구가 **참가**에 코드를 입력(또는 공유 링크를 열기)하면 바로 대전이 시작됩니다.
   **빠른 대전**은 같은 시간에 찾는 사람과 자동으로 매칭합니다. 온라인 대전은 모든 카드가 6레벨로 공정하게 맞춰집니다.

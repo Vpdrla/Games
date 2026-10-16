@@ -59,6 +59,8 @@ html,body{position:fixed;inset:0;overflow:hidden;background:#0b0d1f;color:var(--
 .daily.done{border-color:#3a5a3a}
 .foot{margin-top:10px;text-align:center;font-size:12px;color:var(--muted)}
 .foot .hint{margin-bottom:4px;color:#d8d4ff}
+.btn.dot{position:relative}
+.btn.dot::after{content:"!";position:absolute;right:-5px;top:-6px;width:18px;height:18px;border-radius:50%;background:#ff3b3b;color:#fff;font-size:12px;line-height:18px;text-align:center;font-weight:900;text-shadow:none;box-shadow:0 1px 3px rgba(0,0,0,.5)}
 .badge{display:inline-block;min-width:18px;height:18px;border-radius:9px;background:#ff3b3b;color:#fff;font-size:11px;line-height:18px;padding:0 5px;margin-left:4px}
 
 /* full pages (setup, shop, codex, achievements) */
@@ -76,7 +78,11 @@ h3 small{font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;
 .hero b{display:block;font-size:13px}
 .hero small{display:block;font-size:10.5px;color:var(--muted)}
 .hero.sel{border-color:var(--gold);box-shadow:0 0 0 2px rgba(255,204,51,.35),0 0 18px rgba(255,190,60,.25)}
-.hero.locked{filter:grayscale(1) brightness(.55)}
+.hero.locked>img{filter:grayscale(1) brightness(.55)}
+.hero.locked>b,.hero.locked>small{opacity:.55}
+.hero.locked>small.hp{opacity:1;display:block;font-size:10px;line-height:1.25;color:#ffd84a;margin-top:3px;padding:0 2px}
+.hero.locked>small.hp span{white-space:nowrap}
+.hero .bar{height:4px;margin:4px 6px 0}
 .hero .lock{position:absolute;right:6px;top:4px;font-size:14px}
 .card{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:10px 12px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
 .herodetail{display:flex;gap:10px;align-items:center}
@@ -114,6 +120,8 @@ h3 small{font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;
 .pips i{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.12)}
 .pips i.on{background:linear-gradient(90deg,#ffe070,#ff9f2e)}
 .pu.max{border-color:#4a7a4a}
+.pu.lb{border-color:#7a4ad8;background:linear-gradient(rgba(58,30,104,.92),rgba(26,18,60,.95))}
+.pu.lb .pips i.on{background:linear-gradient(90deg,#e8b8ff,#9a5aff)}
 .codex{display:flex;flex-direction:column;gap:8px}
 .cx{display:flex;align-items:center;gap:8px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:8px 10px}
 .cx img{width:40px;height:40px;flex:none}
@@ -188,6 +196,17 @@ h3 small{font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;
 .inv .it img{width:42px;height:42px}
 .inv .it span{position:absolute;right:2px;bottom:0;font-size:11px;font-weight:900;text-shadow:0 1px 2px #000,0 0 3px #000}
 .inv .it.evo{box-shadow:0 0 0 2px #ffcc33}
+.goldsum{display:flex;flex-direction:column;gap:1px;padding:8px 12px}
+.gl{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--muted);font-weight:700}
+.gl b{color:#fff;font-weight:900;white-space:nowrap}
+.gl.sun b{color:#ffd84a}
+.gl.neg b{color:var(--bad)}
+.gl.tot{border-top:1px solid rgba(255,255,255,.14);margin-top:4px;padding-top:6px;font-size:17px;color:#fff;font-weight:900}
+.gl.tot span{display:inline-flex;align-items:center;gap:6px}
+.nextun{padding:8px 12px}
+.nextun .gl{color:#fff;font-size:14px}
+.nextun .gl span b{color:var(--gold)}
+.nextun small{display:block;font-size:12px;color:var(--muted)}
 .newach{display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,rgba(255,204,51,.25),rgba(255,204,51,.05));border-radius:12px;padding:7px 10px;font-size:13px}
 .newach b{display:block}
 .pop{animation:pop .35s cubic-bezier(.3,1.6,.5,1) both}
@@ -618,10 +637,10 @@ STAGES.forEach((s, i) => { STAGE_INDEX[s.key] = i; });
 const CHARACTERS = {
   lumen: { name: 'Lumen', title: 'Lamplighter', weapon: 'slash', perk: '+10% max health', mods: { maxHp: 0.1 }, look: { cloak: '#e08a2a', hat: 'hood', trim: '#ffd27a', skin: '#ffd9b8' }, unlock: null },
   aria: { name: 'Aria', title: 'Star Mage', weapon: 'bolt', perk: '10% faster cooldowns', mods: { cd: -0.1 }, look: { cloak: '#7a4ad8', hat: 'witch', trim: '#ffd84a', skin: '#ffe0c8' }, unlock: null },
-  bram: { name: 'Bram', title: 'Oath Knight', weapon: 'aura', perk: '+1 armor, +20% max health, -10% speed', mods: { armor: 1, maxHp: 0.2, speed: -0.1 }, look: { cloak: '#5a6a88', hat: 'helm', trim: '#d8dde8', skin: '#f0c8a0' }, unlock: 'lv20' },
-  kira: { name: 'Kira', title: 'Wild Ranger', weapon: 'boomerang', perk: '+15% move speed', mods: { speed: 0.15 }, look: { cloak: '#3a8a4a', hat: 'hood2', trim: '#a8e060', skin: '#e8b890' }, unlock: 'survive10' },
-  vesper: { name: 'Vesper', title: 'Alchemist', weapon: 'flask', perk: '+15% area', mods: { area: 0.15 }, look: { cloak: '#b8343a', hat: 'goggles', trim: '#ffb060', skin: '#ffd0b0' }, unlock: 'boss1' },
-  orin: { name: 'Orin', title: 'Tinkerer', weapon: 'drones', perk: '+1 projectile, -20% max health', mods: { amount: 1, maxHp: -0.2 }, look: { cloak: '#2a7ab8', hat: 'cap', trim: '#8affc1', skin: '#f2c8a8' }, unlock: 'evolve1' },
+  bram: { name: 'Bram', title: 'Oath Knight', weapon: 'aura', perk: '+1 armor, +20% max health, -10% speed', mods: { armor: 1, maxHp: 0.2, speed: -0.1 }, look: { cloak: '#5a6a88', hat: 'helm', trim: '#d8dde8', skin: '#f0c8a0' }, unlock: 'lv10' },
+  kira: { name: 'Kira', title: 'Wild Ranger', weapon: 'boomerang', perk: '+15% move speed', mods: { speed: 0.15 }, look: { cloak: '#3a8a4a', hat: 'hood2', trim: '#a8e060', skin: '#e8b890' }, unlock: 'kill1k' },
+  vesper: { name: 'Vesper', title: 'Alchemist', weapon: 'flask', perk: '+15% area', mods: { area: 0.15 }, look: { cloak: '#b8343a', hat: 'goggles', trim: '#ffb060', skin: '#ffd0b0' }, unlock: 'mini1' },
+  orin: { name: 'Orin', title: 'Tinkerer', weapon: 'drones', perk: '+1 projectile, -20% max health', mods: { amount: 1, maxHp: -0.2 }, look: { cloak: '#2a7ab8', hat: 'cap', trim: '#8affc1', skin: '#f2c8a8' }, unlock: 'chests8' },
 };
 const CHAR_KEYS = Object.keys(CHARACTERS);
 
@@ -648,6 +667,13 @@ const POWERUPS = {
 const POWERUP_KEYS = Object.keys(POWERUPS);
 const powerCost = (k, rank) => Math.round(POWERUPS[k].cost * (1 + rank * 0.5));
 
+// Limit Break: a late gold sink that opens once every power-up is maxed. Each rank is worth one
+// fifth of a normal rank (5 ranks = +1 normal rank), so it barely moves the balance.
+const LIMIT_BREAK_KEYS = ['might', 'maxHp', 'cd', 'area', 'growth'];
+const LIMIT_RANKS = 5;
+const LIMIT_DESC = { might: '+1% damage', maxHp: '+2% max health', cd: '0.6% faster cooldowns', area: '+1% area', growth: '+0.8% experience' };
+const limitCost = (k, rank) => Math.round(4 * POWERUPS[k].cost * (1 + 0.5 * rank));
+
 // Daily Night modifiers.
 const DAILY_MODS = {
   swarm: { name: 'Swarming Night', desc: '+60% enemies, +30% experience' },
@@ -668,31 +694,40 @@ function xpNeed(L) {
 }
 
 // Achievements. prog(S, r) returns [current, goal]; S = save, r = live run summary or null.
+// Survival goals count night time (Quick Night runs it 3x faster). Stage clears count Full Night
+// wins only; Quick wins arrive through S.cleared once a stage has two of them.
+const nightOf = (S, r) => Math.max(S.stats.bestNight || 0, r ? r.night : 0);
+const clearedOf = (S, r, key) => (S.cleared[key] || (r && r.won && r.mode !== 'quick' && r.stage === key) ? 1 : 0);
 const ACHIEVEMENTS = [
-  { id: 'survive5', name: 'First Light', desc: 'Survive 5 minutes', prog: (S, r) => [Math.max(S.stats.bestTime, r ? r.time : 0), 300], reward: { gold: 100 } },
-  { id: 'survive10', name: 'Long Night', desc: 'Survive 10 minutes', prog: (S, r) => [Math.max(S.stats.bestTime, r ? r.time : 0), 600], reward: { char: 'kira' } },
-  { id: 'lv20', name: 'Rising Flame', desc: 'Reach level 20 in a run', prog: (S, r) => [Math.max(S.stats.maxLevel, r ? r.level : 0), 20], reward: { char: 'bram' } },
+  { id: 'survive1', name: 'First Steps', desc: 'Survive 1 minute', prog: (S, r) => [nightOf(S, r), 60], reward: { gold: 50 } },
+  { id: 'chest1', name: 'Lucky Find', desc: 'Open a chest', prog: (S, r) => [S.stats.chests + (r ? r.chests : 0), 1], reward: { gold: 50 } },
+  { id: 'kill250', name: 'Warming Up', desc: 'Defeat 250 enemies', prog: (S, r) => [S.stats.kills + (r ? r.kills : 0), 250], reward: { gold: 75 } },
+  { id: 'survive5', name: 'First Light', desc: 'Survive 5 minutes', prog: (S, r) => [nightOf(S, r), 300], reward: { gold: 100 } },
+  { id: 'survive10', name: 'Long Night', desc: 'Survive 10 minutes', prog: (S, r) => [nightOf(S, r), 600], reward: { gold: 300 } },
+  { id: 'lv10', name: 'Kindled', desc: 'Reach level 10 in a run', prog: (S, r) => [Math.max(S.stats.maxLevel, r ? r.level : 0), 10], reward: { char: 'bram', gold: 100 } },
+  { id: 'lv20', name: 'Rising Flame', desc: 'Reach level 20 in a run', prog: (S, r) => [Math.max(S.stats.maxLevel, r ? r.level : 0), 20], reward: { gold: 200 } },
   { id: 'lv30', name: 'Blazing', desc: 'Reach level 30 in a run', prog: (S, r) => [Math.max(S.stats.maxLevel, r ? r.level : 0), 30], reward: { weapon: 'beam' } },
   { id: 'lv50', name: 'Inferno Soul', desc: 'Reach level 50 in a run', prog: (S, r) => [Math.max(S.stats.maxLevel, r ? r.level : 0), 50], reward: { gold: 600 } },
-  { id: 'mini1', name: 'Giant Slayer', desc: 'Defeat a mini-boss', prog: (S, r) => [S.stats.minis + (r ? r.minis : 0), 1], reward: { gold: 150 } },
-  { id: 'boss1', name: 'Bringer of Dawn', desc: 'Defeat a final boss', prog: (S, r) => [S.stats.bosses + (r ? r.bosses : 0), 1], reward: { char: 'vesper' } },
-  { id: 'evolve1', name: 'Transmutation', desc: 'Evolve a weapon', prog: (S, r) => [Object.keys(Object.assign({}, S.evolved, r ? r.evolved : {})).length, 1], reward: { char: 'orin', weapon: 'drones' } },
+  { id: 'mini1', name: 'Giant Slayer', desc: 'Defeat a mini-boss', prog: (S, r) => [S.stats.minis + (r ? r.minis : 0), 1], reward: { char: 'vesper', gold: 150 } },
+  { id: 'boss1', name: 'Bringer of Dawn', desc: 'Defeat a final boss', prog: (S, r) => [S.stats.bosses + (r ? r.bosses : 0), 1], reward: { gold: 500 } },
+  { id: 'evolve1', name: 'Transmutation', desc: 'Evolve a weapon', prog: (S, r) => [Object.keys(Object.assign({}, S.evolved, r ? r.evolved : {})).length, 1], reward: { weapon: 'drones', gold: 150 } },
   { id: 'evolve6', name: 'Grand Alchemist', desc: 'Evolve 6 different weapons', prog: (S, r) => [Object.keys(Object.assign({}, S.evolved, r ? r.evolved : {})).length, 6], reward: { gold: 1000 } },
   { id: 'evolve12', name: 'Master of Light', desc: 'Evolve all 12 weapons', prog: (S, r) => [Object.keys(Object.assign({}, S.evolved, r ? r.evolved : {})).length, 12], reward: { gold: 3000 } },
-  { id: 'kill1k', name: 'Lamplit Path', desc: 'Defeat 1,000 enemies', prog: (S, r) => [S.stats.kills + (r ? r.kills : 0), 1000], reward: { gold: 100 } },
+  { id: 'kill1k', name: 'Lamplit Path', desc: 'Defeat 1,000 enemies', prog: (S, r) => [S.stats.kills + (r ? r.kills : 0), 1000], reward: { char: 'kira', gold: 100 } },
   { id: 'kill5k', name: 'Horde Breaker', desc: 'Defeat 5,000 enemies', prog: (S, r) => [S.stats.kills + (r ? r.kills : 0), 5000], reward: { weapon: 'orb' } },
   { id: 'kill25k', name: 'Endless Vigil', desc: 'Defeat 25,000 enemies', prog: (S, r) => [S.stats.kills + (r ? r.kills : 0), 25000], reward: { gold: 1500 } },
   { id: 'kill100k', name: 'Legend of the Lantern', desc: 'Defeat 100,000 enemies', prog: (S, r) => [S.stats.kills + (r ? r.kills : 0), 100000], reward: { gold: 5000 } },
   { id: 'run1k', name: 'One Thousand Lights', desc: 'Defeat 1,000 enemies in one run', prog: (S, r) => [Math.max(S.stats.bestKills, r ? r.kills : 0), 1000], reward: { gold: 200 } },
   { id: 'bats', name: 'Bat Swatter', desc: 'Defeat 500 bats', prog: (S, r) => [(S.stats.byType.bat || 0) + (r ? r.byType.bat || 0 : 0), 500], reward: { gold: 120 } },
-  { id: 'chests', name: 'Treasure Hunter', desc: 'Open 20 chests', prog: (S, r) => [S.stats.chests + (r ? r.chests : 0), 20], reward: { weapon: 'runes' } },
+  { id: 'chests8', name: 'Pathfinder', desc: 'Open 8 chests', prog: (S, r) => [S.stats.chests + (r ? r.chests : 0), 8], reward: { char: 'orin' } },
+  { id: 'chests', name: 'Treasure Hunter', desc: 'Open 12 chests', prog: (S, r) => [S.stats.chests + (r ? r.chests : 0), 12], reward: { weapon: 'runes' } },
   { id: 'arsenal', name: 'Full Arsenal', desc: 'Hold 6 weapons at once', prog: (S, r) => [Math.max(S.stats.maxWeapons, r ? r.weapons : 0), 6], reward: { gold: 250 } },
   { id: 'gold', name: 'Gold Hoarder', desc: 'Collect 5,000 gold in total', prog: (S, r) => [S.stats.goldEarned + (r ? r.gold : 0), 5000], reward: { gold: 500 } },
   { id: 'daily', name: 'Daily Devotion', desc: 'Finish a Daily Night', prog: (S) => [S.stats.dailies, 1], reward: { gold: 200 } },
-  { id: 'clear1', name: 'Graveyard Dawn', desc: 'Clear the Moonlit Graveyard', prog: (S, r) => [S.cleared.graveyard || (r && r.won && r.stage === 'graveyard') ? 1 : 0, 1], reward: { stage: 1 } },
-  { id: 'clear2', name: 'Thaw', desc: 'Clear the Frozen Wastes', prog: (S, r) => [S.cleared.frozen || (r && r.won && r.stage === 'frozen') ? 1 : 0, 1], reward: { stage: 2 } },
-  { id: 'clear3', name: 'Cooled Embers', desc: 'Clear the Ember Caverns', prog: (S, r) => [S.cleared.ember || (r && r.won && r.stage === 'ember') ? 1 : 0, 1], reward: { stage: 3 } },
-  { id: 'clear4', name: 'Dawnkeeper', desc: 'Defeat the Night Sovereign', prog: (S, r) => [S.cleared.void || (r && r.won && r.stage === 'void') ? 1 : 0, 1], reward: { gold: 2500 } },
+  { id: 'clear1', name: 'Graveyard Dawn', desc: 'Clear the Moonlit Graveyard', prog: (S, r) => [clearedOf(S, r, 'graveyard'), 1], reward: { stage: 1 } },
+  { id: 'clear2', name: 'Thaw', desc: 'Clear the Frozen Wastes', prog: (S, r) => [clearedOf(S, r, 'frozen'), 1], reward: { stage: 2 } },
+  { id: 'clear3', name: 'Cooled Embers', desc: 'Clear the Ember Caverns', prog: (S, r) => [clearedOf(S, r, 'ember'), 1], reward: { stage: 3 } },
+  { id: 'clear4', name: 'Dawnkeeper', desc: 'Defeat the Night Sovereign', prog: (S, r) => [clearedOf(S, r, 'void'), 1], reward: { gold: 2500 } },
   { id: 'heroes', name: 'Fellowship', desc: 'Clear a stage with 4 different heroes', prog: (S, r) => [Object.keys(Object.assign({}, S.heroClears, r && r.won ? { [r.char]: 1 } : {})).length, 4], reward: { gold: 800 } },
   { id: 'noheal', name: 'Iron Will', desc: 'Clear a stage without picking up a heart', prog: (S, r) => [S.stats.noHealClear || (r && r.won && !r.hearts) ? 1 : 0, 1], reward: { gold: 600 } },
   { id: 'endless20', name: 'Eternal Night', desc: 'Survive 20 minutes in Endless', prog: (S, r) => [Math.max(S.stats.bestEndless, r && r.endless ? r.time : 0), 1200], reward: { gold: 1500 } },
@@ -1635,7 +1670,7 @@ class Run {
   // Live numbers used by achievements while a run is in progress.
   summary() {
     return {
-      time: this.time, level: this.level, kills: this.kills, byType: this.byType, minis: this.minis, bosses: this.bosses,
+      time: this.time, night: this.T, level: this.level, kills: this.kills, byType: this.byType, minis: this.minis, bosses: this.bosses,
       evolved: this.evolved, chests: this.chestsOpened, weapons: this.weapons.length, gold: this.gold, won: this.won,
       stage: this.stage.key, char: this.charKey, endless: this.endless, hearts: this.hearts, mode: this.mode,
     };
@@ -4884,19 +4919,21 @@ let SAVE = null;
 
 function defaultSave() {
   return {
-    v: 1,
+    v: 2,
     gold: 0,
     power: {},
+    limit: {}, // Limit Break ranks (opens once every power-up is maxed)
     chars: ['lumen', 'aria'],
     weapons: BASE_WEAPONS.slice(0, 8),
     stages: 1,
     ach: {},
     stats: {
       kills: 0, byType: {}, runs: 0, wins: 0, bestTime: 0, maxLevel: 0, minis: 0, bosses: 0, chests: 0, maxWeapons: 0,
-      goldEarned: 0, dailies: 0, bestKills: 0, bestEndless: 0, noHealClear: 0, playTime: 0,
+      goldEarned: 0, dailies: 0, bestKills: 0, bestEndless: 0, noHealClear: 0, playTime: 0, bestNight: 0,
     },
     best: {},
     cleared: {},
+    quickClears: {}, // Quick Night wins per stage; two count as a clear
     heroClears: {},
     evolved: {},
     seen: { w: {}, e: {} },
@@ -4925,13 +4962,45 @@ function loadGame() {
       SAVE.weapons = (SAVE.weapons || []).filter((k) => BASE_WEAPONS.includes(k));
       for (const k of BASE_WEAPONS.slice(0, 8)) if (!SAVE.weapons.includes(k)) SAVE.weapons.push(k);
       for (const k of Object.keys(SAVE.power)) if (!POWERUPS[k]) delete SAVE.power[k];
+      SAVE.limit = SAVE.limit || {};
+      for (const k of Object.keys(SAVE.limit)) if (!LIMIT_BREAK_KEYS.includes(k)) delete SAVE.limit[k];
+      SAVE.quickClears = SAVE.quickClears || {};
       SAVE.stages = clamp(SAVE.stages | 0, 1, STAGES.length);
       if (!CHARACTERS[SAVE.sel.char] || !SAVE.chars.includes(SAVE.sel.char)) SAVE.sel.char = 'lumen';
       if (!(SAVE.sel.stage >= 0 && SAVE.sel.stage < SAVE.stages)) SAVE.sel.stage = 0;
+      // a failed migration must never fall through to the fresh save below
+      if (!(SAVE.v >= 2)) try { migrateDK(); } catch (e) { SAVE.v = 2; }
       return;
     }
   } catch (e) { /* corrupted or unavailable storage: start fresh */ }
   SAVE = d0;
+}
+
+// v1 -> v2: hero unlocks moved to earlier achievements, Quick wins count toward clears and the
+// survival goals use night time. Nothing is taken away; heroes already owned stay owned.
+function migrateDK() {
+  const S = SAVE, st = S.stats, notes = [];
+  st.bestNight = Math.max(st.bestNight || 0, st.bestTime || 0);
+  // a stage won but not cleared was won on Quick Night: that counts as the first of two Quick wins
+  for (const s of STAGES) {
+    const b = S.best[s.key];
+    if (b && b.won && !S.cleared[s.key]) S.quickClears[s.key] = Math.max(S.quickClears[s.key] || 0, 1);
+  }
+  // achievements already earned whose reward is now a hero or weapon: grant it, without paying the gold again
+  for (const a of ACHIEVEMENTS) {
+    if (!S.ach[a.id]) continue;
+    const r = a.reward, out = [];
+    if (r.char && !S.chars.includes(r.char)) { S.chars.push(r.char); out.push('Hero: ' + CHARACTERS[r.char].name); }
+    if (r.weapon && !S.weapons.includes(r.weapon)) { S.weapons.push(r.weapon); out.push('Weapon: ' + WEAPONS[r.weapon].name); }
+    if (out.length) notes.push({ id: a.id, text: out.join(', ') });
+  }
+  S.limit = {};
+  S.quickClears = S.quickClears || {};
+  S.v = 2;
+  // the new early achievements are claimed and paid normally
+  for (const g of checkAchievements(null)) notes.push({ id: g.a.id, text: g.text });
+  if (notes.length) S.pendingAch = notes;
+  saveGame();
 }
 
 function saveGame() {
@@ -4948,19 +5017,20 @@ function resetGame() {
 
 function achReward(a) {
   const r = a.reward, out = [];
-  if (r.gold) { SAVE.gold += r.gold; out.push(r.gold + ' gold'); }
   if (r.char && !SAVE.chars.includes(r.char)) { SAVE.chars.push(r.char); out.push('Hero: ' + CHARACTERS[r.char].name); }
   if (r.weapon && !SAVE.weapons.includes(r.weapon)) { SAVE.weapons.push(r.weapon); out.push('Weapon: ' + WEAPONS[r.weapon].name); }
   if (r.stage) { SAVE.stages = Math.max(SAVE.stages, Math.min(STAGES.length, r.stage + 1)); out.push('Stage: ' + STAGES[Math.min(STAGES.length - 1, r.stage)].name); }
-  return out.join(', ');
+  if (r.gold) { SAVE.gold += r.gold; out.push(r.gold + ' gold'); }
+  // older saves can already own a hero that moved to this achievement
+  return out.join(', ') || rewardText(a) + ' (already yours)';
 }
 
 function rewardText(a) {
   const r = a.reward, out = [];
-  if (r.gold) out.push(r.gold + ' gold');
   if (r.char) out.push('Hero ' + CHARACTERS[r.char].name);
   if (r.weapon) out.push(WEAPONS[r.weapon].name);
   if (r.stage) out.push(STAGES[r.stage].name);
+  if (r.gold) out.push(r.gold + ' gold');
   return out.join(' + ');
 }
 
@@ -4979,20 +5049,48 @@ function checkAchievements(r) {
   return got;
 }
 
+// Power-up ranks for a run. Each Limit Break rank adds a fifth of a normal rank; the run's
+// stat formulas are linear, so fractional ranks just work.
 function powerRanks() {
   const p = {};
-  for (const k of POWERUP_KEYS) p[k] = SAVE.power[k] || 0;
+  for (const k of POWERUP_KEYS) p[k] = (SAVE.power[k] || 0) + 0.2 * (SAVE.limit[k] || 0);
   return p;
 }
 
-// Fold a finished run into the save. Returns the gold earned (with bonuses).
+const allPowerMaxed = () => POWERUP_KEYS.every((k) => (SAVE.power[k] || 0) >= POWERUPS[k].max);
+
+// How many power-ups (or Limit Break ranks, once open) the current gold can buy one rank of.
+function affordablePowers() {
+  let n = 0;
+  for (const k of POWERUP_KEYS) {
+    const rank = SAVE.power[k] || 0;
+    if (rank < POWERUPS[k].max && SAVE.gold >= powerCost(k, rank)) n++;
+  }
+  if (allPowerMaxed()) {
+    for (const k of LIMIT_BREAK_KEYS) {
+      const rank = SAVE.limit[k] || 0;
+      if (rank < LIMIT_RANKS && SAVE.gold >= limitCost(k, rank)) n++;
+    }
+  }
+  return n;
+}
+
+// Fold a finished run into the save. Returns the gold earned (with bonuses) and its parts.
 function applyRunResult(run, quit) {
-  const S = SAVE, st = S.stats, r = run.summary();
-  let gold = run.gold;
-  // a little gold for every minute survived, a lot for seeing the dawn
-  gold += Math.floor(run.time / 60) * Math.round(10 * run.stage.gold);
-  if (run.won) gold += Math.round(300 * (run.stageIdx + 1) * (run.mode === 'quick' ? 0.4 : 1));
-  if (quit) gold = Math.round(gold * 0.5);
+  const S = SAVE, st = S.stats, r = run.summary(), quick = run.mode === 'quick';
+  // gold for every second survived (prorated), a lot for seeing the dawn, and never less than 40
+  const pickups = run.gold;
+  const survival = Math.round(run.time / 60 * 20 * run.stage.gold);
+  const dawn = run.won ? Math.round(300 * (run.stageIdx + 1) * (quick ? 0.4 : 1)) : 0;
+  const parts = { pickups, survival, dawn, daily: 0, minimum: 0, halved: 0 };
+  let gold = pickups + survival + dawn;
+  if (quit) {
+    parts.halved = gold - Math.round(gold * 0.5);
+    gold -= parts.halved;
+  } else if (gold < 40) {
+    parts.minimum = 40 - gold;
+    gold = 40;
+  }
   S.gold += gold;
   st.goldEarned += gold;
   st.runs++;
@@ -5005,7 +5103,10 @@ function applyRunResult(run, quit) {
   st.chests += run.chestsOpened;
   st.maxWeapons = Math.max(st.maxWeapons, run.weapons.length);
   st.playTime += run.time;
-  if (!quit) st.bestTime = Math.max(st.bestTime, run.time);
+  if (!quit) {
+    st.bestTime = Math.max(st.bestTime, run.time);
+    st.bestNight = Math.max(st.bestNight || 0, run.T);
+  }
   if (run.endless) st.bestEndless = Math.max(st.bestEndless, run.time);
   for (const k of Object.keys(run.evolved)) S.evolved[k] = 1;
   for (const w of run.weapons) S.seen.w[w.key] = 1;
@@ -5016,10 +5117,15 @@ function applyRunResult(run, quit) {
   if (run.won) {
     st.wins++;
     b.won = true;
-    if (run.mode !== 'quick') {
+    if (!quick) {
       S.cleared[key] = 1;
       S.heroClears[run.charKey] = 1;
       if (!run.hearts) st.noHealClear = 1;
+    } else {
+      // two Quick wins count as one clear, so Quick Night can't replace the Full Night 1:1
+      S.quickClears[key] = (S.quickClears[key] || 0) + 1;
+      if (S.quickClears[key] >= 2) S.cleared[key] = 1;
+      S.heroClears[run.charKey] = 1;
     }
   }
   if (run.mode === 'daily') {
@@ -5031,11 +5137,12 @@ function applyRunResult(run, quit) {
       S.daily.rewarded = true;
       S.gold += 150;
       gold += 150;
+      parts.daily = 150;
     }
   }
   const ach = checkAchievements(null);
   saveGame();
-  return { gold, ach };
+  return { gold, ach, parts };
 }
 
 // ----- the daily night: same seed for everyone on a given date -----
@@ -5075,6 +5182,19 @@ function chestImg(boss) {
   return canvasUrl('chest:' + boss, () => DropSprites.get('chest', boss ? 1 : 0, 50 * DPR()));
 }
 function icon(k, px) { return Icons.url(k, px || 40); }
+// "1:00 / 5:00" for time goals, "620 / 1000" for the rest
+function achShown(a, cur, goal) {
+  const f = a.id.startsWith('survive') || a.id === 'endless20' ? fmtTime : fmtNum;
+  return f(Math.min(cur, goal)) + ' / ' + f(goal);
+}
+// The name of what an achievement unlocks, or '' when it unlocks nothing new.
+function unlockName(a) {
+  const r = a.reward;
+  if (r.char && !SAVE.chars.includes(r.char)) return CHARACTERS[r.char].name;
+  if (r.weapon && !SAVE.weapons.includes(r.weapon)) return WEAPONS[r.weapon].name;
+  if (r.stage && SAVE.stages <= r.stage) return STAGES[r.stage].name;
+  return '';
+}
 function tog(id, on, dis) { return `<button class="tog${on ? ' on' : ''}" id="${id}"${dis ? ' disabled' : ''}></button>`; }
 function goldTag(n) { return `<span class="res"><i class="coin"></i>${fmtNum(n)}</span>`; }
 
@@ -5170,7 +5290,7 @@ const UI = {
         <button class="btn big gold" id="h-play">▶ PLAY</button>
         <div class="daily${done ? ' done' : ''}" id="h-daily"><span class="moon">${done ? '✅' : '🌙'}</span><div><b>Daily Night${done ? ' · best ' + fmtTime(SAVE.daily.best) : ' · +150 gold'}</b>
           <small>${esc(STAGES[d.stage].name)} · ${esc(CHARACTERS[d.char].name)} · ${d.mods.map((m) => esc(DAILY_MODS[m].name)).join(', ')}</small></div></div>
-        <div class="row"><button class="btn" id="h-shop">⬆️ Power-ups</button><button class="btn" id="h-codex">📖 Codex</button></div>
+        <div class="row"><button class="btn${affordablePowers() ? ' dot' : ''}" id="h-shop">⬆️ Power-ups</button><button class="btn" id="h-codex">📖 Codex</button></div>
         <button class="btn" id="h-ach">🏆 Achievements <small class="muted">${achDone}/${ACHIEVEMENTS.length}</small></button>
         <div class="foot" id="h-foot"></div>
       </div>`;
@@ -5220,16 +5340,25 @@ const UI = {
   renderSetup() {
     const sel = SAVE.sel;
     const heroes = CHAR_KEYS.map((k) => {
-      const c = CHARACTERS[k], locked = !SAVE.chars.includes(k);
-      return `<div class="hero${sel.char === k ? ' sel' : ''}${locked ? ' locked' : ''}" data-h="${k}">${locked ? '<span class="lock">🔒</span>' : ''}<img src="${heroImg(k, 64)}"><b>${esc(c.name)}</b><small>${esc(c.title)}</small></div>`;
+      const c = CHARACTERS[k], locked = !SAVE.chars.includes(k), a = locked && ACHIEVEMENTS.find((x) => x.id === c.unlock);
+      let prog = '';
+      if (a) {
+        const [cur, goal] = a.prog(SAVE, null);
+        prog = `<small class="hp">${esc(a.desc)} · <span>${achShown(a, cur, goal)}</span></small><div class="bar"><i style="width:${(clamp(cur / goal, 0, 1) * 100).toFixed(1)}%"></i></div>`;
+      }
+      return `<div class="hero${sel.char === k ? ' sel' : ''}${locked ? ' locked' : ''}" data-h="${k}">${locked ? '<span class="lock">🔒</span>' : ''}<img src="${heroImg(k, 64)}"><b>${esc(c.name)}</b><small>${esc(c.title)}</small>${prog}</div>`;
     }).join('');
     const ch = CHARACTERS[sel.char];
+    const lockText = (i) => {
+      const q = SAVE.quickClears[STAGES[i - 1].key] || 0;
+      return 'Clear ' + STAGES[i - 1].name + ' (or win it twice on Quick Night)' + (q ? ' · ' + Math.min(q, 1) + '/2 Quick wins' : '');
+    };
     const stages = STAGES.map((s, i) => {
       const locked = i >= SAVE.stages, b = SAVE.best[s.key];
       const best = b && b.time ? `<span class="best">${b.won ? '☀️ Cleared · ' : ''}Best ${fmtTime(b.time)}</span>` : '';
       return `<div class="stage${sel.stage === i ? ' sel' : ''}${locked ? ' locked' : ''}" data-s="${i}" style="background:linear-gradient(90deg,${rgba(s.night, 0.95)},${rgba(s.ground[1], 0.75)})">
         <div class="sw" style="background:linear-gradient(135deg,${s.ground[1]},${s.accent})"></div>
-        <div class="si"><b>${locked ? '🔒 ' : ''}${esc(s.name)}</b><small>${locked ? 'Clear ' + esc(STAGES[i - 1].name) + ' to unlock' : esc(s.desc)}</small>${best}</div></div>`;
+        <div class="si"><b>${locked ? '🔒 ' : ''}${esc(s.name)}</b><small>${locked ? esc(lockText(i)) : esc(s.desc)}</small>${best}</div></div>`;
     }).join('');
     const canEndless = !!SAVE.cleared[STAGES[sel.stage].key];
     if (!canEndless) sel.endless = false;
@@ -5242,7 +5371,7 @@ const UI = {
         <h3>Stage</h3>
         <div class="stages">${stages}</div>
         <h3>Mode</h3>
-        <div class="seg" id="s-mode"><button data-m="normal" class="${sel.mode === 'normal' ? 'on' : ''}">Full Night<small>15:00 · boss at dawn</small></button><button data-m="quick" class="${sel.mode === 'quick' ? 'on' : ''}">Quick Night<small>5:00 · less gold</small></button></div>
+        <div class="seg" id="s-mode"><button data-m="normal" class="${sel.mode === 'normal' ? 'on' : ''}">Full Night<small>15:00 · boss at dawn</small></button><button data-m="quick" class="${sel.mode === 'quick' ? 'on' : ''}">Quick Night<small>5:00 · 60% gold · 2 wins clear a stage</small></button></div>
         <div class="card"><div class="setrow"><div>Endless night<small>${canEndless ? 'Keep fighting after dawn. Bosses keep coming.' : 'Clear this stage to unlock'}</small></div>${tog('s-end', sel.endless, !canEndless)}</div></div>
       </div>
       <div class="pfoot"><button class="btn big gold" id="s-go">START NIGHT</button></div>`;
@@ -5251,7 +5380,7 @@ const UI = {
       const k = h.dataset.h;
       if (!SAVE.chars.includes(k)) {
         Sound.play('error');
-        const a = ACHIEVEMENTS.find((x) => x.reward.char === k);
+        const a = ACHIEVEMENTS.find((x) => x.id === CHARACTERS[k].unlock);
         this.toast(`🔒 ${esc(CHARACTERS[k].name)}: ${a ? esc(a.desc) : 'locked'}`);
         return;
       }
@@ -5261,7 +5390,7 @@ const UI = {
     };
     for (const s of document.querySelectorAll('#setup .stage')) s.onclick = () => {
       const i = +s.dataset.s;
-      if (i >= SAVE.stages) { Sound.play('error'); this.toast('🔒 Clear ' + esc(STAGES[i - 1].name) + ' first'); return; }
+      if (i >= SAVE.stages) { Sound.play('error'); this.toast('🔒 ' + esc(lockText(i))); return; }
       Sound.play('click');
       sel.stage = i;
       this.renderSetup();
@@ -5278,26 +5407,35 @@ const UI = {
   renderShop() {
     let spent = 0;
     for (const k of POWERUP_KEYS) for (let r = 0; r < (SAVE.power[k] || 0); r++) spent += powerCost(k, r);
-    const cards = POWERUP_KEYS.map((k) => {
-      const p = POWERUPS[k], rank = SAVE.power[k] || 0, max = rank >= p.max, cost = max ? 0 : powerCost(k, rank);
-      const pips = Array.from({ length: p.max }, (_, i) => `<i class="${i < rank ? 'on' : ''}"></i>`).join('');
-      return `<div class="pu${max ? ' max' : ''}"><div class="t"><img src="${icon(p.icon, 36)}"><div><b>${esc(p.name)}</b><small>${esc(p.desc)}</small></div></div>
+    for (const k of LIMIT_BREAK_KEYS) for (let r = 0; r < (SAVE.limit[k] || 0); r++) spent += limitCost(k, r);
+    const card = (cls, ic, name, desc, rank, maxRank, cost, attr) => {
+      const max = rank >= maxRank;
+      const pips = Array.from({ length: maxRank }, (_, i) => `<i class="${i < rank ? 'on' : ''}"></i>`).join('');
+      return `<div class="pu${cls}${max ? ' max' : ''}"><div class="t"><img src="${icon(ic, 36)}"><div><b>${esc(name)}</b><small>${esc(desc)}</small></div></div>
         <div class="pips">${pips}</div>
-        <button class="btn small ${max ? '' : 'gold'}" data-k="${k}" ${max || SAVE.gold < cost ? 'disabled' : ''}>${max ? 'MAX' : '<i class="coin"></i>' + fmtNum(cost)}</button></div>`;
+        <button class="btn small ${max ? '' : cls ? 'purple' : 'gold'}" ${attr} ${max || SAVE.gold < cost ? 'disabled' : ''}>${max ? 'MAX' : '<i class="coin"></i>' + fmtNum(cost)}</button></div>`;
+    };
+    const cards = POWERUP_KEYS.map((k) => {
+      const p = POWERUPS[k], rank = SAVE.power[k] || 0;
+      return card('', p.icon, p.name, p.desc, rank, p.max, rank >= p.max ? 0 : powerCost(k, rank), `data-k="${k}"`);
     }).join('');
+    // Limit Break opens once everything above is maxed (its buttons use data-lb, never data-k)
+    let lb = '';
+    if (allPowerMaxed()) {
+      lb = `<h3>Limit Break <small>each rank = 1/5 of a power-up rank</small></h3><div class="pgrid">` + LIMIT_BREAK_KEYS.map((k) => {
+        const p = POWERUPS[k], rank = SAVE.limit[k] || 0;
+        return card(' lb', p.icon, p.name, LIMIT_DESC[k] + ' per rank', rank, LIMIT_RANKS, rank >= LIMIT_RANKS ? 0 : limitCost(k, rank), `data-lb="${k}"`);
+      }).join('') + `</div><h3>Power-ups <small>all maxed</small></h3>`;
+    }
     $('shop').innerHTML = `
       <div class="phead"><button class="iconbtn" id="sh-back" aria-label="Back">←</button><h2>Power-ups</h2>${goldTag(SAVE.gold)}</div>
       <div class="pbody scroll">
         <p class="muted" style="font-size:13px">Power-ups make every run stronger. Earn gold by picking up coins, opening chests and surviving.</p>
+        ${lb}
         <div class="pgrid">${cards}</div>
         <div class="card"><div class="setrow"><div>Refund everything<small>Get all ${fmtNum(spent)} gold back to rebuy differently</small></div><button class="btn small red" id="sh-refund" ${spent ? '' : 'disabled'}>Refund</button></div></div>
       </div>`;
-    $('sh-back').onclick = () => { Sound.play('click'); this.showScreen('home'); };
-    for (const b of document.querySelectorAll('#shop .pu button[data-k]')) b.onclick = () => {
-      const k = b.dataset.k, rank = SAVE.power[k] || 0, cost = powerCost(k, rank);
-      if (rank >= POWERUPS[k].max || SAVE.gold < cost) { Sound.play('error'); return; }
-      SAVE.gold -= cost;
-      SAVE.power[k] = rank + 1;
+    const bought = () => {
       saveGame();
       Sound.play('buy');
       Game.vibrate(20);
@@ -5305,12 +5443,28 @@ const UI = {
       this.renderShop();
       $('shop').querySelector('.pbody').scrollTop = y;
     };
+    $('sh-back').onclick = () => { Sound.play('click'); this.showScreen('home'); };
+    for (const b of document.querySelectorAll('#shop .pu button[data-k]')) b.onclick = () => {
+      const k = b.dataset.k, rank = SAVE.power[k] || 0, cost = powerCost(k, rank);
+      if (rank >= POWERUPS[k].max || SAVE.gold < cost) { Sound.play('error'); return; }
+      SAVE.gold -= cost;
+      SAVE.power[k] = rank + 1;
+      bought();
+    };
+    for (const b of document.querySelectorAll('#shop .pu button[data-lb]')) b.onclick = () => {
+      const k = b.dataset.lb, rank = SAVE.limit[k] || 0, cost = limitCost(k, rank);
+      if (!allPowerMaxed() || rank >= LIMIT_RANKS || SAVE.gold < cost) { Sound.play('error'); return; }
+      SAVE.gold -= cost;
+      SAVE.limit[k] = rank + 1;
+      bought();
+    };
     $('sh-refund').onclick = () => {
-      this.modal(`<h2>Refund all?</h2><p class="center">You get back <b>${fmtNum(spent)}</b> gold and all power-ups reset.</p><div class="btns"><button class="btn" id="r-no">Cancel</button><button class="btn red" id="r-yes">Refund</button></div>`, true);
+      this.modal(`<h2>Refund all?</h2><p class="center">You get back <b>${fmtNum(spent)}</b> gold and all power-ups${lb ? ' and Limit Breaks' : ''} reset.</p><div class="btns"><button class="btn" id="r-no">Cancel</button><button class="btn red" id="r-yes">Refund</button></div>`, true);
       $('r-no').onclick = () => this.closeModal();
       $('r-yes').onclick = () => {
         SAVE.gold += spent;
         SAVE.power = {};
+        SAVE.limit = {};
         saveGame();
         Sound.play('coin');
         this.closeModal();
@@ -5357,7 +5511,7 @@ const UI = {
   renderAchs() {
     const rows = ACHIEVEMENTS.map((a) => {
       const done = !!SAVE.ach[a.id], [cur, goal] = a.prog(SAVE, null), f = clamp(cur / goal, 0, 1);
-      const shown = goal >= 60 && a.id.startsWith('survive') || a.id === 'endless20' ? fmtTime(Math.min(cur, goal)) + ' / ' + fmtTime(goal) : fmtNum(Math.min(cur, goal)) + ' / ' + fmtNum(goal);
+      const shown = achShown(a, cur, goal);
       return `<div class="ach${done ? ' done' : ''}"><div class="ic">${done ? '🏆' : '🔸'}</div><div class="d"><b>${esc(a.name)}</b><small>${esc(a.desc)}</small>
         <div class="rw">Reward: ${esc(rewardText(a))}</div>${done ? '' : `<div class="bar"><i style="width:${(f * 100).toFixed(1)}%"></i></div><small>${shown}</small>`}</div></div>`;
     }).join('');
@@ -5526,19 +5680,38 @@ const UI = {
     const top = dmg.length ? dmg[0][1] : 1;
     const rows = dmg.slice(0, 6).map(([k, v]) => `<div class="dmgrow"><img src="${icon(k, 24)}"><span class="nm">${esc(WEAPONS[k].name)}</span><div class="bar"><i style="width:${((v / top) * 100).toFixed(1)}%"></i></div><span class="v">${fmtNum(v)}</span></div>`).join('');
     const achs = out.ach.map((g) => `<div class="newach pop">🏆<div><b>${esc(g.a.name)}</b>${esc(g.text)}</div></div>`).join('');
-    const extra = run.won && !quit ? `<p class="center" style="color:#ffd84a;font-weight:800">Dawn bonus included!</p>` : '';
+    // where the gold came from
+    const P = out.parts || { pickups: out.gold, survival: 0 };
+    const achGold = out.ach.reduce((n, g) => n + (g.a.reward.gold || 0), 0);
+    const gl = (label, v, cls) => `<div class="gl${cls || ''}"><span>${label}</span><b>${v < 0 ? '−' : '+'}${fmtNum(Math.abs(v))}</b></div>`;
+    const glist = gl('Pickups', P.pickups) + gl('Survival', P.survival) + (P.dawn ? gl('Dawn bonus', P.dawn, ' sun') : '') +
+      (P.minimum ? gl('Minimum reward', P.minimum) : '') + (P.halved ? gl('Gave up (half)', -P.halved, ' neg') : '') +
+      (P.daily ? gl('Daily', P.daily) : '') + (achGold ? gl('Achievements', achGold) : '');
+    // the closest hero, weapon or stage still to unlock
+    let next = null;
+    for (const a of ACHIEVEMENTS) {
+      if (SAVE.ach[a.id] || !unlockName(a)) continue;
+      const [cur, goal] = a.prog(SAVE, null), f = clamp(cur / goal, 0, 1);
+      if (!next || f > next.f) next = { a, cur, goal, f };
+    }
+    const nextHtml = next ? `<div class="card nextun"><div class="gl"><span>Next unlock: <b>${esc(unlockName(next.a))}</b></span><b>${achShown(next.a, next.cur, next.goal)}</b></div>
+      <small>${esc(next.a.desc)}</small><div class="bar"><i style="width:${(next.f * 100).toFixed(1)}%"></i></div></div>` : '';
+    const nAfford = affordablePowers();
     this.modal(`<h2>${title}</h2>${sub ? `<p class="center muted">${sub}</p>` : ''}
       <div class="stats">
         <div class="stat"><b>${fmtTime(run.time)}</b><span>Survived</span></div>
         <div class="stat"><b>${run.level}</b><span>Level</span></div>
         <div class="stat"><b>${fmtNum(run.kills)}</b><span>Defeated</span></div>
       </div>
-      <div class="card" style="display:flex;justify-content:center;gap:8px;align-items:center;font-weight:900;font-size:18px"><i class="coin"></i> +${fmtNum(out.gold)} gold</div>
-      ${extra}
-      ${rows ? `<h3>Damage</h3>${rows}` : ''}
+      <div class="card goldsum">${glist}<div class="gl tot"><span><i class="coin"></i> Total</span><b>+${fmtNum(out.gold + achGold)} gold</b></div></div>
       ${achs}
+      ${nextHtml}
+      ${rows ? `<h3>Damage</h3>${rows}` : ''}
+      ${nAfford ? `<button class="btn green" id="r-shop">⬆️ ${nAfford} power-up${nAfford > 1 ? 's' : ''} affordable</button>` : ''}
       <div class="btns"><button class="btn" id="r-home">Home</button><button class="btn gold" id="r-again">Play again</button></div>`, false);
     $('r-home').onclick = () => { Sound.play('click'); this.closeModal(); Game.toHome(); };
+    const rs = $('r-shop');
+    if (rs) rs.onclick = () => { Sound.play('click'); this.closeModal(); Game.toHome(); this.showScreen('shop'); };
     $('r-again').onclick = () => { Sound.play('click'); this.closeModal(); Game.startRun(scene.cfg); };
     if (out.ach.length) setTimeout(() => Sound.play('unlock'), 500);
   },
@@ -6117,6 +6290,13 @@ const Game = {
     addEventListener('pointerdown', unlock, { passive: true });
     addEventListener('touchend', unlock, { passive: true });
     this.setScene(new HomeScene());
+    // achievements claimed by the save migration: one batch of toasts on the home screen
+    if (SAVE.pendingAch) {
+      const list = SAVE.pendingAch.map((g) => ({ a: ACHIEVEMENTS.find((x) => x.id === g.id), text: g.text })).filter((g) => g.a);
+      delete SAVE.pendingAch;
+      saveGame();
+      setTimeout(() => UI.achToasts(list), 600);
+    }
     this.frame = this.frame.bind(this);
     requestAnimationFrame(this.frame);
     this.registerSW();

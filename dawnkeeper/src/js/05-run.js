@@ -731,7 +731,7 @@ class Run {
   // Live numbers used by achievements while a run is in progress.
   summary() {
     return {
-      time: this.time, level: this.level, kills: this.kills, byType: this.byType, minis: this.minis, bosses: this.bosses,
+      time: this.time, night: this.T, level: this.level, kills: this.kills, byType: this.byType, minis: this.minis, bosses: this.bosses,
       evolved: this.evolved, chests: this.chestsOpened, weapons: this.weapons.length, gold: this.gold, won: this.won,
       stage: this.stage.key, char: this.charKey, endless: this.endless, hearts: this.hearts, mode: this.mode,
     };
