@@ -197,7 +197,8 @@ class Sim {
     let ang, d;
     if (I.auto) {
       const tg = range > 0 ? this.autoTarget(b, range) : null;
-      if (tg) { ang = Math.atan2(tg.y - b.y, tg.x - b.x); d = Math.min(range, Math.hypot(tg.x - b.x, tg.y - b.y)); }
+      if (tg && s.away) { ang = Math.atan2(b.y - tg.y, b.x - tg.x); d = range; } // escapes jump away
+      else if (tg) { ang = Math.atan2(tg.y - b.y, tg.x - b.x); d = Math.min(range, Math.hypot(tg.x - b.x, tg.y - b.y)); }
       else { ang = b.face; d = range; }
     } else {
       ang = I.aimA;
@@ -725,7 +726,7 @@ class Sim {
   }
 
   heal(b, amt, src, act) {
-    if (!b.alive || amt <= 0) return 0;
+    if (!b.alive || b.hp <= 0 || amt <= 0) return 0; // at 0 HP it goes down this tick, whatever heals it
     const real = Math.min(Math.round(amt), b.maxHp - b.hp);
     if (real <= 0) return 0;
     b.hp += real;
@@ -911,7 +912,8 @@ class Sim {
     if (d.cd > 0) return;
     d.cd += s.rate / (d.rateT > 0 ? d.rateF : 1);
     if (d.cd < 0) d.cd = 0;
-    this.spawnShot(d.owner, d.team, s.shot, d.act, d.face, d.x, d.y, d.mul, 0);
+    const e = this.spawnShot(d.owner, d.team, s.shot, d.act, d.face, d.x, d.y, d.mul, 0);
+    e.sup = false; // the unit's own fire: drawn and counted as plain shots
   }
 
   stepPet(d) {
@@ -1284,7 +1286,6 @@ class Sim {
     for (let i = 0; i < B.length; i++) {
       const b = B[i];
       if (b.alive && b.hp <= 0) this.die(b);
-      else if (b.dying) { b.dying = false; b.killer = -1; } // healed back up within the same tick
     }
   }
 
@@ -1366,10 +1367,11 @@ class Sim {
   // restarts the poison clock. opts.tiles restores broken walls and boxes.
   resetRound(opts) {
     opts = opts || {};
-    this.shots.length = 0;
-    this.areas.length = 0;
-    this.pickups.length = 0;
-    this.deploys.length = 0;
+    for (const arr of [this.shots, this.areas, this.pickups, this.deploys]) {
+      for (const e of arr) if (!e.dead) { e.dead = true; this.ev(EV.DESPAWN, e.id, e.kind); }
+      arr.length = 0;
+    }
+    this.deathOrder.length = 0;
     const m = this.map;
     if (opts.tiles) {
       for (let i = 0; i < m.tiles.length; i++) {

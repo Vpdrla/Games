@@ -676,7 +676,8 @@ const Art = (() => {
     rr(x, -0.25, -0.64, 0.5, 0.42, 0.15, jk);
     ln(x, -0.2, -0.6, -0.2, -0.26, 0.03, '#fff', 0);
     ln(x, 0.2, -0.6, 0.2, -0.26, 0.03, '#fff', 0);
-    if (!back) { x.font = '900 0.16px sans-serif'; x.textAlign = 'center'; x.fillStyle = '#2a3a5a'; x.fillText('7', 0.02, -0.38); }
+    // lightning emblem on the shirt (a path: tiny scaled text makes the cached sprite slow to blit)
+    if (!back) pg(x, [0.05, -0.56, -0.07, -0.42, 0.0, -0.42, -0.04, -0.3, 0.09, -0.46, 0.02, -0.46], '#2a3a5a', 0);
     arm(x, -0.27, -0.34, jk);
     // headband tails
     const tw = f < 4 ? (f & 1) * 0.05 : 0;
@@ -882,8 +883,9 @@ const Art = (() => {
     const L = lookOf(bk), k = T * L.s;
     const w = Math.ceil(k * 1.9), h = Math.ceil(k * 2.3);
     c = makeCanvas(w, h);
-    c.ax = w / 2;
-    c.ay = h - k * 0.26;
+    // whole-pixel anchors: unscaled sprites then blit without resampling
+    c.ax = Math.round(w / 2);
+    c.ay = Math.round(h - k * 0.26);
     const x = c.getContext('2d');
     x.translate(c.ax, c.ay);
     x.scale(k, k);
@@ -932,8 +934,7 @@ const Art = (() => {
     const k = T * L.s;
     const sc = scale / T;
     ctx.save();
-    ctx.translate(x, y);
-    if (sc !== 1) ctx.scale(sc, sc);
+    if (sc !== 1) { ctx.translate(x, y); ctx.scale(sc, sc); } else ctx.translate(Math.round(x), Math.round(y));
     if (mirror) ctx.scale(-1, 1);
     const a = mirror ? Math.PI - face : face;
     let gx = 0, gy = 0, g = null;
@@ -1152,6 +1153,7 @@ const Art = (() => {
       bush: ['#4cbf8a', '#2f9a6a', '#1d6a4a'], water: ['#5ac8f0', '#3aa4dc', '#2a7ab4'], fence: ['#8f5a30', '#f2dca8'],
     },
   };
+  for (const k in ENV) ENV[k].name = k;
   const MODE_ENV = { gem: 'mine', sd: 'grass', ball: 'turf', ko: 'desert', bounty: 'snow' };
   function envOf(map, mode) {
     if (map.env && ENV[map.env]) return ENV[map.env];
@@ -1172,8 +1174,9 @@ const Art = (() => {
     px = Math.max(8, Math.min(Math.round(px), Math.floor(Math.sqrt(6e6 / (lw * lh)))));
     const c = makeCanvas(lw * px, lh * px);
     const L = { canvas: c, px, flip: !!flip, map, env: envOf(map, opts.mode), mode: opts.mode || (map.modes && map.modes[0]), team: opts.team | 0, lw, lh, mineIdx: -1 };
-    if (map.mine) L.mineIdx = Math.floor(map.mine.y) * map.w + Math.floor(map.mine.x);
-    const x = c.getContext('2d');
+    if (map.mine && L.mode === 'gem') L.mineIdx = Math.floor(map.mine.y) * map.w + Math.floor(map.mine.x);
+    // opaque: blitting it every frame is a plain copy
+    const x = c.getContext('2d', { alpha: false });
     x.lineJoin = 'round';
     x.lineCap = 'round';
     paintOutside(x, L);
@@ -1227,11 +1230,21 @@ const Art = (() => {
         el(x, 0, -0.42, 0.42, 0.38, '#3aa048', 0.06);
         el(x, -0.12, -0.52, 0.2, 0.16, '#5ac85a', 0);
         break;
-      case 'stand':
-        rr(x, -0.45, -0.3, 0.9, 0.6, 0.1, rng.chance(0.5) ? '#ff6a5a' : '#5aa8ff', 0.06);
-        dot(x, -0.15, -0.05, 0.1, '#ffd2ad');
-        dot(x, 0.18, -0.05, 0.1, '#e8a878');
+      case 'stand': {
+        // a block of bleachers full of fans
+        const team = rng.chance(0.5) ? '#ff6a5a' : '#5aa8ff';
+        rr(x, -0.9, -0.55, 1.8, 1.1, 0.1, '#8a96b0', 0.06);
+        for (let r = 0; r < 3; r++) {
+          x.fillStyle = r & 1 ? '#6a7690' : '#7a86a0';
+          x.fillRect(-0.86, -0.5 + r * 0.34, 1.72, 0.3);
+          for (let i = 0; i < 6; i++) {
+            const hx = -0.72 + i * 0.29 + (r & 1) * 0.1, hy = -0.36 + r * 0.34;
+            rr(x, hx - 0.09, hy - 0.02, 0.18, 0.16, 0.05, rng.chance(0.6) ? team : '#ffd23f', 0);
+            dot(x, hx, hy - 0.06, 0.07, rng.chance(0.5) ? '#ffd2ad' : '#c8885a');
+          }
+        }
         break;
+      }
       case 'cactus':
         rr(x, -0.12, -0.6, 0.24, 0.8, 0.12, '#4cb85a', 0.06);
         rr(x, -0.36, -0.35, 0.14, 0.3, 0.07, '#4cb85a', 0.05);
@@ -1365,20 +1378,6 @@ const Art = (() => {
       const near = (gy0 + gh / 2) < MY + m.h / 2 ? 1 : -1;
       x.strokeRect((gx0 - 1.5) * px, (near > 0 ? gy0 : gy0 - 2.5 + gh) * px, (gw + 3) * px, (gh + 2.5) * px);
     }
-    if (mode !== 'sd' && m.spawns && m.spawns.length === 2) {
-      for (let team = 0; team < 2; team++) {
-        const col = TEAMC[team === L.team ? 0 : 1];
-        for (const s of m.spawns[team]) {
-          const [sx, sy] = P(s.x, s.y);
-          x.fillStyle = rgba(col, 0.22);
-          circle(x, sx * px, sy * px, px * 0.62);
-          x.fill();
-          x.strokeStyle = rgba(col, 0.6);
-          x.lineWidth = px * 0.06;
-          x.stroke();
-        }
-      }
-    }
     if (m.obj && mode === 'bounty') {
       const [ox, oy] = P(m.obj.x, m.obj.y);
       x.save();
@@ -1411,6 +1410,7 @@ const Art = (() => {
 
   // Repaints the floor around a changed tile (a broken wall or box) and adds rubble.
   function updateTile(L, idx) {
+    dropChunks(L, idx);
     const m = L.map, tx = idx % m.w, ty = (idx / m.w) | 0, px = L.px;
     const x = L.canvas.getContext('2d');
     const ax = Math.min(lxOf(L, tx - 1), lxOf(L, tx + 1)), ay = Math.min(lyOf(L, ty - 1), lyOf(L, ty + 1));
@@ -1615,65 +1615,118 @@ const Art = (() => {
       ln(x, cx - w2 * 0.35, by - hgt * 0.7, cx - w2 * 0.3, by - 0.05, 0.03, 'rgba(255,255,255,0.6)', 0);
     }
   }
-  // Draws the raised tiles of one world row. ox/oy: screen pixel of the layer origin; T: pixels per
-  // tile; near: {x, y} (world) of the local brawler, whose nearby bushes turn see-through.
-  function drawRow(ctx, map, L, ty, txA, txB, ox, oy, T, near, t) {
-    const e = L.env, w = map.w, m = map;
-    if (ty < 0 || ty >= m.h) return;
-    txA = Math.max(0, txA);
-    txB = Math.min(w - 1, txB);
-    const sy = oy + lyOf(L, ty) * T;
-    let bushes = 0;
-    for (let tx = txA; tx <= txB; tx++) {
-      const tt = m.tiles[ty * w + tx];
-      if (tt === TILE.BUSH) { bushes++; continue; }
-      if (tt !== TILE.WALL && tt !== TILE.STONE && tt !== TILE.BOX && tt !== TILE.FENCE) continue;
-      const sx = ox + lxOf(L, tx) * T;
-      const idx = ty * w + tx;
-      if (idx === L.mineIdx) {
-        const c = rawSprite('mine', T, paintMine, 1.6, 1.6, 0.3, 0.6);
-        ctx.drawImage(c, sx - c.ox, sy - c.oy);
-        const p = 0.5 + 0.5 * Math.sin(t * 3);
-        const gl = glow('#c86aff', T);
-        ctx.globalAlpha = 0.35 + p * 0.3;
-        ctx.drawImage(gl, sx + T * 0.5 - T * 1.1, sy + T * 0.1 - T * 1.1, T * 2.2, T * 2.2);
-        ctx.globalAlpha = 1;
-        continue;
-      }
-      let mask = 0;
-      if (nb(L, tx, ty, 0, -1) === tt) mask |= 1;
-      if (nb(L, tx, ty, 1, 0) === tt) mask |= 2;
-      if (nb(L, tx, ty, 0, 1) === tt) mask |= 4;
-      if (nb(L, tx, ty, -1, 0) === tt) mask |= 8;
-      if (tt === TILE.FENCE) {
-        const c = rawSprite(tt * 1000 + mask, T, (x) => paintFence(x, e.fence, mask), 1.3, 1.6, 0.15, 0.7);
-        ctx.drawImage(c, sx - c.ox, sy - c.oy);
-        continue;
-      }
-      const v = hashStr(String(idx)) & 7;
-      const kind = tt === TILE.WALL ? 'wall' : tt === TILE.STONE ? 'stone' : 'box';
-      const cols = tt === TILE.WALL ? e.wall : tt === TILE.STONE ? e.stone : ['#dc9a52', '#a8692e', '#7a4818'];
-      const c = rawSprite(tt * 1000 + mask * 8 + v, T, (x) => paintBlock(x, cols, mask, kind, v), 1.12, 1.62, 0.06, 0.56);
-      ctx.drawImage(c, sx - c.ox, sy - c.oy);
+  // ---- raised tiles, pre-composed: per world row, chunks of CH screen columns ----
+  // Each chunk holds the walls/stone/boxes/fences of its columns (wall canvas) and the bushes (bush
+  // canvas, both puff passes), overhangs from neighbouring columns included, so a row costs one or
+  // two blits per chunk instead of a sprite (two for bushes) per tile. Built on demand, dropped when
+  // a tile nearby changes, least recently used chunks evicted past a pixel budget.
+  const CH = 8;
+  const CHUNK_BUDGET = 6e6; // pixels kept in chunk canvases
+  const WALL_UP = 0.7, WALL_H = 1.76, BUSH_UP = 0.6, BUSH_H = 1.9;
+  function tileSprite(L, tt, tx, ty, T, pass) {
+    const e = L.env;
+    if (tt === TILE.BUSH) {
+      const v = hashStr(tx + ':' + ty) % 3;
+      return rawSprite(e.name + 'bush' + pass + v, T, (x) => paintBush(x, e.bush, v, pass), 1.8, 1.9, 0.4, 0.6);
     }
-    if (!bushes) return;
-    for (let pass = 0; pass < 2; pass++) {
-      for (let tx = txA; tx <= txB; tx++) {
-        if (m.tiles[ty * w + tx] !== TILE.BUSH) continue;
-        const sx = ox + lxOf(L, tx) * T;
-        const v = hashStr(tx + ':' + ty) % 3;
-        const c = rawSprite('bush' + pass + v, T, (x) => paintBush(x, e.bush, v, pass), 1.8, 1.9, 0.4, 0.6);
-        let a = 1;
-        if (near) {
-          const d2 = (tx + 0.5 - near.x) * (tx + 0.5 - near.x) + (ty + 0.5 - near.y) * (ty + 0.5 - near.y);
-          if (d2 < 4) a = 0.45 + 0.55 * Math.min(1, Math.max(0, d2 - 1) / 3);
+    let mask = 0;
+    if (nb(L, tx, ty, 0, -1) === tt) mask |= 1;
+    if (nb(L, tx, ty, 1, 0) === tt) mask |= 2;
+    if (nb(L, tx, ty, 0, 1) === tt) mask |= 4;
+    if (nb(L, tx, ty, -1, 0) === tt) mask |= 8;
+    if (tt === TILE.FENCE) return rawSprite(e.name + 'f' + mask, T, (x) => paintFence(x, e.fence, mask), 1.3, 1.6, 0.15, 0.7);
+    const v = hashStr(String(ty * L.map.w + tx)) & 7;
+    const kind = tt === TILE.WALL ? 'wall' : tt === TILE.STONE ? 'stone' : 'box';
+    const cols = tt === TILE.WALL ? e.wall : tt === TILE.STONE ? e.stone : ['#dc9a52', '#a8692e', '#7a4818'];
+    return rawSprite(e.name + kind + (mask * 8 + v), T, (x) => paintBlock(x, cols, mask, kind, v), 1.12, 1.62, 0.06, 0.56);
+  }
+  function chunkOf(L, ty, ci, T) {
+    if (!L.chunks || L.chunkT !== T) { L.chunks = new Map(); L.chunkT = T; L.chunkPx = 0; L.frame = 0; }
+    const key = ty * 1024 + ci;
+    let k = L.chunks.get(key);
+    if (k) { k.used = L.frame; return k; }
+    const m = L.map, w = m.w;
+    k = { wall: null, bush: null, wx: 0, bx: 0, used: L.frame, px: 0 };
+    const c0 = ci * CH;
+    for (const kind of [0, 1]) {
+      // columns with content (one column of neighbours on each side overhangs into the chunk)
+      let lo = 1e9, hi = -1e9;
+      for (let c = c0 - 1; c <= c0 + CH; c++) {
+        if (c < 0 || c >= w) continue;
+        const tx = L.flip ? w - 1 - c : c;
+        const idx = ty * w + tx, tt = m.tiles[idx];
+        if (kind ? tt !== TILE.BUSH : !(tt === TILE.WALL || tt === TILE.STONE || tt === TILE.BOX || tt === TILE.FENCE) || idx === L.mineIdx) continue;
+        if (c < lo) lo = c;
+        if (c > hi) hi = c;
+      }
+      if (hi < lo) continue;
+      // the canvas covers only that span (plus the sprites' overhang), clipped to the chunk
+      const ov = kind ? 0.4 : 0.15;
+      const xa = Math.floor((Math.max(c0, lo - ov) - c0) * T), xb = Math.ceil((Math.min(c0 + CH, hi + 1 + ov) - c0) * T);
+      if (xb <= xa) continue;
+      const cv = makeCanvas(xb - xa, (kind ? BUSH_H : WALL_H) * T);
+      const x = cv.getContext('2d');
+      for (let pass = 0; pass < (kind ? 2 : 1); pass++) {
+        for (let c = lo; c <= hi; c++) {
+          const tx = L.flip ? w - 1 - c : c;
+          const idx = ty * w + tx, tt = m.tiles[idx];
+          if (kind ? tt !== TILE.BUSH : !(tt === TILE.WALL || tt === TILE.STONE || tt === TILE.BOX || tt === TILE.FENCE) || idx === L.mineIdx) continue;
+          const spr = tileSprite(L, tt, tx, ty, T, pass);
+          x.drawImage(spr, (c - c0) * T - xa - spr.ox, Math.round((kind ? BUSH_UP : WALL_UP) * T) - spr.oy);
         }
-        if (a < 1) ctx.globalAlpha = a;
-        ctx.drawImage(c, sx - c.ox, sy - c.oy);
-        if (a < 1) ctx.globalAlpha = 1;
+      }
+      k.px += cv.width * cv.height;
+      if (kind) { k.bush = cv; k.bx = xa; } else { k.wall = cv; k.wx = xa; }
+    }
+    L.chunks.set(key, k);
+    L.chunkPx += k.px;
+    if (L.chunkPx > CHUNK_BUDGET) {
+      for (const [kk, v] of L.chunks) if (v.used < L.frame - 2) { L.chunkPx -= v.px; L.chunks.delete(kk); }
+    }
+    return k;
+  }
+  // Drops the chunks around a changed tile (masks of the neighbours change too).
+  function dropChunks(L, idx) {
+    if (!L.chunks) return;
+    const w = L.map.w, tx = idx % w, ty = (idx / w) | 0;
+    const c = L.flip ? w - 1 - tx : tx;
+    for (let r = ty - 1; r <= ty + 1; r++) {
+      for (const ci of [Math.floor((c - 1) / CH), Math.floor(c / CH), Math.floor((c + 1) / CH)]) {
+        const key = r * 1024 + ci, k = L.chunks.get(key);
+        if (k) { L.chunkPx -= k.px; L.chunks.delete(key); }
       }
     }
   }
+  // Draws the raised tiles of one world row. ox/oy: screen pixel of the layer origin; T: pixels per
+  // tile; txA..txB: visible world columns. Call Art.frame(L) once per frame first (chunk LRU).
+  function drawRow(ctx, map, L, ty, txA, txB, ox, oy, T, near, t) {
+    if (ty < 0 || ty >= map.h) return;
+    const w = map.w;
+    txA = Math.max(0, txA);
+    txB = Math.min(w - 1, txB);
+    const cA = L.flip ? w - 1 - txB : txA, cB = L.flip ? w - 1 - txA : txB;
+    const sy = oy + lyOf(L, ty) * T;
+    const ciA = Math.floor(cA / CH), ciB = Math.floor(cB / CH);
+    for (let ci = ciA; ci <= ciB; ci++) {
+      const k = chunkOf(L, ty, ci, T);
+      if (k.wall) ctx.drawImage(k.wall, Math.round(ox + (MX + ci * CH) * T) + k.wx, Math.round(sy) - Math.round(WALL_UP * T));
+    }
+    if (L.mineIdx >= 0 && ((L.mineIdx / w) | 0) === ty) {
+      const sx = ox + lxOf(L, L.mineIdx % w) * T;
+      const c = rawSprite('mine', T, paintMine, 1.6, 1.6, 0.3, 0.6);
+      ctx.drawImage(c, Math.round(sx - c.ox), Math.round(sy - c.oy));
+      const p = 0.5 + 0.5 * Math.sin(t * 3);
+      const gl = glow('#c86aff', T);
+      ctx.globalAlpha = 0.35 + p * 0.3;
+      ctx.drawImage(gl, sx + T * 0.5 - T * 1.1, sy + T * 0.1 - T * 1.1, T * 2.2, T * 2.2);
+      ctx.globalAlpha = 1;
+    }
+    for (let ci = ciA; ci <= ciB; ci++) {
+      const k = chunkOf(L, ty, ci, T);
+      if (k.bush) ctx.drawImage(k.bush, Math.round(ox + (MX + ci * CH) * T) + k.bx, Math.round(sy) - Math.round(BUSH_UP * T));
+    }
+  }
+  const frame = (L) => { if (L) L.frame = (L.frame || 0) + 1; };
   // Animated water shimmer over the visible water tiles of a row.
   function drawWaterRow(ctx, map, L, ty, txA, txB, ox, oy, T, t) {
     if (ty < 0 || ty >= map.h) return;
@@ -1709,7 +1762,7 @@ const Art = (() => {
     'melody.atk': ['note', '#ffb0e6', '#ff3aa8'], 'melody.sup': ['note', '#c8ffd0', '#2fd05a'], 'melody.gad': ['note', '#c8ffd0', '#2fd05a'],
     'sizzle.atk': ['bottle', '#3ad06a', '#7aff6a'], 'sizzle.sup': ['bottle', '#ff8a2a', '#ffd23f'], 'sizzle.gad': ['bottle', '#5a6aff', '#9ab0ff'],
     'gizmo.atk': ['orb', '#e8feff', '#1fc8ff'], 'gizmo.sup': ['crate', '#ff9a2e', '#ffd23f'], 'gizmo.gad': ['orb', '#e8feff', '#1fc8ff'],
-    'gizmo.turret': ['bolt', '#e8feff', '#1fc8ff'],
+    'gizmo.tshot': ['bolt', '#e8feff', '#1fc8ff'], 'gizmo.turret': ['bolt', '#e8feff', '#1fc8ff'], 'hawk.nade': ['grenade', '#4a6a3a', '#ff8a1a'],
     'volt.atk': ['zap', '#f0feff', '#3ad8ff'], 'volt.sup': ['storm', '#c0f0ff', '#3a7aff'], 'volt.gad': ['zap', '#f0feff', '#3ad8ff'],
     'hawk.atk': ['tracer', '#ffffff', '#c86aff'], 'hawk.sup': ['grenade', '#4a6a3a', '#ff8a1a'], 'hawk.gad': ['wave', '#ffffff', '#c86aff'],
     'frost.atk': ['snow', '#ffffff', '#8ad8ff'], 'frost.sup': ['wind', '#ffffff', '#8ad8ff'], 'frost.gad': ['snow', '#ffffff', '#8ad8ff'],
@@ -1904,6 +1957,44 @@ const Art = (() => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
+  // Instant beam (the sim keeps a short-lived shot with `beam` = length): from screen (x0, y0) to
+  // (x1, y1), already lifted to gun height. life: 1 fresh -> 0 gone.
+  function beam(ctx, s, x0, y0, x1, y1, T, t, life) {
+    const st = shotStyle(s.pk, s.sup);
+    const c1 = st[1], c2 = st[2];
+    const w = T * (s.sup ? 0.3 : 0.2) * (0.5 + 0.5 * life);
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.globalAlpha = 0.45 * life;
+    ctx.strokeStyle = c2;
+    ctx.lineWidth = w * 2.4;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.stroke();
+    // jagged core: a fresh zig-zag every few frames
+    const L = Math.hypot(x1 - x0, y1 - y0) || 1, nx = -(y1 - y0) / L, ny = (x1 - x0) / L;
+    const n = Math.max(3, Math.round(L / (T * 0.6)));
+    const seed = Math.floor(t * 30) + s.id * 7;
+    ctx.globalAlpha = life;
+    ctx.strokeStyle = c1;
+    ctx.lineWidth = Math.max(1.5, w * 0.55);
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    for (let i = 1; i < n; i++) {
+      const u = i / n, j = (((seed + i * 13) * 2654435761) >>> 0) / 4294967296 - 0.5;
+      ctx.lineTo(x0 + (x1 - x0) * u + nx * j * T * 0.35, y0 + (y1 - y0) * u + ny * j * T * 0.35);
+    }
+    ctx.lineTo(x1, y1);
+    ctx.stroke();
+    ctx.globalAlpha = 0.8 * life;
+    const g = glow(c2, 24);
+    ctx.drawImage(g, x1 - T * 0.6, y1 - T * 0.6, T * 1.2, T * 1.2);
+    ctx.drawImage(g, x0 - T * 0.4, y0 - T * 0.4, T * 0.8, T * 0.8);
+    ctx.restore();
+  }
+
   // ---- areas ----
   const AREA = {
     'sizzle.atk': 'fire', 'sizzle.sup': 'fire', 'sizzle.gad': 'tar',
@@ -1915,6 +2006,56 @@ const Art = (() => {
     'pip.sup': 'boom', 'pip.atk': 'boom', 'pip.gad': 'boom',
     'zip.sup': 'speed', 'specter.sup': 'smoke', 'specter.gad': 'speed', 'gizmo.gad': 'heal', 'shade.sup': 'drain',
   };
+  // A field of cactus spikes on sandy ground (cached per pixel radius; areas don't change size).
+  const spikeCache = new Map();
+  function spikeField(R) {
+    let c = spikeCache.get(R);
+    if (c) return c;
+    if (spikeCache.size > 12) spikeCache.clear();
+    c = makeCanvas(R * 2 + 4, R * 2 + 4 + R * 0.3);
+    const x = c.getContext('2d'), cx = c.width / 2, cy = R + 2 + R * 0.15;
+    x.fillStyle = 'rgba(200,160,96,0.5)';
+    x.beginPath();
+    x.arc(cx, cy, R, 0, TAU);
+    x.fill();
+    const rng = new RNG(R * 31 + 7);
+    const n = clamp(Math.round(R * R * 0.0024), 12, 40);
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const a = rng.range(0, TAU), r = Math.sqrt(rng.next()) * R * 0.88;
+      pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+    }
+    pts.sort((p, q) => p[1] - q[1]);
+    const s = Math.max(2.5, R * 0.05);
+    x.lineJoin = 'round';
+    for (const [px, py] of pts) {
+      x.fillStyle = 'rgba(60,40,20,0.3)';
+      x.beginPath();
+      x.ellipse(px, py, s * 0.9, s * 0.35, 0, 0, TAU);
+      x.fill();
+      x.beginPath();
+      x.moveTo(px - s * 0.7, py);
+      x.lineTo(px, py - s * 2.4);
+      x.lineTo(px + s * 0.7, py);
+      x.closePath();
+      x.fillStyle = '#4cc25a';
+      x.fill();
+      x.lineWidth = Math.max(1, s * 0.22);
+      x.strokeStyle = OL;
+      x.stroke();
+      x.beginPath();
+      x.moveTo(px, py - s * 2.4);
+      x.lineTo(px + s * 0.35, py);
+      x.lineTo(px + s * 0.7, py);
+      x.closePath();
+      x.fillStyle = '#2f9a44';
+      x.fill();
+      x.fillStyle = '#f4f0d8';
+      x.fillRect(px - s * 0.12, py - s * 2.55, s * 0.24, s * 0.4);
+    }
+    spikeCache.set(R, c);
+    return c;
+  }
   // Draws an area centred at screen (x, y). side: colour side of its owner (0 own, 1 enemy).
   function area(ctx, a, x, y, T, t, side) {
     let kind = AREA[a.ak];
@@ -1923,7 +2064,7 @@ const Art = (() => {
     const life = a.T > 0 ? clamp(a.t / a.T, 0, 1) : 1; // 1 fresh -> 0 gone
     const fade = Math.min(1, life * 6, (1 - life) * 12 + 0.25);
     const tc = TEAMC[side] || TEAMC[2];
-    const sy = 0.78; // ground discs are squashed a little (3/4 view)
+    const sy = 1; // round: the disc shows the true reach
     const disc = (col, al, r) => {
       ctx.globalAlpha = al * fade;
       ctx.fillStyle = col;
@@ -1992,22 +2133,13 @@ const Art = (() => {
         rim(tc, Math.max(1, T * 0.05), 0.7);
         break;
       }
-      case 'spikes':
-        disc('#c8a060', 0.4, R);
+      case 'spikes': {
+        const spr = spikeField(Math.round(R));
         ctx.globalAlpha = fade;
-        for (let i = 0; i < 14; i++) {
-          const ang = i * 2.4 + a.id * 0.7, rr2 = R * Math.sqrt(((i * 7) % 14) / 14) * 0.9;
-          const sx = x + Math.cos(ang) * rr2, sy2 = y + Math.sin(ang) * rr2 * sy;
-          ctx.fillStyle = i & 1 ? '#4cc25a' : '#2f9a44';
-          ctx.beginPath();
-          ctx.moveTo(sx - T * 0.07, sy2);
-          ctx.lineTo(sx, sy2 - T * 0.24);
-          ctx.lineTo(sx + T * 0.07, sy2);
-          ctx.closePath();
-          ctx.fill();
-        }
+        ctx.drawImage(spr, Math.round(x - spr.width / 2), Math.round(y - spr.height / 2 - T * 0.12));
         rim(tc, Math.max(1, T * 0.05), 0.7);
         break;
+      }
       case 'heal': {
         disc('#3aff7a', 0.22, R);
         rim('#7affa0', Math.max(1, T * 0.07), 0.8);
@@ -2072,7 +2204,7 @@ const Art = (() => {
     ctx.drawImage(gl, x - T * 0.55, y - bob * T - T * 0.55, T * 1.1, T * 1.1);
     ctx.globalAlpha = 1;
     const ic = icon(name, T * (name === 'cube' ? 0.7 : 0.62));
-    ctx.drawImage(ic, x - ic.width / 2, y - bob * T - ic.height / 2);
+    ctx.drawImage(ic, Math.round(x - ic.width / 2), Math.round(y - bob * T - ic.height / 2));
     if (p.n > 1) outlineText(ctx, String(p.n), x + T * 0.3, y - bob * T - T * 0.3, Math.max(9, T * 0.32), '#fff');
   }
   // Deploys: pets and turrets use body sprites; face is a screen angle.
@@ -2097,14 +2229,24 @@ const Art = (() => {
     ctx.drawImage(ic, -ic.width / 2, -ic.height / 2);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
-  // A puff of poison cloud (cached), drawn along the edge of the safe zone.
+  // A puff of poison gas (cached, CLOUD tiles across), drawn unscaled along the edge of the safe
+  // zone: soft toxic lime blobs without outlines, so it never reads as a bush.
+  const CLOUD = 2.2;
   function cloud(px) {
     return rawSprite('cloud', rawT || px, (x) => {
-      const P = [[0.5, 0.5, 0.42], [0.25, 0.55, 0.28], [0.75, 0.55, 0.28], [0.42, 0.32, 0.26], [0.65, 0.3, 0.24]];
-      for (const [cx, cy, r] of P) dot(x, cx, cy, r + 0.04, 'rgba(30,110,40,0.55)');
-      for (const [cx, cy, r] of P) dot(x, cx, cy, r, 'rgba(90,210,90,0.75)');
-      for (const [cx, cy, r] of P) dot(x, cx - r * 0.25, cy - r * 0.3, r * 0.45, 'rgba(180,255,170,0.45)');
-    }, 1.0, 1.0, 0, 0);
+      const P = [[0.5, 0.52, 0.42], [0.27, 0.58, 0.3], [0.74, 0.56, 0.3], [0.4, 0.33, 0.28], [0.64, 0.32, 0.26]];
+      for (const [cx, cy, r] of P) {
+        const g = x.createRadialGradient(cx - r * 0.2, cy - r * 0.25, r * 0.1, cx, cy, r);
+        g.addColorStop(0, 'rgba(214,255,140,0.95)');
+        g.addColorStop(0.55, 'rgba(120,226,80,0.8)');
+        g.addColorStop(1, 'rgba(60,170,70,0)');
+        x.fillStyle = g;
+        x.beginPath();
+        x.arc(cx, cy, r, 0, TAU);
+        x.fill();
+      }
+      for (const [cx, cy, r] of [[0.36, 0.5, 0.05], [0.6, 0.62, 0.04], [0.52, 0.38, 0.035]]) dot(x, cx, cy, r, 'rgba(40,120,40,0.55)');
+    }, CLOUD, CLOUD, 0, 0);
   }
 
   // Clears every cached sprite (call when the zoom changes a lot, e.g. after a resize).
@@ -2116,9 +2258,9 @@ const Art = (() => {
   }
 
   return {
-    F, OL, TEAMC, LOOK, ENV, MX, MY,
-    brawler, portrait, tileLayer, updateTile, drawRow, drawWaterRow,
-    shot, shotStyle, area, pickup, deploy, ball, cloud, ring, shadow, glow, icon, clear,
+    F, OL, TEAMC, LOOK, ENV, MX, MY, CLOUD,
+    brawler, portrait, tileLayer, updateTile, drawRow, drawWaterRow, frame,
+    shot, shotStyle, beam, area, pickup, deploy, ball, cloud, ring, shadow, glow, icon, clear,
     color: (bk) => lookOf(bk).col,
     hasLook: (bk) => !!BODY[bk],
   };

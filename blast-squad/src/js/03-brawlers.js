@@ -19,7 +19,8 @@
 //   beam   instant segment: range, dmg, w (half width), pierce, chain {n, r, mul}. Clips at walls.
 //   arc    instant melee swipe: range, half (half angle), dmg, kb.
 //   dash   the brawler rushes dist tiles at spd: dmg to everything it passes (w), inv (untouchable).
-//   leap   jumps to the aim point (range), T flight time, lands with r/dmg/kb/breaks, heal.
+//   leap   jumps to the aim point (range), T flight time, lands with r/dmg/kb/breaks, heal. away:
+//          auto-aim jumps away from the nearest enemy (an escape), not onto it.
 //   deploy places a unit at the aim point (range): unit 'turret' (shoots shot spec every rate s at
 //          the nearest visible enemy within aggro) or 'pet' (chases enemies within aggro, hits for
 //          dmg every rate s at reach, else follows its owner). land {r, dmg} on arrival. One per owner.
@@ -156,7 +157,7 @@ const BRAWLERS = {
     sup: {
       name: 'Turret', text: 'Builds a turret that shoots the nearest enemy.',
       t: 'deploy', unit: 'turret', dk: 'gizmo.turret', range: 4, rad: 0.5, hp: 3000, aggro: 8.7, rate: 0.4,
-      shot: { pk: 'gizmo.tshot', dmg: 260, range: 8.7, spd: 11, r: 0.13 },
+      shot: { pk: 'gizmo.turret', dmg: 260, range: 8.7, spd: 11, r: 0.13 },
     },
     gadgets: [{ name: 'Overclock', text: 'The turret fires twice as fast for 5 seconds.', cd: 7, req: 'deploy', t: 'buff', what: 'deployRate', v: 2, T: 5 }],
     stars: [{ name: 'Repair Kit', text: 'Spark Orb hits repair the turret for 400.', pass: { deployHeal: 400 } }],
@@ -164,10 +165,11 @@ const BRAWLERS = {
   volt: {
     name: 'Volt', rarity: 'super', role: 'control', color: '#ffd23f',
     desc: 'A storm chaser who zaps through crowds in an instant.',
-    hp: 3200, speed: 720, reload: 1.7,
+    hp: 3200, speed: 720, reload: 1.8,
     atk: {
+      // no travel time to dodge, so it hits for less than a projectile of the same reload would
       name: 'Arc Beam', text: 'An instant beam that pierces every enemy in a line.',
-      t: 'beam', dmg: 1060, range: 8, w: 0.28, pierce: true, chg: 1 / 4,
+      t: 'beam', dmg: 920, range: 8, w: 0.28, pierce: true, chg: 1 / 4,
     },
     sup: {
       name: 'Thunderhead', text: 'Calls a storm cloud that shocks and slows enemies under it.',
@@ -186,8 +188,8 @@ const BRAWLERS = {
     },
     sup: {
       name: 'Pop-Up', text: 'Leaps away, dropping 4 grenades where she took off.',
-      t: 'leap', range: 7.3,
-      then: [{ t: 'lob', at: 'self', n: 4, ring: 0.9, T: 0.8, dmg: 900, blast: 1.0, r: 0.2, pk: 'hawk.nade' }],
+      t: 'leap', range: 7.3, away: true,
+      then: [{ t: 'lob', at: 'self', n: 4, ring: 0.9, T: 0.8, dmg: 900, blast: 1.0, r: 0.2 }],
     },
     gadgets: [{ name: 'Back Off', text: 'Blasts nearby enemies back and damages them.', cd: 6, t: 'pulse', r: 2.6, dmg: 600, kb: 3 }],
     stars: [{ name: 'Quick Hands', text: 'Hitting an enemy refunds half an ammo bar.', pass: { ammoOnHit: 0.5 } }],
@@ -307,6 +309,6 @@ function brawlerStats(bk, lvl) {
     reloadName: D.reload < 1.3 ? 'Fast' : D.reload < 1.9 ? 'Normal' : 'Slow',
     speed: D.speed,
     speedName: D.speed >= 820 ? 'Very fast' : D.speed >= 770 ? 'Fast' : 'Normal',
-    supDmg: Math.round((D.sup.dmg || D.sup.heal || (D.sup.area ? D.sup.area.dps : 0) || D.sup.dps || 0) * m),
+    supDmg: Math.round((D.sup.dmg || D.sup.heal || (D.sup.area ? D.sup.area.dps : 0) || D.sup.dps || (D.sup.shot ? D.sup.shot.dmg : 0) || 0) * m),
   };
 }

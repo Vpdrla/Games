@@ -18,6 +18,8 @@
 //   - Bounty: b.bounty (stars on the head), PICK.STAR pickups at map.obj, b.st.stars.
 //   - every mode: hud(sim) returns the HUD object of DESIGN.md; checkEnd returns
 //     sim.makeResult(winner, reason, score, rank) or null.
+//   tools/sim-test.cjs registers a minimal Showdown-like mode ('zz_sd': poison, no respawn, cubes
+//   dropped on death, placement from sim.deathOrder) on a generated 44 x 44 map: a working sketch.
 
 const ModeKit = {
   base: {
@@ -93,6 +95,12 @@ const MODES = {
         ms.mineT += this.every;
         if (mine) { sim.popPickup(PICK.GEM, 1, mine.x, mine.y, 1.1, 2.1); ms.spawned++; }
       }
+      if (!this.recount(sim) && ms.countTeam >= 0) ms.count -= SIM_DT;
+    },
+
+    // Recounts the gems each team carries and starts/stops the countdown. True when it changed.
+    recount(sim) {
+      const ms = sim.ms;
       let a = 0, c = 0;
       for (const b of sim.brawlers) {
         if (!b.alive) continue;
@@ -101,16 +109,19 @@ const MODES = {
       ms.gems[0] = a;
       ms.gems[1] = c;
       const lead = a >= this.goal && a > c ? 0 : c >= this.goal && c > a ? 1 : -1;
-      if (lead !== ms.countTeam) {
-        ms.countTeam = lead;
-        ms.count = lead >= 0 ? this.count : 0;
-        sim.ev(EV.COUNTDOWN, lead, ms.count);
-      } else if (lead >= 0) ms.count -= SIM_DT;
+      if (lead === ms.countTeam) return false;
+      ms.countTeam = lead;
+      ms.count = lead >= 0 ? this.count : 0;
+      sim.ev(EV.COUNTDOWN, lead, ms.count);
+      return true;
     },
 
     onKill(sim, v) {
       if (v.carry > 0) sim.dropPickups(PICK.GEM, v.carry, v.x, v.y);
       v.carry = 0;
+      // deaths come after the mode's tick: recount now so a carrier who falls on the countdown's
+      // last tick doesn't still win it
+      this.recount(sim);
     },
 
     onPickup(sim, b, p) {

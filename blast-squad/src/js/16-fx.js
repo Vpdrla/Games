@@ -24,6 +24,7 @@ const FX = (() => {
   const FXO = {
     low: false,
     local: -1, // local slot (View sets it every frame)
+    sd: null, // Showdown colouring (View sets it every frame)
     shake: 0, // tiles
     hurt: 0, // red screen flash (s)
     banner: null,
@@ -210,28 +211,47 @@ const FX = (() => {
           const c = cues[ev[1]];
           if (c) c.atk = 0.16;
           if (!seenBy(b)) break;
-          const ang = ev[5], col = Art.color(b.bk);
-          const mx = ev[3] + Math.cos(ang) * 0.6, my = ev[4] + Math.sin(ang) * 0.6;
-          const kind = attackKind(b.bk, ev[2]);
-          if (kind === 'beam') {
-            const L = attackRange(b.bk, ev[2]);
-            const hit = state.map ? rayHit(state.map, ev[3], ev[4], ev[3] + Math.cos(ang) * L, ev[4] + Math.sin(ang) * L, TF_SHOT, null) : -1;
-            const l = hit >= 0 ? L * hit : L;
-            const ex = ev[3] + Math.cos(ang) * l, ey = ev[4] + Math.sin(ang) * l;
-            this.beam(mx, my, ex, ey, 0.45, ev[2] === 2 ? 0.28 : 0.16, col, 0.22);
-            this.bolt(mx, my, ex, ey, 0.45, '#e8fbff', 0.18);
-            this.flash(ex, ey, 0.45, 0.6, col, 0.2);
-          } else if (kind === 'melee') {
-            this.arc(ev[3], ev[4], ang, attackRange(b.bk, ev[2]) * 0.8, 1.1, col, 0.16);
+          const act = ev[2], ang = ev[5], col = Art.color(b.bk), x = ev[3], y = ev[4];
+          const mx = x + Math.cos(ang) * 0.6, my = y + Math.sin(ang) * 0.6;
+          const s = specOf(b, act), prim = s ? s.t : 'shot';
+          if (prim === 'shot' || prim === 'beam' || prim === 'lob') {
+            this.flash(mx, my, 0.45, act === 2 ? 0.75 : 0.45, act === 2 ? '#ffd23f' : '#fff3b0', 0.1);
+            if (prim !== 'lob' && !this.low) this.sparks(mx, my, 0.45, 2, '#fff3b0', 2.5);
+          } else if (prim === 'arc') this.arc(x, y, ang, (s.range || 2) * 0.8, (s.half || 0.6) * 2, col, 0.16);
+          else if (prim === 'pulse') {
+            // gadget pulses: a ring the size of the effect, coloured by what it does
+            const pc = s.heal ? '#5dff7a' : s.stun ? '#ffe14a' : s.slow ? '#bff4ff' : s.kb ? '#ffffff' : col;
+            this.ring(x, y, s.r || 2, pc, 0.4, 0.16);
+            this.ring(x, y, (s.r || 2) * 0.6, pc, 0.3, 0.1);
+            this.flash(x, y, 0.4, (s.r || 2) * 0.8, pc, 0.25);
+            this.stars(x, y, 0.3, 8, pc, (s.r || 2) * 0.6);
+            if (s.stun || s.kb) this.sparks(x, y, 0.4, 10, pc, 6);
+          } else if (prim === 'dash' || prim === 'leap') {
+            this.puff(x, y, 0.1, 0.7, 'rgba(240,230,210,0.75)', 0.4, 5);
+            if (prim === 'leap') this.ring(x, y, 1.0, '#ffffff', 0.3, 0.08);
+          } else if (prim === 'heal') {
+            this.stars(x, y, 0.5, 10, '#5dff7a', 0.5);
+            this.ring(x, y, 0.9, '#5dff7a', 0.4, 0.1);
+          } else if (prim === 'buff' && s.what === 'ammo') {
+            this.stars(x, y, 0.8, 8, '#ffb02e', 0.4);
+            if (ev[1] === this.local) this.label(x, y, 'Reload!', '#ffb02e', 0.85);
+          } else if (prim === 'buff' && (s.what === 'nextStun' || s.what === 'nextSlow' || s.what === 'petStun' || s.what === 'deployRate')) {
+            this.stars(x, y, 0.8, 8, '#ffe14a', 0.4);
+            this.ring(x, y, 0.8, '#ffe14a', 0.3, 0.08);
           }
-          this.flash(mx, my, 0.45, ev[2] === 2 ? 0.75 : 0.45, ev[2] === 2 ? '#ffd23f' : '#fff3b0', 0.1);
-          if (ev[2] === 2) this.ring(ev[3], ev[4], 1.2, '#ffd23f', 0.3, 0.08);
+          if (act === 2) this.ring(x, y, 1.2, '#ffd23f', 0.3, 0.08);
           break;
         }
         case EV.SPAWN: {
           if (ev[2] === K.SHOT) {
             const s = findId(state.shots, ev[1]);
             if (s) { const m = memo[memoI]; memoI = (memoI + 1) % memo.length; m.id = s.id; m.pk = s.pk; m.lob = !!s.lob; m.sup = !!s.sup; m.slot = s.owner; }
+            // beams are drawn by the view from the beam shot; light up where they end
+            if (s && s.beam > 0) {
+              const st = Art.shotStyle(s.pk, s.sup);
+              this.flash(s.x, s.y, 0.45, 0.7, st[2], 0.22);
+              this.sparks(s.x, s.y, 0.45, 4, st[1], 4);
+            }
           } else if (ev[2] === K.DEPLOY) {
             const d = findId(state.deploys, ev[1]);
             if (d) { this.puff(d.x, d.y, 0.2, 0.6, 'rgba(255,255,255,0.8)', 0.4, 4); this.ring(d.x, d.y, 0.9, '#ffffff', 0.3, 0.06); }
@@ -538,8 +558,12 @@ const FX = (() => {
     },
   };
 
+  // Showdown colours everyone but you red. The view sets FX.sd every frame; without a view, guess
+  // from the state (the sim keeps its mode key in modeKey).
   function isSd(state) {
-    if (state.mode) return state.mode === 'sd';
+    if (FXO.sd != null) return FXO.sd;
+    if (state.modeKey) return state.modeKey === 'sd';
+    if (typeof state.mode === 'string') return state.mode === 'sd';
     return !!(state.brawlers && state.brawlers.length > 6);
   }
   function findId(arr, id) {
@@ -547,22 +571,12 @@ const FX = (() => {
     for (const e of arr) if (e && e.id === id) return e;
     return null;
   }
-  // How an attack looks when it has no projectile: beams and melee (data first, then the roster).
-  function attackKind(bk, act) {
-    const d = typeof BRAWLERS !== 'undefined' && BRAWLERS[bk];
-    const a = d && (act === 2 ? d.super || d.sup : act === 3 ? d.gadget : d.attack || d.atk);
-    const k = a && (a.kind || a.type || a.shape);
-    if (k) return k === 'beam' ? 'beam' : k === 'melee' || k === 'arc' || k === 'dash' ? 'melee' : '';
-    if (act === 1 && bk === 'volt') return 'beam';
-    if (act === 1 && (bk === 'brick' || bk === 'shade')) return 'melee';
-    return '';
-  }
-  function attackRange(bk, act) {
-    const d = typeof BRAWLERS !== 'undefined' && BRAWLERS[bk];
-    const a = d && (act === 2 ? d.super || d.sup : d.attack || d.atk);
-    let r = a && a.range;
-    if (r) return r > 40 ? U(r) : r;
-    return bk === 'volt' ? 8 : bk === 'brick' || bk === 'shade' ? 3 : 6;
+  // The primitive spec behind an action (the sim's kit when present, else the data table).
+  function specOf(b, act) {
+    if (b.kit) return act === 2 ? b.kit.sup : act === 3 ? b.kit.gad : b.kit.atk;
+    const D = typeof BRAWLERS !== 'undefined' && BRAWLERS[b.bk];
+    if (!D) return null;
+    return act === 2 ? D.sup : act === 3 ? D.gadgets && D.gadgets[Math.max(0, b.gadget | 0)] : D.atk;
   }
   return FXO;
 })();
