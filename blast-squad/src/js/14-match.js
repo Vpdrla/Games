@@ -109,8 +109,8 @@ class Match {
     const evs = sim.events;
     this.events = evs.slice();
     for (const ev of evs) this.onEvent(ev);
+    if (this.telemetry) this.telemetry.tick(evs);
     evs.length = 0;
-    if (this.telemetry) this.telemetry.tick();
     if (this.onTick) this.onTick(this);
   }
 

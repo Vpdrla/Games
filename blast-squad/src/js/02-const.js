@@ -65,7 +65,8 @@ const MODE_INFO = {
 const EV = {
   FIRE: 1, // [EV.FIRE, slot, act(1 attack, 2 super, 3 gadget), x, y, ang, inSeq]
   SHOT_END: 2, // [EV.SHOT_END, shotId, x, y, wall(0/1)]   (wall: stopped by a tile)
-  HIT: 3, // [EV.HIT, targetId, dmg, x, y, srcSlot, crit(0/1)]   (target: any entity id; dmg after modifiers)
+  HIT: 3, // [EV.HIT, targetId, dmg, x, y, srcSlot, crit(0/1), act]   (target: any entity id; dmg after modifiers;
+  //        act: ACT.* of the source, on brawler hits)
   HEAL: 4, // [EV.HEAL, slot, amount, x, y]
   KILL: 5, // [EV.KILL, victimSlot, killerSlot (-1 poison/none), x, y]
   RESPAWN: 6, // [EV.RESPAWN, slot, x, y]

@@ -679,7 +679,7 @@ class Sim {
         e.hp = 0;
         if (!e.dying) { e.dying = true; e.killer = src; }
       }
-      this.ev(EV.HIT, e.id, amt, e.x, e.y, src, crit || 0);
+      this.ev(EV.HIT, e.id, amt, e.x, e.y, src, crit || 0, act | 0);
       if (src >= 0) {
         const sb = this.brawlers[src];
         if (sb.team !== e.team) { sb.st.dmg += dealt; this.dmgBy[src * 4 + act] += dealt; }

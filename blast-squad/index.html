@@ -404,7 +404,8 @@ const MODE_INFO = {
 const EV = {
   FIRE: 1, // [EV.FIRE, slot, act(1 attack, 2 super, 3 gadget), x, y, ang, inSeq]
   SHOT_END: 2, // [EV.SHOT_END, shotId, x, y, wall(0/1)]   (wall: stopped by a tile)
-  HIT: 3, // [EV.HIT, targetId, dmg, x, y, srcSlot, crit(0/1)]   (target: any entity id; dmg after modifiers)
+  HIT: 3, // [EV.HIT, targetId, dmg, x, y, srcSlot, crit(0/1), act]   (target: any entity id; dmg after modifiers;
+  //        act: ACT.* of the source, on brawler hits)
   HEAL: 4, // [EV.HEAL, slot, amount, x, y]
   KILL: 5, // [EV.KILL, victimSlot, killerSlot (-1 poison/none), x, y]
   RESPAWN: 6, // [EV.RESPAWN, slot, x, y]
@@ -1822,7 +1823,7 @@ class Sim {
         e.hp = 0;
         if (!e.dying) { e.dying = true; e.killer = src; }
       }
-      this.ev(EV.HIT, e.id, amt, e.x, e.y, src, crit || 0);
+      this.ev(EV.HIT, e.id, amt, e.x, e.y, src, crit || 0, act | 0);
       if (src >= 0) {
         const sb = this.brawlers[src];
         if (sb.team !== e.team) { sb.st.dmg += dealt; this.dmgBy[src * 4 + act] += dealt; }
@@ -2773,6 +2774,952 @@ const MODES = {
     },
   }),
 };
+
+// ===== 08-perceive.js =====
+// ---------- Perception: what one player can see (the only bridge from the sim to a bot) ----------
+// perceive(sim, slot, P, rng) fills P with what that player's screen shows: the camera rectangle the
+// view would draw (cameraRect), the HUD, and their own brawler. Enemies count only if the team can see
+// them (bushes, invisibility) AND they are on this player's screen. No velocities: bots must estimate
+// motion from successive sightings, like people do. Sound cues for unseen shooters are blurred.
+// Bots get nothing else from the sim.
+
+const CUE_R = 7; // unseen enemy shots this close to you are heard
+const CUE_JIT = 1.5; // ... and placed this far off (tiles)
+
+function newPercept() {
+  return {
+    tick: 0, t: 0, mode: '', map: null, cam: { x0: 0, y0: 0, x1: 0, y1: 0, cx: 0, cy: 0 }, flip: false,
+    me: { slot: 0, team: 0, bk: '', x: 0, y: 0, hp: 0, maxHp: 1, ammo: 0, sup: 0, supReady: false, gadLeft: 0, gadReady: false, carry: 0, cubes: 0, alive: false, respawnT: 0, inBush: false, invis: false, stunned: false, face: 0, lvl: 1, shield: false },
+    allies: [], enemies: [], shots: [], areas: [], pickups: [], deploys: [], cues: [], pins: [],
+    ball: null, hud: null, poison: null, nTeams: 2,
+  };
+}
+
+function perceive(sim, slot, P, rng) {
+  const B = sim.brawlers, me = B[slot], map = sim.map;
+  const sd = sim.modeKey === MODE.SHOWDOWN;
+  P.tick = sim.tick;
+  P.t = sim.t;
+  P.mode = sim.modeKey;
+  P.map = map;
+  P.nTeams = sim.nTeams;
+  P.flip = me.team === 1 && !sd;
+  // the camera follows you while alive; when down it stays where you fell (as on screen)
+  cameraRect(map, me.x, me.y, P.flip, sd, P.cam);
+  const cam = P.cam;
+  const m = P.me;
+  m.slot = slot; m.team = me.team; m.bk = me.bk; m.x = me.x; m.y = me.y; m.hp = me.hp; m.maxHp = me.maxHp;
+  m.ammo = me.ammo; m.sup = me.sup; m.supReady = me.supReady; m.gadLeft = me.gadLeft; m.gadReady = me.gadLeft > 0 && me.gadT <= 0 && me.gadget >= 0;
+  m.carry = me.carry; m.cubes = me.cubes; m.alive = me.alive; m.respawnT = me.respawnT; m.inBush = me.inBush;
+  m.invis = me.invisT > 0; m.stunned = me.stunT > 0; m.face = me.face; m.lvl = me.lvl; m.shield = me.shieldT > 0; m.bounty = me.bounty;
+  P.allies.length = 0;
+  P.enemies.length = 0;
+  const seen = P._seen || (P._seen = new Uint8Array(16));
+  seen.fill(0);
+  for (const b of B) {
+    if (b.slot === slot) continue;
+    if (b.team === me.team) {
+      P.allies.push({ slot: b.slot, bk: b.bk, x: b.x, y: b.y, hp: b.hp, maxHp: b.maxHp, alive: b.alive, respawnT: b.respawnT, carry: b.carry, inBush: b.inBush, supReady: b.supReady, bounty: b.bounty });
+    } else if (b.alive && sim.visibleTo(me.team, b) && inRect(cam, b.x, b.y, 0.3)) {
+      seen[b.slot] = 1;
+      P.enemies.push({ slot: b.slot, team: b.team, bk: b.bk, x: b.x, y: b.y, hp: b.hp, maxHp: b.maxHp, carry: b.carry, cubes: b.cubes, inBush: b.inBush, bounty: b.bounty, lvl: b.lvl, shield: b.shieldT > 0 });
+    }
+  }
+  // shots: enemy projectiles on screen (lobs show their landing spot); unseen shooters become cues
+  P.shots.length = 0;
+  P.cues.length = 0;
+  for (const s of sim.shots) {
+    if (s.dead || s.team === me.team || s.beam > 0) continue;
+    if (!inRect(cam, s.x, s.y, 0.5) && !(s.lob && inRect(cam, s.lob.tx, s.lob.ty, 0.5))) continue;
+    P.shots.push({ id: s.id, x: s.x, y: s.y, ang: s.ang, spd: s.spd, r: s.r, team: s.team, owner: s.owner, lob: s.lob ? { tx: s.lob.tx, ty: s.lob.ty, tLeft: Math.max(0, s.lob.T - s.lob.t), r: s.s && s.s.blast ? s.s.blast : 1 } : null });
+    if (!seen[s.owner] && rng && s.trav < 1.5 && dist2(s.x0, s.y0, me.x, me.y) < CUE_R * CUE_R) {
+      P.cues.push({ x: s.x0 + rng.range(-CUE_JIT, CUE_JIT), y: s.y0 + rng.range(-CUE_JIT, CUE_JIT), owner: s.owner });
+    }
+  }
+  P.areas.length = 0;
+  for (const a of sim.areas) {
+    if (a.dead || !inRect(cam, a.x, a.y, a.r)) continue;
+    P.areas.push({ x: a.x, y: a.y, r: a.r, team: a.team, harm: a.team !== me.team && (a.dmg > 0 || a.slow > 0), heal: a.team === me.team && a.heal > 0 });
+  }
+  P.pickups.length = 0;
+  for (const p of sim.pickups) {
+    if (p.dead || !inRect(cam, p.x, p.y, 0)) continue;
+    P.pickups.push({ id: p.id, pick: p.pick, x: p.x, y: p.y, n: p.n });
+  }
+  P.deploys.length = 0;
+  for (const d of sim.deploys) {
+    if (d.dead || !inRect(cam, d.x, d.y, 0.5)) continue;
+    P.deploys.push({ id: d.id, team: d.team, owner: d.owner, dk: d.dk, x: d.x, y: d.y, hp: d.hp, maxHp: d.maxHp });
+  }
+  const bl = sim.ball;
+  if (bl && !bl.dead) {
+    const h = bl.holder >= 0 ? B[bl.holder] : null;
+    P.ball = P.ball || {};
+    P.ball.x = bl.x; P.ball.y = bl.y; P.ball.holderSlot = bl.holder; P.ball.holderTeam = h ? h.team : -1; P.ball.z = bl.z || 0;
+  } else P.ball = null;
+  P.hud = sim.hud();
+  P.poison = sim.poison;
+  // quick-chat pins from teammates (the last few seconds)
+  P.pins.length = 0;
+  if (sim.pins) for (const p of sim.pins) if (p.slot !== slot && B[p.slot].team === me.team) P.pins.push({ slot: p.slot, id: p.id, age: sim.t - p.t });
+  return P;
+}
+
+// ===== 09-mind.js =====
+// ---------- Bot mind: memory, attention and utility decisions ----------
+// A bot is modelled as a person playing on a phone. It sees only its percept (08-perceive.js), notices
+// new things after a human reaction time, remembers enemies it lost sight of (with growing doubt),
+// and picks a goal a few times a second by weighing options with its personality and skill. Coordination
+// goes through quick-chat pins that arrive late and aren't always followed. Mistakes mostly come out of
+// the parameters (slow reactions, narrow attention under stress, tilt), plus rare explicit lapses.
+
+// Skill (0..1, from the trophy band) and traits -> the numbers that drive the bot.
+function botParams(profile) {
+  const s = clamp(profile && profile.skill != null ? profile.skill : 0.5, 0, 1);
+  const tr = (profile && profile.traits) || {};
+  const tv = (k, d) => (tr[k] != null ? clamp(tr[k], 0, 1) : d);
+  const aggr = tv('aggr', 0.5);
+  return {
+    s,
+    reactMed: lerp(0.4, 0.205, s), reactSig: 0.32, reactMin: 0.13, // reaction time (s), lognormal
+    think: 1 / lerp(4, 8, s), // decision interval (s)
+    commit: lerp(1.5, 0.6, s), // minimum time on a goal (s)
+    temp: lerp(0.42, 0.24, s), // softmax temperature: beginners pick less sensibly (nobody is a perfect maximiser)
+    memT: lerp(2.5, 6.5, s), // how long an unseen enemy is remembered (s)
+    aimErr: lerp(3.6, 1.1, s), // scale of aim endpoint error (thumbs on glass are not mice)
+    lead: lerp(0.15, 0.9, s), // share of the correct lead on moving targets
+    flick: lerp(0.3, 0.16, s), fitts: lerp(0.11, 0.065, s), // aim movement time = flick + fitts*log2(1+D/W)
+    autoAim: lerp(0.7, 0.12, s), // chance a shot is a plain auto-aim tap
+    dodge: lerp(0.12, 0.7, s), // chance to sidestep a shot it noticed in time
+    discipline: lerp(0.15, 0.9, s), // holds fire out of range / keeps ammo
+    stickRate: lerp(5.5, 10, s), // how fast the thumb swings the move stick (rad/s)
+    juke: lerp(0.35, 1.15, s) * (0.6 + aggr * 0.8), // sideways juke bursts per second in a fight
+    aimStop: lerp(0.4, 0.1, s), // chance to stop walking while lining up a manual shot
+    supNotice: lerp(4, 2.2, s), // typical seconds before a charged super gets used at all
+    aggr, patience: tv('patience', 0.5), greed: tv('greed', 0.5), teamwork: tv('teamwork', 0.6), tilt: tv('tilt', 0.3),
+    retreatHP: lerp(0.45, 0.26, aggr) * lerp(1, 1.08, s),
+    lapse: lerp(2, 0.3, s) / 60 / lerp(4, 8, s), // explicit lapses: about 2 a minute for beginners, 0.3 for experts
+  };
+}
+
+// Attack facts the bot knows about a brawler (its own kit, or what everyone knows about an enemy).
+function atkFacts(spec, kitSpeed) {
+  if (!spec) return { t: 'none', range: 0, spd: Infinity, lob: false, T: 0, melee: false, spread: 0, n: 1, eff: 0 };
+  const t = spec.t;
+  const range = spec.range || spec.dist || (spec.r && t === 'pulse' ? spec.r : 0) || 0;
+  const lob = t === 'lob' || t === 'leap' || (t === 'deploy') || (t === 'area' && spec.at !== 'self');
+  const spd = t === 'shot' ? spec.spd || 12 : t === 'dash' ? spec.spd || 14 : Infinity;
+  const spread = spec.spread || 0;
+  // effective range: shotguns want to be close, everything else near max range
+  const eff = range * (t === 'shot' && spec.n >= 4 && spread > 0.3 ? 0.68 : t === 'dash' ? 0.9 : 0.93);
+  return { t, range, spd, lob, T: spec.T || (lob ? 0.75 : 0), melee: t === 'dash' || t === 'arc' || range < 3.5, spread, n: spec.n || 1, eff, dmg: spec.dmg || 0, heal: spec.heal || spec.hps || 0, away: !!spec.away, what: spec.what, unit: spec.unit, sp: kitSpeed };
+}
+
+class Mind {
+  constructor(slot, profile, rng) {
+    this.slot = slot;
+    this.prof = profile || {};
+    this.p = botParams(profile);
+    this.rng = rng;
+    this.mem = {}; // enemy slot -> memory
+    this.shotMem = new Map(); // shot id -> { noticeAt, dodge }
+    this.intent = { goal: 'hold', gx: 0, gy: 0, target: -1, stance: 1, wantSuper: false, wantGadget: false, superMode: 'target', gadMode: 'target', bushShot: null, boxShot: null, kick: null };
+    this.goalT = 0; // when the current goal started
+    this.nextThink = 0;
+    this.deaths = []; // times of own deaths (tilt)
+    this.wasAlive = true;
+    this.pinQ = []; // outgoing pins waiting for the thumb: { at, id }
+    this.pinCd = 0;
+    this.pinSeen = new Set();
+    this.bias = { attack: 0, defend: 0, help: -1, helpT: 0, gems: 0 };
+    this.outPin = null;
+    this.outEmote = null;
+    this.bushes = null;
+    this.lastTarget = -1;
+    this.lastTargetHp = 1;
+    this.lastTargetT = 0;
+    this.lapse = null; // { goal, until }
+    this.supAt = -1; // when a charged super has been noticed
+    this.retreatHPs = []; // telemetry: hp share when a retreat starts
+    this.reacts = []; // telemetry: modelled reaction times
+  }
+
+  reaction(extra) {
+    const p = this.p, r = this.rng;
+    // lognormal around the median, never faster than a human can manage
+    const z = Math.sqrt(-2 * Math.log(1 - r.next() * 0.999999)) * Math.cos(TAU * r.next());
+    return Math.max(p.reactMin, p.reactMed * Math.exp(p.reactSig * z)) + (extra || 0);
+  }
+
+  // ---- memory & attention ----
+  observe(P) {
+    const t = P.t, me = P.me, p = this.p;
+    if (this.wasAlive && !me.alive) { this.deaths.push(t); if (this.rng.chance(0.25 + p.tilt * 0.3)) this.outEmote = this.rng.pick([2, 3]); }
+    this.wasAlive = me.alive;
+    while (this.deaths.length && t - this.deaths[0] > 60) this.deaths.shift();
+    const stress = me.alive && me.hp / me.maxHp < 0.35 && this.intent.target >= 0 ? 1 : 0;
+    const seenNow = this._seenNow || (this._seenNow = new Set());
+    seenNow.clear();
+    for (const e of P.enemies) {
+      seenNow.add(e.slot);
+      let m = this.mem[e.slot];
+      if (!m) m = this.mem[e.slot] = { x: e.x, y: e.y, vx: 0, vy: 0, t: t, first: t, noticeAt: 0, noticed: false, seen: false, hp: e.hp, maxHp: e.maxHp, bk: e.bk, carry: 0, inBush: false, team: e.team, bounty: 0 };
+      if (!m.seen) {
+        // a new sighting: notice it after a reaction time (slower when busy with another target)
+        if (!m.noticed || t - m.t > 1.2) {
+          m.noticed = false;
+          const r = this.reaction(stress && this.intent.target !== e.slot ? 0.15 + 0.2 * (1 - p.s) : 0);
+          m.noticeAt = t + r;
+          this.reacts.push(r);
+          if (this.reacts.length > 400) this.reacts.shift();
+        }
+        m.first = t;
+        m.vx = m.vy = 0;
+      } else {
+        const dt = t - m.t;
+        if (dt > 0) {
+          const k = 0.45;
+          m.vx = lerp(m.vx, (e.x - m.x) / dt, k);
+          m.vy = lerp(m.vy, (e.y - m.y) / dt, k);
+        }
+      }
+      m.x = e.x; m.y = e.y; m.t = t; m.seen = true; m.hp = e.hp; m.maxHp = e.maxHp; m.carry = e.carry; m.inBush = e.inBush; m.bk = e.bk; m.team = e.team; m.bounty = e.bounty || 0;
+      if (!m.noticed && t >= m.noticeAt) m.noticed = true;
+    }
+    for (const k in this.mem) {
+      const m = this.mem[k];
+      if (seenNow.has(+k)) continue;
+      if (m.seen) { m.seen = false; m.lostT = t; }
+      if (!m.noticed && t >= m.noticeAt && t - m.t < 0.4) m.noticed = true;
+      if (t - m.t > p.memT) delete this.mem[k];
+    }
+    // incoming shots: noticed after a (slightly quicker: they're bright and moving) reaction
+    for (const s of P.shots) {
+      if (!this.shotMem.has(s.id)) this.shotMem.set(s.id, { noticeAt: t + this.reaction() * 0.85, dodge: this.rng.chance(p.dodge), born: t });
+    }
+    if (this.shotMem.size > 80) for (const [id, v] of this.shotMem) if (t - v.born > 3) this.shotMem.delete(id);
+    // teammates' pins (once each)
+    for (const pin of P.pins) {
+      const key = pin.slot * 1000 + Math.round((t - pin.age) * 10);
+      if (this.pinSeen.has(key)) continue;
+      this.pinSeen.add(key);
+      if (!this.rng.chance(p.teamwork)) continue; // not everyone reads the chat
+      if (pin.id === 0) this.bias.attack = t + 6;
+      else if (pin.id === 1) this.bias.defend = t + 6;
+      else if (pin.id === 2) { this.bias.help = pin.slot; this.bias.helpT = t + 5; } else if (pin.id === 6) this.bias.gems = t + 6;
+    }
+    if (this.pinSeen.size > 200) this.pinSeen.clear();
+  }
+
+  // Enemies the bot has noticed and still has in memory.
+  known(onlySeen) {
+    const out = this._known || (this._known = []);
+    out.length = 0;
+    for (const k in this.mem) { const m = this.mem[k]; if (m.noticed && (!onlySeen || m.seen)) { m.slot = +k; out.push(m); } }
+    return out;
+  }
+
+  // ---- map knowledge ----
+  base(P) {
+    const sp = P.map.spawns[P.me.team] || P.map.spawns[0];
+    if (!this._base || this._baseTeam !== P.me.team) {
+      let x = 0, y = 0;
+      for (const p of sp) { x += p.x; y += p.y; }
+      this._base = { x: x / sp.length, y: y / sp.length };
+      this._baseTeam = P.me.team;
+    }
+    return this._base;
+  }
+  bushList(P) {
+    if (!this.bushes) {
+      this.bushes = [];
+      const m = P.map;
+      for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) if (TILE_FLAGS[m.tiles[y * m.w + x]] & TF_BUSH) this.bushes.push({ x: x + 0.5, y: y + 0.5 });
+    }
+    return this.bushes;
+  }
+
+  // ---- decisions ----
+  decide(P, kit) {
+    const t = P.t, me = P.me, p = this.p, I = this.intent, r = this.rng;
+    if (!me.alive) { I.goal = 'dead'; I.target = -1; I.wantSuper = I.wantGadget = false; return; }
+    const atk = kit.atkF, myHPf = me.hp / me.maxHp;
+    const tilt = Math.min(1, this.deaths.length * 0.3) * p.tilt; // repeated deaths make some players reckless
+    const known = this.known(false);
+    const visible = known.filter((m) => m.seen);
+    // danger: enemies that could hit me soon
+    let danger = 0, near = 0;
+    for (const m of visible) {
+      const ef = atkFacts(BRAWLERS[m.bk] && BRAWLERS[m.bk].atk, 0);
+      const d = Math.hypot(m.x - me.x, m.y - me.y);
+      if (d < ef.range + 1.5) { danger += 1 - d / (ef.range + 1.5) + 0.3; near++; }
+    }
+    // target choice (sticky: tunnel vision grows under stress)
+    let target = null, best = -1e9;
+    const stress = myHPf < 0.4 ? 1 : 0;
+    for (const m of visible) {
+      const d = Math.hypot(m.x - me.x, m.y - me.y);
+      let sc = 1.1 * (1 - m.hp / m.maxHp) + (1 - Math.min(1, d / 12)) * 1.1 + (m.carry || 0) * 0.06 + (m.bounty || 0) * 0.05;
+      if (d < atk.range) sc += 0.4;
+      if (m.slot === this.lastTarget) sc += 0.35 + stress * 0.4;
+      if (P.ball && P.ball.holderSlot === m.slot) sc += 0.6;
+      sc += r.range(-0.15, 0.15) * (1 - p.s);
+      if (sc > best) { best = sc; target = m; }
+    }
+    const allies = P.allies.filter((a) => a.alive);
+    const nearAllies = allies.filter((a) => Math.hypot(a.x - me.x, a.y - me.y) < 7).length;
+    const opts = this._opts || (this._opts = []);
+    opts.length = 0;
+    const add = (goal, score, gx, gy, tg, stance) => opts.push({ goal, score, gx, gy, tg: tg ? tg.slot : -1, stance });
+    const sd = P.mode === MODE.SHOWDOWN;
+    const B = sd ? null : this.base(P);
+    const hold = this.holdPoint(P, kit, B);
+    // hold your lane / position
+    add('hold', 0.32 + p.patience * 0.1, hold.x, hold.y, null, 1);
+    // fight the chosen target
+    if (target) {
+      const d = Math.hypot(target.x - me.x, target.y - me.y);
+      let f = 0.38 + p.aggr * 0.32 + tilt * 0.25 + (1 - target.hp / target.maxHp) * 0.3 + nearAllies * 0.06 - Math.max(0, near - 1 - nearAllies) * 0.14;
+      f -= (1 - myHPf) * (0.55 - tilt * 0.3);
+      if (me.ammo < 1 && !atk.melee) f -= 0.18;
+      if (d > atk.range * 1.8) f -= 0.15;
+      if (t < this.bias.attack) f += 0.2;
+      add('fight', f, target.x, target.y, target, 1 + p.aggr * 0.3 + tilt * 0.3);
+    }
+    // retreat to heal
+    const rhp = p.retreatHP * (1 - tilt * 0.4);
+    if (myHPf < rhp || (me.ammo < 0.6 && near > 0 && !atk.melee && myHPf < 0.7)) {
+      const rx = sd ? me.x - (target ? target.x - me.x : 0) : B.x, ry = sd ? me.y - (target ? target.y - me.y : 0) : B.y;
+      add('retreat', 0.62 + (rhp - myHPf) * 1.6 + danger * 0.25 - tilt * 0.25, rx, ry, null, 0);
+    }
+    // ambush from a bush near the hold point (assassins, tanks and patient players)
+    const role = BRAWLERS[me.bk].role;
+    if (!target && (role === 'assassin' || role === 'tank' || p.patience > 0.7)) {
+      const bu = this.nearestBush(P, hold.x, hold.y, 4.5);
+      if (bu) add('ambush', 0.24 + p.patience * 0.28 + (role === 'assassin' ? 0.12 : 0), bu.x, bu.y, null, 0.6);
+    }
+    // help a teammate who asked for it
+    if (this.bias.help >= 0 && t < this.bias.helpT) {
+      const a = P.allies.find((x) => x.slot === this.bias.help && x.alive);
+      if (a) add('help', 0.45 + p.teamwork * 0.3, a.x, a.y, null, 1.1);
+    }
+    this.modeOptions(P, kit, add, target, danger, myHPf, hold);
+    // poison: get out (and stay inside) before anything else
+    if (P.poison) {
+      const pz = P.poison;
+      const margin = 1.6;
+      if (me.x < pz.x0 + margin || me.x > pz.x1 - margin || me.y < pz.y0 + margin || me.y > pz.y1 - margin) {
+        add('poison', 1.4, (pz.x0 + pz.x1) / 2, (pz.y0 + pz.y1) / 2, null, 0.5);
+      }
+    }
+    // pick: softmax with commitment to the current goal
+    const cur = I.goal;
+    const committed = t - this.goalT < p.commit;
+    let tot = 0;
+    for (const o of opts) {
+      let sc = o.score;
+      if (o.goal === cur) sc += committed ? 0.35 : 0.12;
+      o.w = Math.exp(sc / p.temp);
+      tot += o.w;
+    }
+    let pick = opts[0], x = r.next() * tot;
+    for (const o of opts) { x -= o.w; if (x <= 0) { pick = o; break; } }
+    // rare lapses: overextend into enemy territory or forget the objective for a while
+    if (this.lapse && t > this.lapse.until) this.lapse = null;
+    if (!this.lapse && r.chance(p.lapse) && !sd && pick.goal !== 'poison') {
+      const ex = P.map.w - B.x, ey = P.map.h - B.y;
+      this.lapse = { until: t + r.range(2, 4.5), goal: { goal: 'overextend', gx: lerp(hold.x, ex, 0.7), gy: lerp(hold.y, ey, 0.7), tg: target ? target.slot : -1, stance: 1.4 } };
+    }
+    if (this.lapse && pick.goal !== 'poison' && pick.goal !== 'retreat') pick = this.lapse.goal;
+    if (pick.goal !== cur) {
+      this.goalT = t;
+      if (pick.goal === 'retreat') { this.retreatHPs.push(myHPf); if (this.retreatHPs.length > 200) this.retreatHPs.shift(); }
+      this.sayFor(pick.goal, P);
+    }
+    I.goal = pick.goal; I.gx = pick.gx; I.gy = pick.gy; I.stance = pick.stance;
+    I.target = pick.tg >= 0 ? pick.tg : target && pick.goal !== 'retreat' && pick.goal !== 'carry' ? target.slot : -1;
+    if (I.target >= 0) { this.lastTarget = I.target; const m = this.mem[I.target]; if (m) { this.lastTargetHp = m.hp / m.maxHp; this.lastTargetT = t; } }
+    this.decideAbilities(P, kit, target, danger, myHPf, near);
+    this.decideBushShot(P, kit, target);
+  }
+
+  // Where to stand when nothing is happening: your lane, at a depth set by your role.
+  holdPoint(P, kit, B) {
+    const me = P.me, m = P.map, role = BRAWLERS[me.bk].role;
+    if (P.mode === MODE.SHOWDOWN) {
+      const pz = P.poison;
+      const cx = pz ? (pz.x0 + pz.x1) / 2 : m.w / 2, cy = pz ? (pz.y0 + pz.y1) / 2 : m.h / 2;
+      if (!this._roam || P.t > this._roamT) { this._roam = { x: lerp(me.x, cx, 0.35) + this.rng.range(-4, 4), y: lerp(me.y, cy, 0.35) + this.rng.range(-4, 4) }; this._roamT = P.t + this.rng.range(4, 9); }
+      return this._roam;
+    }
+    const lane = [0.22, 0.5, 0.78][(this.slot % 3)];
+    const mid = { x: m.w / 2, y: m.h / 2 };
+    let depth = role === 'sharp' || role === 'thrower' ? 0.55 : role === 'support' ? 0.62 : role === 'tank' || role === 'assassin' ? 0.86 : 0.74;
+    depth += (this.p.aggr - 0.5) * 0.2;
+    if (P.t < this.bias.defend) depth -= 0.25;
+    const x = lerp(m.w * lane, mid.x, 0.25), y = lerp(B.y, mid.y, depth);
+    return { x: clamp(x, 1, m.w - 1), y: clamp(y, 1, m.h - 1) };
+  }
+
+  nearestBush(P, x, y, maxD) {
+    let best = null, bd = maxD * maxD;
+    for (const b of this.bushList(P)) { const d = dist2(b.x, b.y, x, y); if (d < bd) { bd = d; best = b; } }
+    return best;
+  }
+
+  // ---- mode objectives ----
+  modeOptions(P, kit, add, target, danger, myHPf, hold) {
+    const me = P.me, p = this.p, h = P.hud || {}, t = P.t, map = P.map, r = this.rng;
+    if (P.mode === MODE.GEM) {
+      const team = me.team, my = h.gems ? h.gems[team] : 0, their = h.gems ? h.gems[1 - team] : 0;
+      const mine = map.mine || { x: map.w / 2, y: map.h / 2 };
+      const gems = P.pickups.filter((q) => q.pick === PICK.GEM);
+      // the collector: the living teammate closest to the mine (that might be me)
+      const dMe = Math.hypot(mine.x - me.x, mine.y - me.y);
+      const closer = P.allies.filter((a) => a.alive && Math.hypot(mine.x - a.x, mine.y - a.y) < dMe - 1).length;
+      const collector = closer === 0;
+      if (gems.length) {
+        let g = gems[0], gd = 1e9;
+        for (const q of gems) { const d = Math.hypot(q.x - me.x, q.y - me.y); if (d < gd) { gd = d; g = q; } }
+        // a teammate is closer to that gem: leave it to them (mostly)
+        const beaten = P.allies.some((a) => a.alive && Math.hypot(g.x - a.x, g.y - a.y) < gd - 1);
+        add('collect', 0.5 + p.greed * 0.3 + (collector ? 0.2 : 0) - (beaten ? 0.3 : 0) - danger * 0.3 + (t < this.bias.gems ? 0.2 : 0) - Math.min(0.3, gd / 30), g.x, g.y, null, 0.8);
+      } else if (collector && dMe > 2.5) add('collect', 0.42 + p.greed * 0.2 - danger * 0.25, mine.x, mine.y + (me.team === 0 ? 1.6 : -1.6), null, 0.9);
+      // carrying a pile, or our countdown is running: get it home safely
+      const B = this.base(P);
+      if (me.carry >= 4 || (h.countTeam === team && me.carry > 0)) {
+        add('carry', 0.7 + me.carry * 0.03 + (h.countTeam === team ? 0.25 : 0) - (target && myHPf > 0.7 && p.aggr > 0.7 ? 0.25 : 0), lerp(B.x, mine.x, 0.25), lerp(B.y, mine.y, 0.25), null, 0.3);
+      }
+      // their countdown: everyone pushes the carriers
+      if (h.countTeam === 1 - team) {
+        let carrier = null;
+        for (const m of this.known(false)) if (m.carry > 0 && (!carrier || m.carry > carrier.carry)) carrier = m;
+        const gx = carrier ? carrier.x : lerp(mine.x, map.w - B.x, 0.5), gy = carrier ? carrier.y : lerp(mine.y, map.h - B.y, 0.5);
+        add('push', 0.85 + p.aggr * 0.15, gx, gy, carrier, 1.5);
+        if (this.pinCd < t && r.chance(p.teamwork * 0.4)) this.pin(0, t);
+      } else if (h.countTeam === team && me.carry === 0) {
+        add('defend', 0.6 + p.teamwork * 0.2, lerp(hold.x, this.base(P).x, 0.3), lerp(hold.y, this.base(P).y, 0.3), null, 0.7);
+      }
+      if (their > my + 3 && my + their > 6) add('push', 0.55 + p.aggr * 0.2, mine.x, mine.y, null, 1.3);
+    } else if (P.mode === MODE.BALL && P.ball) {
+      const ball = P.ball, enemyGoal = map.goals.find((g) => g.team !== me.team), ownGoal = map.goals.find((g) => g.team === me.team);
+      const eg = enemyGoal ? { x: (enemyGoal.x0 + enemyGoal.x1) / 2, y: (enemyGoal.y0 + enemyGoal.y1) / 2 } : { x: map.w / 2, y: me.team === 0 ? 0 : map.h };
+      const og = ownGoal ? { x: (ownGoal.x0 + ownGoal.x1) / 2, y: (ownGoal.y0 + ownGoal.y1) / 2 } : this.base(P);
+      if (ball.holderSlot === me.slot) add('dribble', 1.2, eg.x, eg.y, null, 1.2);
+      else if (ball.holderSlot < 0) {
+        const dMe = Math.hypot(ball.x - me.x, ball.y - me.y);
+        const closer = P.allies.filter((a) => a.alive && Math.hypot(ball.x - a.x, ball.y - a.y) < dMe - 0.5).length;
+        add('ball', (closer === 0 ? 0.95 : 0.45) + p.greed * 0.1, ball.x, ball.y, null, 1.1);
+      } else if (ball.holderTeam === me.team) add('escort', 0.55 + p.teamwork * 0.2, lerp(ball.x, eg.x, 0.35), lerp(ball.y, eg.y, 0.35), null, 1.1);
+      else {
+        add('defend', 0.65 + p.teamwork * 0.15, lerp(og.x, ball.x, 0.5), lerp(og.y, ball.y, 0.5), null, 0.9);
+        const holder = this.mem[ball.holderSlot];
+        if (holder && holder.noticed) add('fight', 0.9, holder.x, holder.y, holder, 1.4);
+      }
+    } else if (P.mode === MODE.SHOWDOWN) {
+      const cubes = P.pickups.filter((q) => q.pick === PICK.CUBE);
+      if (cubes.length) {
+        let c = cubes[0], cd = 1e9;
+        for (const q of cubes) { const d = Math.hypot(q.x - me.x, q.y - me.y); if (d < cd) { cd = d; c = q; } }
+        add('collect', 0.62 + p.greed * 0.3 - danger * 0.2, c.x, c.y, null, 0.8);
+      }
+      const box = this.nearestBox(P, 9);
+      if (box && !target) add('box', 0.45 + p.greed * 0.25, box.x, box.y, null, 0.9);
+    } else if (P.mode === MODE.BOUNTY) {
+      if ((me.bounty || 0) >= 4) add('hold', 0.55 + (me.bounty || 0) * 0.05, lerp(hold.x, this.base(P).x, 0.4), lerp(hold.y, this.base(P).y, 0.4), null, 0.6);
+      const star = P.pickups.find((q) => q.pick === PICK.STAR);
+      if (star) add('collect', 0.6 + p.greed * 0.2, star.x, star.y, null, 1);
+    } else if (P.mode === MODE.KNOCKOUT) {
+      // no respawns: a little more careful
+      if (target && myHPf < 0.55) add('retreat', 0.5 + (0.55 - myHPf), this.base(P).x, this.base(P).y, null, 0.3);
+    }
+  }
+
+  nearestBox(P, maxD) {
+    const m = P.map, me = P.me;
+    let best = null, bd = maxD * maxD;
+    const x0 = Math.max(0, Math.floor(me.x - maxD)), x1 = Math.min(m.w - 1, Math.ceil(me.x + maxD));
+    const y0 = Math.max(0, Math.floor(me.y - maxD)), y1 = Math.min(m.h - 1, Math.ceil(me.y + maxD));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      if (m.tiles[y * m.w + x] !== TILE.BOX) continue;
+      const d = dist2(x + 0.5, y + 0.5, me.x, me.y);
+      if (d < bd) { bd = d; best = { x: x + 0.5, y: y + 0.5 }; }
+    }
+    return best;
+  }
+
+  // ---- supers & gadgets: used at moments that look worth it ----
+  decideAbilities(P, kit, target, danger, myHPf, near) {
+    const I = this.intent, me = P.me, r = this.rng;
+    I.wantSuper = false; I.wantGadget = false; I.superMode = 'target'; I.gadMode = 'target';
+    const sup = kit.supF, gad = kit.gadF;
+    // a charged super is noticed (and trusted) only after a while, like a person glancing at the button
+    if (!me.supReady) this.supAt = -1;
+    else if (this.supAt < 0) this.supAt = P.t + this.reaction() + r.range(0.3, 1) * this.p.supNotice;
+    const td = target ? Math.hypot(target.x - me.x, target.y - me.y) : 99;
+    if (me.supReady && P.t >= this.supAt) {
+      if (sup.heal > 0 && (myHPf < 0.6 || P.allies.some((a) => a.alive && a.hp / a.maxHp < 0.5 && Math.hypot(a.x - me.x, a.y - me.y) < sup.range))) { I.wantSuper = true; I.superMode = 'self'; } else if (sup.t === 'leap' && sup.away) { if (myHPf < 0.45 && danger > 0.6) { I.wantSuper = true; I.superMode = 'away'; } } else if (sup.t === 'buff') { if ((sup.what === 'invis' || sup.what === 'speed') && target && td < 10 && myHPf > 0.4) { I.wantSuper = true; I.superMode = 'self'; } } else if (sup.t === 'deploy') { if (target && td < sup.range + 3) { I.wantSuper = true; I.superMode = 'target'; } } else if (target && td < sup.range * 0.95) {
+        const enemiesNear = this.known(true).filter((m) => Math.hypot(m.x - target.x, m.y - target.y) < 2.5).length;
+        if (target.hp / target.maxHp < 0.55 || enemiesNear >= 2 || r.chance(0.35)) { I.wantSuper = true; I.superMode = 'target'; }
+      }
+    }
+    if (me.gadReady && gad.t !== 'none') {
+      if (gad.t === 'heal' || (gad.t === 'pulse' && gad.heal > 0)) I.wantGadget = myHPf < 0.5;
+      else if (gad.t === 'buff' && gad.what === 'ammo') I.wantGadget = me.ammo < 0.8 && target && td < kit.atkF.range;
+      else if (gad.t === 'buff' && gad.what === 'shield') I.wantGadget = danger > 0.8 && myHPf < 0.7;
+      else if (gad.t === 'buff') I.wantGadget = target && td < 8 && r.chance(0.5);
+      else if (gad.t === 'dash') { I.wantGadget = (myHPf < 0.35 && danger > 0.5) || (target && target.hp / target.maxHp < 0.3 && td < 6); I.gadMode = myHPf < 0.35 ? 'away' : 'target'; } else if (gad.t === 'pulse') I.wantGadget = target && td < (gad.range || 2.5);
+      else if (gad.t === 'deploy') I.wantGadget = target && td < 9;
+      else I.wantGadget = target && td < (gad.range || 6) && r.chance(0.4);
+      I.wantGadget = !!I.wantGadget;
+    }
+  }
+
+  // Shooting into a bush where an enemy was last seen (people check bushes).
+  decideBushShot(P, kit, target) {
+    const I = this.intent, me = P.me;
+    I.bushShot = null;
+    if (target || me.ammo < 2.5) return;
+    for (const k in this.mem) {
+      const m = this.mem[k];
+      if (m.seen || !m.noticed || !m.inBush) continue;
+      const d = Math.hypot(m.x - me.x, m.y - me.y);
+      if (d < kit.atkF.range * 0.95 && P.t - m.t < 3 && this.rng.chance(0.25 + this.p.aggr * 0.3)) { I.bushShot = { x: m.x, y: m.y }; return; }
+    }
+    for (const c of P.cues) {
+      const d = Math.hypot(c.x - me.x, c.y - me.y);
+      if (d < kit.atkF.range && this.rng.chance(0.3 * this.p.s)) { I.bushShot = { x: c.x, y: c.y }; return; }
+    }
+    // in Showdown, crack boxes when nothing else is going on
+    if (P.mode === MODE.SHOWDOWN && I.goal === 'box') {
+      const b = this.nearestBox(P, kit.atkF.range * 0.9);
+      if (b) I.bushShot = b;
+    }
+  }
+
+  // ---- quick chat ----
+  pin(id, t) {
+    this.pinQ.push({ at: t + this.rng.range(0.5, 1.5), id });
+    this.pinCd = t + this.rng.range(4, 9);
+  }
+  sayFor(goal, P) {
+    const t = P.t, p = this.p, r = this.rng;
+    if (this.pinCd > t || !r.chance(p.teamwork * 0.35)) return;
+    if (goal === 'retreat' && P.me.hp / P.me.maxHp < 0.3 && P.allies.some((a) => a.alive)) this.pin(2, t);
+    else if (goal === 'push') this.pin(0, t);
+    else if (goal === 'defend') this.pin(1, t);
+    else if (goal === 'collect' && P.mode === MODE.GEM && r.chance(0.3)) this.pin(6, t);
+  }
+  flushPins(t) {
+    if (this.pinQ.length && this.pinQ[0].at <= t) { this.outPin = this.pinQ.shift().id; }
+  }
+}
+
+// ===== 10-motor.js =====
+// ---------- Bot motor: a thumb on a touch screen ----------
+// Turns the mind's intent into input words the way a person's thumbs would: the move stick swings at
+// a limited speed and jukes sideways in fights; aiming is a quick flick that overshoots a little and
+// corrects (timed by Fitts' law), with an endpoint error that grows with distance, the target's
+// sideways speed and stress; moving targets are led only partly. Shots only dodge projectiles the bot
+// noticed in time. class Bot ties perception (08), mind (09) and motor together; it sees the world only
+// through perceive(). Telemetry measures any slot (bot or human) the same way for tools/ai-test.cjs.
+
+class Bot {
+  constructor(slot, profile, seed) {
+    this.slot = slot;
+    this.prof = profile || {};
+    this.rng = new RNG((seed ^ hashStr('bot:' + slot)) >>> 0);
+    this.mind = new Mind(slot, this.prof, this.rng);
+    this.p = this.mind.p;
+    this.P = newPercept();
+    this.kit = null;
+    this.t = 0; this.n = 0; this.phase = slot % 2;
+    // move stick
+    this.mvA = 0; this.mvM = 0; this.jukeDir = this.rng.chance(0.5) ? 1 : -1; this.latV = 0; this.jukeT = 0;
+    this.wiggleT = 0; this.wiggleA = 0;
+    this.hist = []; // recent positions for stuck detection { t, x, y, push }
+    // aim
+    this.aimA = 0; this.from = 0; this.to = 0; this.over = 0; this.flickT0 = -9; this.flickDur = 0; this.aimKey = -2;
+    this.tapAt = 0; this.aimStopUntil = 0;
+    // paths
+    this.flow = null; this.flowKey = -1; this.flowT = -9; this._fd = { x: 0, y: 0, d: 0 };
+    this.outPin = null; this.outEmote = null;
+    this.tel = { dirCh: 0, fastRev: 0, idle: 0, alive: 0, bush: 0, ticks: 0, stuck: 0, supDelay: [], fires: 0, supers: 0, gadgets: 0, autoTaps: 0, lastA: null, lastAT: 0, jukeAt: -9, supReadyT: -1 };
+  }
+
+  get telemetry() {
+    const T = this.tel, m = this.mind;
+    return { reacts: m.reacts.slice(), retreatHPs: m.retreatHPs.slice(), dirChanges: T.dirCh, fastReversals: T.fastRev, idle: T.idle, alive: T.alive, bush: T.bush, ticks: T.ticks, stuck: T.stuck, superDelays: T.supDelay.slice(), fires: T.fires, supers: T.supers, gadgets: T.gadgets, autoTaps: T.autoTaps };
+  }
+
+  initKit(bk) {
+    const D = BRAWLERS[bk];
+    const sp = U(D.speed);
+    this.kit = { bk, D, atkF: atkFacts(D.atk, sp), supF: atkFacts(D.sup, sp), gadF: atkFacts(D.gadgets && D.gadgets[0], sp), speed: sp };
+  }
+
+  // One tick: called by the match right before sim.step(), returns this player's input word.
+  tick(sim) {
+    this.n++;
+    this.t += SIM_DT;
+    let fresh = false;
+    if (!this.kit || this.n % 2 === this.phase) { perceive(sim, this.slot, this.P, this.rng); fresh = true; }
+    return this.act(this.P, fresh);
+  }
+
+  act(P, fresh) {
+    const mind = this.mind, me = P.me;
+    if (!this.kit) this.initKit(me.bk);
+    if (fresh) mind.observe(P);
+    if (this.t >= mind.nextThink) {
+      mind.decide(P, this.kit);
+      mind.nextThink = this.t + this.p.think * this.rng.range(0.7, 1.3);
+    }
+    mind.flushPins(this.t);
+    if (mind.outPin != null) { this.outPin = mind.outPin; mind.outPin = null; }
+    if (mind.outEmote != null) { this.outEmote = mind.outEmote; mind.outEmote = null; }
+    if (!me.alive) { this.mvM = 0; this.flickT0 = -9; this.aimKey = -2; this.telemetry_(P, 0); return IN_IDLE; }
+    this.move(P);
+    const shot = this.aim(P);
+    this.telemetry_(P, shot.act);
+    return packIn(this.mvA, this.mvM, shot.ang, shot.d, shot.act, shot.auto);
+  }
+
+  // ---- movement ----
+  move(P) {
+    const me = P.me, I = this.mind.intent, p = this.p, r = this.rng, dt = SIM_DT;
+    let dx = 0, dy = 0, want = 1;
+    const m = I.target >= 0 ? this.mind.mem[I.target] : null;
+    const fighting = m && m.noticed && (I.goal === 'fight' || I.goal === 'push' || I.goal === 'overextend' || I.goal === 'help' || I.goal === 'defend' || I.goal === 'escort');
+    if (fighting && m.seen) {
+      const d = Math.hypot(m.x - me.x, m.y - me.y) || 0.01;
+      const ux = (m.x - me.x) / d, uy = (m.y - me.y) / d;
+      const atk = this.kit.atkF;
+      const role = this.kit.D.role;
+      let pd = atk.eff * (role === 'tank' || role === 'assassin' ? 0.55 : role === 'sharp' || role === 'thrower' ? 0.92 : 0.8);
+      pd /= Math.max(0.7, I.stance);
+      if (P.me.hp / P.me.maxHp < 0.4) pd *= 1.25;
+      if (!walkClear(P.map, me.x, me.y, m.x, m.y) && d > pd * 0.8 && !atk.lob) {
+        this.pathTo(P, m.x, m.y);
+        dx = this._fd.x; dy = this._fd.y;
+      } else {
+        const radial = clamp((d - pd) / 1.6, -1, 1);
+        // sideways jukes: bursts in one direction, then a switch, plus a wobble
+        this.jukeT -= dt;
+        if (this.jukeT <= 0) { this.jukeDir = -this.jukeDir; this.jukeT = r.range(0.35, 1.2) / Math.max(0.3, p.juke); this.tel.jukeAt = this.t; }
+        this.latV += (-this.latV * 2.5 + r.range(-1, 1) * 3) * dt;
+        const lat = this.jukeDir * 0.85 + this.latV * 0.4;
+        dx = ux * radial + -uy * lat;
+        dy = uy * radial + ux * lat;
+      }
+    } else if (I.goal !== 'dead') {
+      const fs = this.freeSpot(P.map, I.gx, I.gy);
+      if (fs) { I.gx = fs.x; I.gy = fs.y; }
+      const gd = Math.hypot(I.gx - me.x, I.gy - me.y);
+      if (gd > 0.9) {
+        this.pathTo(P, I.gx, I.gy);
+        dx = this._fd.x; dy = this._fd.y;
+        if (dx === 0 && dy === 0) { dx = I.gx - me.x; dy = I.gy - me.y; }
+      } else {
+        // arrived: mostly stand, sometimes shuffle like an idle thumb
+        want = r.chance(0.04) ? 0.6 : 0;
+        if (want > 0) { const a = r.range(0, TAU); dx = Math.cos(a); dy = Math.sin(a); }
+      }
+      // carrying gems or retreating: keep away from enemies on screen
+      if (I.goal === 'retreat' || I.goal === 'carry') {
+        for (const e of P.enemies) {
+          const ed = Math.hypot(e.x - me.x, e.y - me.y);
+          if (ed < 7) { dx -= ((e.x - me.x) / ed) * (7 - ed) * 0.25; dy -= ((e.y - me.y) / ed) * (7 - ed) * 0.25; }
+        }
+      }
+    }
+    // dodge shots noticed in time
+    for (const s of P.shots) {
+      const sm = this.mind.shotMem.get(s.id);
+      if (!sm || !sm.dodge || this.t < sm.noticeAt) continue;
+      if (s.lob) {
+        const ld = Math.hypot(s.lob.tx - me.x, s.lob.ty - me.y);
+        if (ld < s.lob.r + 0.6 && s.lob.tLeft < 1.1) { dx += ((me.x - s.lob.tx) / (ld || 1)) * 2; dy += ((me.y - s.lob.ty) / (ld || 1)) * 2; }
+        continue;
+      }
+      const vx = Math.cos(s.ang), vy = Math.sin(s.ang);
+      const rx = me.x - s.x, ry = me.y - s.y;
+      const along = rx * vx + ry * vy;
+      if (along < 0 || along / Math.max(1, s.spd) > 0.9) continue;
+      const side = rx * -vy + ry * vx;
+      if (Math.abs(side) > s.r + BRAWLER_R + 0.35) continue;
+      const sgn = side >= 0 ? 1 : -1;
+      dx += -vy * sgn * 2.2; dy += vx * sgn * 2.2;
+      this.tel.jukeAt = this.t;
+    }
+    // step out of harmful zones
+    for (const a of P.areas) {
+      if (!a.harm) continue;
+      const ad = Math.hypot(me.x - a.x, me.y - a.y);
+      if (ad < a.r + 0.5) { dx += ((me.x - a.x) / (ad || 1)) * 1.5; dy += ((me.y - a.y) / (ad || 1)) * 1.5; }
+    }
+    // stuck against something: wiggle like a person would
+    if (this.wiggleT > 0) { this.wiggleT -= dt; dx = Math.cos(this.wiggleA); dy = Math.sin(this.wiggleA); want = 1; }
+    // a wall in the way: switch the juke the other way, or follow the path instead
+    if (dx || dy) {
+      const l0 = Math.hypot(dx, dy), o = this._probe || (this._probe = { x: 0, y: 0 });
+      moveCircle(P.map, me.x, me.y, BRAWLER_R, (dx / l0) * 0.3, (dy / l0) * 0.3, o);
+      if (Math.hypot(o.x - me.x, o.y - me.y) < 0.08) {
+        if (fighting) this.jukeDir = -this.jukeDir;
+        this.pathTo(P, fighting ? m.x : I.gx, fighting ? m.y : I.gy);
+        if (this._fd.x || this._fd.y) { dx = this._fd.x; dy = this._fd.y; }
+      }
+    }
+    // lining up a manual shot: some players stop walking to aim
+    if (this.aimStopUntil > this.t) want = 0;
+    const l = Math.hypot(dx, dy);
+    let tgtM = l > 0.05 ? want : 0;
+    if (P.me.stunned) tgtM = 0;
+    if (tgtM > 0) {
+      const da = Math.atan2(dy, dx);
+      if (this.mvM < 0.05) this.mvA = da + r.range(-0.12, 0.12); // a new thumb press lands roughly right
+      else {
+        const turn = angDiff(this.mvA, da);
+        const maxT = p.stickRate * dt * r.range(0.7, 1.3);
+        this.mvA = wrapAng(this.mvA + clamp(turn, -maxT, maxT) + r.range(-0.03, 0.03));
+      }
+    }
+    this.mvM = approach(this.mvM, tgtM, dt * 7);
+    if (this.mvM < 0.08 && tgtM === 0) this.mvM = 0;
+  }
+
+  // Nearest walkable tile centre to (gx, gy) (goals sometimes land on walls or water).
+  freeSpot(map, gx, gy) {
+    const tx = clamp(Math.floor(gx), 0, map.w - 1), ty = clamp(Math.floor(gy), 0, map.h - 1);
+    if (!(TILE_FLAGS[map.tiles[ty * map.w + tx]] & TF_MOVE)) return null;
+    for (let rad = 1; rad < 6; rad++) {
+      let best = null, bd = 1e9;
+      for (let y = ty - rad; y <= ty + rad; y++) for (let x = tx - rad; x <= tx + rad; x++) {
+        if (x < 0 || y < 0 || x >= map.w || y >= map.h || (TILE_FLAGS[map.tiles[y * map.w + x]] & TF_MOVE)) continue;
+        const d = dist2(x + 0.5, y + 0.5, gx, gy);
+        if (d < bd) { bd = d; best = { x: x + 0.5, y: y + 0.5 }; }
+      }
+      if (best) return best;
+    }
+    return null;
+  }
+
+  // Walks a flow field towards (gx, gy); recomputed when the goal tile changes (at most 2x a second).
+  pathTo(P, gx, gy) {
+    const map = P.map, me = P.me;
+    const fs = this.freeSpot(map, gx, gy);
+    if (fs) { gx = fs.x; gy = fs.y; }
+    const key = Math.floor(clamp(gy, 0, map.h - 1)) * map.w + Math.floor(clamp(gx, 0, map.w - 1));
+    if (key !== this.flowKey && (this.t - this.flowT > 0.5 || !this.flow)) {
+      this.flow = flowField(map, [{ x: gx, y: gy }]);
+      this.flowKey = key;
+      this.flowT = this.t;
+    }
+    if (!this.flow) { this._fd.x = this._fd.y = 0; return; }
+    flowDir(map, this.flow, me.x, me.y, this._fd);
+    if (this._fd.d < 1.6 && walkClear(map, me.x, me.y, gx, gy)) { const d = Math.hypot(gx - me.x, gy - me.y) || 1; this._fd.x = (gx - me.x) / d; this._fd.y = (gy - me.y) / d; }
+  }
+
+  // ---- aiming and firing ----
+  // Returns { ang, d, act, auto } for this tick.
+  aim(P) {
+    const me = P.me, I = this.mind.intent, p = this.p, r = this.rng, t = this.t;
+    const out = this._shot || (this._shot = { ang: 0, d: 1, act: 0, auto: 0 });
+    out.act = 0; out.auto = 0;
+    const m = I.target >= 0 ? this.mind.mem[I.target] : null;
+    let spec = this.kit.atkF, act = 0, tx = 0, ty = 0, key = -1, has = false;
+    // what to point at
+    if (m && m.noticed && m.seen) { has = true; key = I.target; tx = m.x; ty = m.y; }
+    else if (I.bushShot) { has = true; key = 100; tx = I.bushShot.x; ty = I.bushShot.y; }
+    else if (P.ball && P.ball.holderSlot === me.slot && I.goal === 'dribble') {
+      const eg = P.map.goals.find((g) => g.team !== me.team);
+      if (eg) { has = true; key = 101; tx = (eg.x0 + eg.x1) / 2; ty = (eg.y0 + eg.y1) / 2; }
+    }
+    if (I.wantGadget && me.gadReady && this.kit.gadF.t !== 'none') { act = ACT.GADGET; spec = this.kit.gadF; } else if (I.wantSuper && me.supReady) { act = ACT.SUPER; spec = this.kit.supF; }
+    if (!has) {
+      // nothing to shoot: aim drifts where you walk
+      this.aimA = wrapAng(this.aimA + angDiff(this.aimA, this.mvA) * 0.1);
+      out.ang = this.aimA; out.d = 1;
+      if (act && (act === ACT.GADGET ? I.gadMode : I.superMode) === 'self') { out.act = act; this.fired(act, false); }
+      return out;
+    }
+    const d = Math.hypot(tx - me.x, ty - me.y) || 0.01;
+    // lead: aim where it will be, partly (people under-lead)
+    const tf = spec.lob ? spec.T : spec.spd === Infinity ? 0.05 : d / spec.spd;
+    let px = tx, py = ty;
+    if (m && key === I.target) { px += m.vx * tf * p.lead; py += m.vy * tf * p.lead; }
+    let ang = Math.atan2(py - me.y, px - me.x);
+    const mode = act === ACT.GADGET ? I.gadMode : act === ACT.SUPER ? I.superMode : 'target';
+    if (mode === 'away') ang = wrapAng(ang + Math.PI + r.range(-0.4, 0.4));
+    // a new target or a big swing: flick there (with overshoot), else follow smoothly
+    const goalAng = ang;
+    if (key !== this.aimKey || Math.abs(angDiff(this.to, goalAng)) > 0.45) {
+      const lateral = m && key === I.target ? Math.abs((m.vx * -(py - me.y) + m.vy * (px - me.x)) / d) : 0;
+      const stress = me.hp / me.maxHp < 0.35 ? 0.5 : 0;
+      const errTiles = p.aimErr * (0.1 + 0.045 * d + 0.12 * lateral) * (1 + stress);
+      const z = Math.sqrt(-2 * Math.log(1 - r.next() * 0.999999)) * Math.cos(TAU * r.next());
+      this.from = this.aimA;
+      this.to = wrapAng(goalAng + (z * errTiles) / Math.max(1, d));
+      const D = Math.abs(angDiff(this.from, this.to)) * Math.max(1, d);
+      this.flickDur = p.flick + p.fitts * Math.log2(1 + D / 0.6);
+      this.over = angDiff(this.from, this.to) * r.range(0.1, 0.2);
+      this.flickT0 = t;
+      this.aimKey = key;
+      if (key < 100 && r.chance(p.aimStop)) this.aimStopUntil = t + this.flickDur * r.range(0.4, 0.9);
+    } else {
+      this.to = wrapAng(this.to + angDiff(this.to, goalAng) * 0.12); // smooth pursuit
+    }
+    const k = (t - this.flickT0) / Math.max(0.05, this.flickDur);
+    if (k < 0.75) {
+      const u = k / 0.75, mj = u * u * u * (10 - 15 * u + 6 * u * u); // minimum-jerk profile
+      this.aimA = wrapAng(this.from + (angDiff(this.from, this.to) + this.over) * mj);
+    } else if (k < 1) {
+      this.aimA = wrapAng(this.aimA + angDiff(this.aimA, this.to) * 0.35);
+    } else this.aimA = this.to;
+    const settled = k >= 1;
+    out.ang = this.aimA;
+    const range = spec.range || this.kit.atkF.range || 1;
+    out.d = clamp(d / range, 0.05, 1);
+    if (t < this.tapAt) return out;
+    // decide to shoot
+    if (act === 0) {
+      const atk = this.kit.atkF;
+      if (me.ammo < 1) return out;
+      const reach = atk.range * lerp(1.15, 0.98, p.discipline);
+      if (d > reach) return out;
+      if (!atk.lob && atk.t === 'shot' && !shotClear(P.map, me.x, me.y, tx, ty)) return out;
+      act = ACT.ATTACK;
+    }
+    // auto-aim taps skip the flick (and aim at the target's current spot, chosen by the sim)
+    const auto = act === ACT.ATTACK && key < 100 && r.chance(p.autoAim);
+    if (!settled && !auto) return out;
+    out.act = act;
+    out.auto = auto ? 1 : 0;
+    this.fired(act, auto);
+    return out;
+  }
+
+  fired(act, auto) {
+    const r = this.rng;
+    this.tapAt = this.t + (act === ACT.ATTACK ? r.range(0.17, 0.34) : r.range(0.3, 0.6));
+    this.aimKey = -2; // the next shot starts with a fresh (small) flick
+    const T = this.tel;
+    if (act === ACT.ATTACK) { T.fires++; if (auto) T.autoTaps++; } else if (act === ACT.SUPER) { T.supers++; if (T.supReadyT >= 0) { T.supDelay.push(this.t - T.supReadyT); T.supReadyT = -1; } } else if (act === ACT.GADGET) T.gadgets++;
+    if (act === ACT.SUPER) this.mind.intent.wantSuper = false;
+    if (act === ACT.GADGET) this.mind.intent.wantGadget = false;
+  }
+
+  // ---- telemetry (and getting unstuck) ----
+  telemetry_(P, act) {
+    const T = this.tel, me = P.me, t = this.t;
+    T.ticks++;
+    if (!me.alive) { this.hist.length = 0; return; }
+    T.alive++;
+    if (this.mvM === 0) T.idle++;
+    if (me.inBush) T.bush++;
+    if (me.supReady && T.supReadyT < 0) T.supReadyT = t;
+    if (!me.supReady && T.supReadyT >= 0 && act !== ACT.SUPER) T.supReadyT = -1;
+    // stick direction changes, sampled every 0.25 s
+    if (this.mvM > 0.3) {
+      if (T.lastA == null) { T.lastA = this.mvA; T.lastAT = t; T.prevA = this.mvA; T.prevAT = t; }
+      if (t - T.lastAT >= 0.25) {
+        const ch = Math.abs(angDiff(T.lastA, this.mvA));
+        if (ch > Math.PI / 6) T.dirCh++;
+        // sudden about-turns outside fights and dodges (in a fight, strafing back and forth is normal)
+        if (ch > (150 / 180) * Math.PI && t - T.lastAT < 0.31 && t - T.jukeAt > 0.35 && this.mind.intent.target < 0) T.fastRev++;
+        T.lastA = this.mvA; T.lastAT = t;
+      }
+    }
+    // stuck: pushing the stick but hardly moving (path length, so turning back isn't "stuck")
+    const hl = this.hist, prev = hl.length ? hl[hl.length - 1] : null;
+    hl.push({ t, x: me.x, y: me.y, push: this.mvM > 0.5, step: prev ? Math.hypot(me.x - prev.x, me.y - prev.y) : 0 });
+    while (hl.length && t - hl[0].t > 3) hl.shift();
+    if (hl.length > 80 && t - hl[0].t > 2.9) {
+      let pushing = 0, path = 0;
+      for (const h of hl) { if (h.push) pushing++; path += h.step; }
+      if (pushing > hl.length * 0.8 && path < 0.3) { T.stuck++; hl.length = 0; }
+    }
+    if (hl.length > 40 && this.wiggleT <= 0 && this.mvM > 0.5) {
+      let path = 0;
+      for (let i = hl.length - 40; i < hl.length; i++) path += hl[i].step;
+      if (path < 0.15) { this.wiggleT = 0.35; this.wiggleA = this.rng.range(0, TAU); }
+    }
+  }
+}
+
+// Measures one player (bot or human) from the sim and its events, the same way for both, so bot
+// behaviour can be compared with real play (window.__BS.telemetry()).
+class Telemetry {
+  constructor(sim, slot) {
+    this.sim = sim; this.slot = slot;
+    this.t = 0; this.alive = 0; this.idle = 0; this.bush = 0; this.dirCh = 0; this.lastA = null; this.lastAT = 0;
+    this.fires = []; // { t, d, flight, hit }
+    this.appear = new Map(); // enemy slot -> time it appeared on screen
+    this.responses = []; // first shot after an enemy appeared (s)
+    this.cam = {};
+    this.supReadyT = -1; this.supDelays = []; this.deaths = 0; this.kills = 0; this._in = {};
+  }
+  tick(evs) {
+    const sim = this.sim, b = sim.brawlers[this.slot], t = sim.t;
+    this.t = t;
+    if (b.alive) {
+      this.alive++;
+      const w = sim.inputs[this.slot];
+      const I = unpackIn(w, this._in);
+      if (I.mvM === 0) this.idle++;
+      if (b.inBush) this.bush++;
+      if (I.mvM > 0.3) {
+        if (this.lastA == null) { this.lastA = I.mvA; this.lastAT = t; }
+        if (t - this.lastAT >= 0.25) { if (Math.abs(angDiff(this.lastA, I.mvA)) > Math.PI / 6) this.dirCh++; this.lastA = I.mvA; this.lastAT = t; }
+      }
+      if (b.supReady && this.supReadyT < 0) this.supReadyT = t;
+      // enemies appearing on this player's screen
+      const sd = sim.modeKey === MODE.SHOWDOWN;
+      cameraRect(sim.map, b.x, b.y, b.team === 1 && !sd, sd, this.cam);
+      for (const e of sim.brawlers) {
+        if (e.team === b.team) continue;
+        const on = e.alive && sim.visibleTo(b.team, e) && inRect(this.cam, e.x, e.y, 0.3);
+        if (on && !this.appear.has(e.slot)) this.appear.set(e.slot, t);
+        if (!on) this.appear.delete(e.slot);
+      }
+    }
+    for (const ev of evs) {
+      if (ev[0] === EV.FIRE && ev[1] === this.slot) {
+        if (ev[2] === ACT.ATTACK) {
+          let nd = 99;
+          for (const e of sim.brawlers) if (e.team !== b.team && e.alive && sim.visibleTo(b.team, e)) nd = Math.min(nd, Math.hypot(e.x - b.x, e.y - b.y));
+          const D = BRAWLERS[b.bk].atk;
+          const flight = D.t === 'lob' ? D.T || 0.8 : D.t === 'shot' ? nd / (D.spd || 12) : 0.1;
+          this.fires.push({ t, d: nd, flight, hit: false, multi: (D.n || 1) > 1 || D.t === 'beam' || D.t === 'dash' });
+          for (const [slot, at] of this.appear) { if (at >= 0) { this.responses.push(t - at); this.appear.set(slot, -1); } }
+        } else if (ev[2] === ACT.SUPER && this.supReadyT >= 0) { this.supDelays.push(t - this.supReadyT); this.supReadyT = -1; }
+      } else if (ev[0] === EV.HIT && ev[5] === this.slot && ev[7] === ACT.ATTACK) {
+        const tg = sim.brawlers.find((x) => x.id === ev[1]);
+        if (tg && tg.team !== b.team) {
+          for (let i = this.fires.length - 1; i >= 0 && i >= this.fires.length - 6; i--) {
+            const f = this.fires[i];
+            if (t >= f.t && t <= f.t + f.flight + 0.3) { f.hit = true; break; }
+          }
+        }
+      } else if (ev[0] === EV.KILL) {
+        if (ev[1] === this.slot) this.deaths++;
+        if (ev[2] === this.slot) this.kills++;
+      }
+    }
+  }
+  report() {
+    const mins = Math.max(1e-6, (this.alive * SIM_DT) / 60);
+    // hit rates by distance for single-projectile attacks (a spread or burst counts as a hit if any of it hits)
+    const band = (a, b, multi) => { const f = this.fires.filter((x) => x.d >= a && x.d < b && !!x.multi === !!multi); return { n: f.length, hit: f.length ? f.filter((x) => x.hit).length / f.length : null }; };
+    const med = (a) => { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+    return {
+      aliveMin: +mins.toFixed(2), idle: this.alive ? this.idle / this.alive : 0, bush: this.alive ? this.bush / this.alive : 0,
+      dirChangesPerMin: this.dirCh / mins, fires: this.fires.length, hitNear: band(0, 3), hitMid: band(3, 6), hitFar: band(6, 99),
+      multiNear: band(0, 3, true), multiMid: band(3, 6, true), multiFar: band(6, 99, true),
+      responseMedian: med(this.responses), superDelayMedian: med(this.supDelays), kills: this.kills, deaths: this.deaths,
+    };
+  }
+}
 
 // ===== 11-input.js =====
 // ---------- Input: twin-stick touch controls, keyboard + mouse and gamepad -> input words ----------
@@ -3825,8 +4772,8 @@ class Match {
     const evs = sim.events;
     this.events = evs.slice();
     for (const ev of evs) this.onEvent(ev);
+    if (this.telemetry) this.telemetry.tick(evs);
     evs.length = 0;
-    if (this.telemetry) this.telemetry.tick();
     if (this.onTick) this.onTick(this);
   }
 
