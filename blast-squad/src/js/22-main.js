@@ -11,6 +11,7 @@ const Game = {
     this.ctx = this.canvas.getContext('2d', { alpha: false });
     loadGame();
     Input.init(this.canvas);
+    Input.setScreenToWorld((sx, sy) => View.screenToWorld(sx, sy)); // mouse aiming
     UI.onPlay = (ev, bk) => this.play(ev, bk);
     UI.onSettings = (st) => this.applySettings(st);
     if (typeof Friend !== 'undefined') Friend.wire();

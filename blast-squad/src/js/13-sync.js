@@ -18,7 +18,7 @@
 //     m   [ammo*100, super*100, gadgets left, gadget cooldown*10, last input seq applied, slowF*100, speedF*100]
 //     D   [id, key, owner, x*100, y*100, hp, maxHp, face/64]          b  [x*100, y*100, z*100, holder]
 //     E   [ticks ago, EV.x, ...args] with seq es + index; each event rides in 5 snapshots in a row
-//     S   [ticks ago (0 = would have moved 0), first id, n, key, owner, flags (1 super 2 lob 4 beam 8 breaks),
+//     S   [ticks since it was at its start, first id, n, key, owner, flags (1 super 2 lob 4 beam 8 breaks),
 //          x0*10, y0*10, then straight: spd*10, range*10, r*100, angles*1000 (one per shot) | lob: T*100, r*100,
 //          tx*10, ty*10 per shot | beam: x1*10, y1*10]   (3 snapshots in a row; a bounce resends the path)
 //     A   [ticks ago, id, key, owner, x*10, y*10, r*10, t left*10, T*10, flags 1 harm 2 heal 4 slow]
@@ -27,8 +27,13 @@
 //       { t:'end', k, r: result }  { t:'PL', P: every pickup }  { t:'bye' }
 // Projectiles are not streamed: the guest gets one record per volley and flies them itself (straight
 // lines stop at walls and at full range, lobs land, beams fade); only shots that end on a brawler or a
-// unit need an EV.SHOT_END from the host. Events that would show a hidden enemy (hits, heals, statuses,
-// pickups, gadgets in a bush) are not sent, nor effects far off the guest's screen.
+// unit need an EV.SHOT_END from the host, and areas that run out need no DESPAWN. Events that would show
+// a hidden enemy (hits, heals, statuses, pickups, gadgets in a bush) are not sent, nor effects far off
+// the guest's screen. The friend's own shots are fast-forwarded on the host by half the round trip.
+// The guest draws the others ~70-200 ms in the past (adaptive to jitter), plays events and records at
+// their tick on that timeline, and predicts its own brawler from its words (moveCircle, speed and
+// slow from the snapshots), replaying the unacknowledged ones on every snapshot: small errors are
+// ignored, medium ones eased out over ~150 ms, large ones (respawns, teleports) snapped.
 
 const SYNC_SNAP = 2; // sim ticks per snapshot (15 Hz)
 const SYNC_EV_WIN = 5; // snapshots an event rides in
@@ -109,6 +114,7 @@ class SyncHost {
     this.win = []; // the last snapshots' batches
     this.cur = this.batch();
     this.shots = new Map(); // live shot id -> { e, x0 } (for SHOT_END and bounces)
+    this.areas = new Map(); // live area id -> area (one that just runs out needs no DESPAWN)
     this.fresh = []; // shots made this tick
     this.tiles = [];
     this.lastSnap = -99; this.lastSnapAt = 0;
@@ -120,7 +126,7 @@ class SyncHost {
     match.onTick = () => this.onTick();
     match.sync = this;
     this.send({ t: 'ids', ids: sim.brawlers.map((b) => b.id) });
-    for (const a of sim.areas) this.cur.A.push(this.areaRec(a, sim.tick));
+    for (const a of sim.areas) { this.areas.set(a.id, a); this.cur.A.push(this.areaRec(a, sim.tick)); }
     for (const p of sim.pickups) this.cur.P.push(this.pickRec(p, sim.tick));
   }
 
@@ -196,31 +202,34 @@ class SyncHost {
     const ff = typeof sim.stepStraight === 'function' ? Math.min(3, Math.round(Math.min(100, (this.link.rtt || 0) / 2) / (SIM_DT * 1000))) : 0;
     let last = null;
     for (const e of this.fresh) {
-      let k0 = k - 1; // made in the input phase: it has already moved once this tick
+      // made before the shots phase it has already moved once this tick (split spikes made during it haven't)
+      let k0 = (e.lob ? e.lob.t > 0 : e.beam > 0 ? e.ttl < 0.15 - 1e-9 : e.trav > 0 || e.dead) ? k - 1 : k;
+      const ex0 = e.x0, ey0 = e.y0, ang = e.ang, range = e.range; // the path as made (a bounce changes it)
       if (ff && e.owner === this.gs && !e.dead && !(e.beam > 0) && (e.s === kit.atk || e.s === kit.sup || e.s === kit.gad)) {
         for (let i = 0; i < ff && !e.dead; i++) { e.px = e.x; e.py = e.y; if (e.lob) sim.stepLob(e); else sim.stepStraight(e); }
         k0 -= ff;
       }
-      this.shots.set(e.id, { e, x0: e.x0 });
-      if (!this.near(e.x0, e.y0, (e.range || 0) + 2)) { last = null; continue; }
+      this.shots.set(e.id, { e, x0: ex0, dead: -1 });
+      if (!this.near(ex0, ey0, (range || 0) + 2)) { last = null; continue; }
       const fl = (e.sup ? 1 : 0) | (e.lob ? 2 : 0) | (e.beam > 0 ? 4 : 0) | (e.breaks ? 8 : 0);
-      const pk = SyncKeys.enc(e.pk), x0 = sq1(e.x0), y0 = sq1(e.y0), r = sq2(e.r0 || e.r);
+      const pk = SyncKeys.enc(e.pk), x0 = sq1(ex0), y0 = sq1(ey0), r = sq2(e.r0 || e.r);
       if (fl & 4) { this.cur.S.push([k0, e.id, 1, pk, e.owner, fl, x0, y0, sq1(e.x), sq1(e.y)]); last = null; continue; }
-      const a = (fl & 2) ? [sq2(e.lob.T), r] : [sq1(e.spd), sq1(e.range), r];
+      const a = (fl & 2) ? [sq2(e.lob.T), r] : [sq1(e.spd), sq1(range), r];
       const same = last && last[1] + last[2] === e.id && last[0] === k0 && last[3] === pk && last[4] === e.owner && last[5] === fl && last[6] === x0 && last[7] === y0 &&
         last[8] === a[0] && last[9] === a[1] && ((fl & 2) || last[10] === a[2]);
       if (same) last[2]++;
       else { last = [k0, e.id, 1, pk, e.owner, fl, x0, y0].concat(a); this.cur.S.push(last); }
-      if (fl & 2) last.push(sq1(e.lob.tx), sq1(e.lob.ty)); else last.push(Math.round(e.ang * 1000));
+      if (fl & 2) last.push(sq1(e.lob.tx), sq1(e.lob.ty)); else last.push(Math.round(ang * 1000));
     }
     this.fresh.length = 0;
   }
 
-  // A bouncing shot changed course: send its new path under the same id.
+  // A bouncing shot changed course: send its new path under the same id. Dead shots are forgotten a
+  // tick later (one fast-forwarded into a hit reports its SHOT_END on the next tick).
   bounces(k) {
     for (const [id, o] of this.shots) {
       const e = o.e;
-      if (e.dead) { this.shots.delete(id); continue; }
+      if (e.dead) { if (o.dead < 0) o.dead = k; else if (k - o.dead > 1) this.shots.delete(id); continue; }
       if (e.x0 === o.x0 || e.lob) continue;
       o.x0 = e.x0;
       this.cur.S.push([k, id, 1, SyncKeys.enc(e.pk), e.owner, (e.sup ? 1 : 0) | (e.breaks ? 8 : 0), sq1(e.x0), sq1(e.y0), sq1(e.spd), sq1(e.range), sq2(e.r0 || e.r), Math.round(e.ang * 1000)]);
@@ -242,7 +251,7 @@ class SyncHost {
     let x = null, y = null, mine = false;
     switch (ev[0]) {
       case EV.SPAWN:
-        if (ev[2] === K.AREA) { const a = sim.areas.find((o) => o.id === ev[1]); if (a && this.near(a.x, a.y, a.r + 1)) this.cur.A.push(this.areaRec(a, k)); }
+        if (ev[2] === K.AREA) { const a = sim.areas.find((o) => o.id === ev[1]); if (a) this.areas.set(a.id, a); if (a && this.near(a.x, a.y, a.r + 1)) this.cur.A.push(this.areaRec(a, k)); }
         else if (ev[2] === K.PICKUP) { const p = sim.pickups.find((o) => o.id === ev[1]); if (p) this.cur.P.push(this.pickRec(p, k)); }
         return; // shots go as records; units and the ball are in every snapshot
       case EV.SHOT_END: {
@@ -254,7 +263,11 @@ class SyncHost {
         x = ev[2]; y = ev[3]; mine = e.owner === this.gs;
         break;
       }
-      case EV.DESPAWN: if (ev[2] === K.SHOT) this.shots.delete(ev[1]); break;
+      case EV.DESPAWN: {
+        if (ev[2] === K.SHOT) this.shots.delete(ev[1]);
+        else if (ev[2] === K.AREA) { const a = this.areas.get(ev[1]); this.areas.delete(ev[1]); if (!a || a.t <= 0) return; }
+        break;
+      }
       case EV.TILE: this.tiles.push(ev[1], ev[2]); return;
       case EV.GOAL: case EV.ROUND: this.send({ t: 'e', k, ev }); return;
       case EV.END: return; // the result follows on the reliable channel
@@ -387,11 +400,13 @@ class GuestMatch {
     this.onEnd = null; this.telemetry = null; this.events = [];
     // snapshots and the timeline
     this.buf = []; // decoded snapshots, oldest first
-    this.latest = null; this.newest = -1; this.newestAt = 0; this.lastSnapAt = performance.now(); this.t0 = this.lastSnapAt;
+    this.latest = null; this.newest = -1; this.newestAt = 0; this.lastSnapAt = performance.now();
     this.rate = SIM_HZ; this.off = null; this.jit = 0; this.delay = 100; this.rt = 0; this.ready = false;
+    this.F = 0; // frozen ticks so far on the render timeline (nothing flies while the world is frozen)
     this.tl = []; // pending timeline items, sorted by (k, o, seq)
     this.evSeen = new Set(); this.evMax = -1;
     this.shotRec = new Map(); // shot id -> { x0, y0, a } of its last record (dedupe, bounces)
+    this.shotDone = new Set(); // shots that ended (a late record must not bring them back)
     this.areaSeen = new Set(); this.pickSeen = new Map(); // pickup id -> alive (as far as the host told us)
     this.pcBad = 0; this.rsAt = 0;
     this.dep = new Map(); this.frameN = 0; // deploy id -> mirror object
@@ -400,9 +415,10 @@ class GuestMatch {
     this.seq = 0; this.words = []; this.acc = 0;
     this.hist = []; // { s, w, x, y } predicted position after input s
     this.pred = { x: 0, y: 0 }; this.off2 = { x: 0, y: 0 }; this._mv = { x: 0, y: 0 };
+    this.ballOff = { x: 0, y: 0, lx: 0, ly: 0, held: false };
     this.pend = []; // own actions not yet confirmed { s, act }
     this.fired = new Set(); this.atkCd = 0; this.faceT = 0; this.fireAng = 0;
-    this.err = { n: 0, sum: 0, max: 0, snaps: 0, bytes: 0, maxBytes: 0 };
+    this.err = { n: 0, sum: 0, max: 0, snaps: 0 };
     this._in = {}; this._o = { x: 0, y: 0 };
     const me = this.state.brawlers[this.local];
     this.flip = me.team === 1 && cfg.mode !== MODE.SHOWDOWN;
@@ -609,6 +625,7 @@ class GuestMatch {
   localTick() {
     const st = this.state, me = this.me;
     Input.setLocal(me.alive ? me : null, BRAWLERS[me.bk]);
+    Input.ball = !!(me.alive && ((this.latest && this.latest.ball && this.latest.ball[3] === this.local) || (st.ball && st.ball.holder === this.local)));
     const c = this.ctrls[this.local];
     let w = 0;
     if (this.ready) w = (c.tick ? c.tick(st) : c.word(st)) >>> 0;
@@ -637,7 +654,8 @@ class GuestMatch {
 
   // Muzzle flash, sound, pose and ammo at once on the guest's own attack (the host's FIRE is skipped).
   localFire(I, seq) {
-    const me = this.me, kit = me.kit, act = I.act;
+    const me = this.me, kit = me.kit, act = I.act, L = this.latest;
+    if (act !== ACT.GADGET && ((L && L.ball && L.ball[3] === this.local) || (this.state.ball && this.state.ball.holder === this.local))) return; // a kick, not a shot
     let s = null;
     if (act === ACT.ATTACK) { if (me.ammo < 1 || this.atkCd > 0) return; s = kit.atk; this.atkCd = s.cd || (s.burst ? (s.n - 1) * s.burst + 0.15 : 0.3); }
     else if (act === ACT.SUPER) { if (!me.supReady) return; s = kit.sup; }
@@ -693,7 +711,9 @@ class GuestMatch {
     if (Math.abs(e) > this.rate) rt = target; else rt += e * Math.min(1, dt * 4);
     if (this.endItem && now - this.endAt > 700) rt = Math.max(rt, this.endItem.k);
     else rt = Math.min(rt, this.newest);
-    this.rt = Math.max(this.rt, rt); // never backwards: the timeline has already played
+    rt = Math.max(this.rt, rt); // never backwards: the timeline has already played
+    if (this.state.freezeT > 0) this.F += rt - this.rt;
+    this.rt = rt;
   }
 
   runTimeline() {
@@ -731,6 +751,7 @@ class GuestMatch {
       case EV.FIRE: if (ev[1] === this.local && this.fired.has(ev[6])) return; break;
       case EV.SHOT_END: {
         const s = st.shots.find((o) => o.id === ev[1]);
+        if (!s) this.done(ev[1]);
         if (s) { s.x = s.px = ev[2]; s.y = s.py = ev[3]; }
         this.fx(ev);
         if (s) { s.dead = true; st.shots.splice(st.shots.indexOf(s), 1); }
@@ -739,7 +760,7 @@ class GuestMatch {
       case EV.DESPAWN: {
         this.fx(ev);
         const kind = ev[2], id = ev[1];
-        if (kind === K.SHOT) st.shots = st.shots.filter((o) => o.id !== id);
+        if (kind === K.SHOT) { st.shots = st.shots.filter((o) => o.id !== id); this.done(id); }
         else if (kind === K.AREA) st.areas = st.areas.filter((o) => o.id !== id);
         else if (kind === K.PICKUP) { st.pickups = st.pickups.filter((o) => o.id !== id); this.pickSeen.set(id, false); }
         return;
@@ -752,14 +773,20 @@ class GuestMatch {
   }
 
   // ---- projectiles, areas and pickups flown by the guest ----
+  done(id) {
+    this.shotDone.add(id);
+    if (this.shotDone.size > 300) this.shotDone.delete(this.shotDone.values().next().value);
+  }
+
   addShots(r, k0) {
     const st = this.state, n = r[2], fl = r[5], owner = r[4], ob = st.brawlers[owner];
     const pk = SyncKeys.dec(r[3]), x0 = r[6] / 10, y0 = r[7] / 10;
     for (let i = 0; i < n; i++) {
+      if (this.shotDone.has(r[1] + i)) continue;
       const s = {
         id: r[1] + i, kind: K.SHOT, team: ob ? ob.team : -1, owner, pk, sup: !!(fl & 1), breaks: !!(fl & 8),
         x: x0, y: y0, px: x0, py: y0, x0, y0, ang: 0, vx: 1, vy: 0, spd: 0, range: 0, r: 0.15, trav: 0,
-        lob: null, beam: 0, ttl: 0, dead: false, k0, endL: 0, wall: 0, s: null,
+        lob: null, beam: 0, ttl: 0, dead: false, p0: k0 - this.F, endL: 0, wall: 0, s: null,
       };
       if (fl & 4) {
         s.x = s.px = r[8] / 10; s.y = s.py = r[9] / 10;
@@ -801,14 +828,14 @@ class GuestMatch {
   bounce(r, k0) {
     const s = this.state.shots.find((o) => o.id === r[1]);
     if (!s || s.lob || s.beam) return;
-    s.k0 = k0;
+    s.p0 = k0 - this.F;
     s.spd = r[8] / 10; s.r = r[10] / 100;
     this.path(s, r[11] / 1000, r[6] / 10, r[7] / 10, r[9] / 10);
   }
 
   // Moves a shot to the render time; false (and its end shown) once it is over.
   fly(s) {
-    const el = (this.rt - s.k0) * SIM_DT;
+    const el = (this.rt - this.F - s.p0) * SIM_DT;
     if (s.beam > 0) {
       s.ttl = 0.15 - el;
       if (s.ttl > 0) return true;
@@ -836,9 +863,9 @@ class GuestMatch {
     const st = this.state, ob = st.brawlers[r[3]], fl = r[9];
     const a = {
       id: r[1], kind: K.AREA, team: ob ? ob.team : -1, owner: r[3], ak: SyncKeys.dec(r[2]), x: r[4] / 10, y: r[5] / 10, px: r[4] / 10, py: r[5] / 10,
-      r: r[6] / 10, t: r[7] / 10, T: r[8] / 10, t0: r[7] / 10, k0: k, dmg: fl & 1 ? 1 : 0, heal: fl & 2 ? 1 : 0, slow: fl & 4 ? 0.3 : 0, dead: false,
+      r: r[6] / 10, t: r[7] / 10, T: r[8] / 10, t0: r[7] / 10, p0: k - this.F, dmg: fl & 1 ? 1 : 0, heal: fl & 2 ? 1 : 0, slow: fl & 4 ? 0.3 : 0, dead: false,
     };
-    a.t = a.t0 - (this.rt - k) * SIM_DT;
+    a.t = a.t0 - (this.rt - this.F - a.p0) * SIM_DT;
     if (a.t <= 0) return;
     st.areas.push(a);
     this.fx([EV.SPAWN, a.id, K.AREA]);
@@ -848,7 +875,7 @@ class GuestMatch {
     const st = this.state;
     if (!this.pickSeen.get(r[1]) && this.pickSeen.has(r[1])) return; // taken already
     const x = r[4] / 10, y = r[5] / 10;
-    const p = { id: r[1], kind: K.PICKUP, team: -1, x, y, px: x, py: y, r: 0.3, dead: false, pick: r[2], n: r[3], vx: 0, vy: 0, t: 0, popT: 0, k0: k, ox: x, oy: y, tx: x, ty: y, pT: 0 };
+    const p = { id: r[1], kind: K.PICKUP, team: -1, x, y, px: x, py: y, r: 0.3, dead: false, pick: r[2], n: r[3], vx: 0, vy: 0, t: 0, popT: 0, p0: k - this.F, ox: x, oy: y, tx: x, ty: y, pT: 0 };
     if (r.length > 6) { p.tx = r[6] / 10; p.ty = r[7] / 10; p.pT = r[8] / 100; }
     st.pickups.push(p);
   }
@@ -857,11 +884,11 @@ class GuestMatch {
     const st = this.state;
     if (st.shots.length) st.shots = st.shots.filter((s) => (this.fly(s) ? true : ((s.dead = true), false)));
     if (st.areas.length) {
-      for (const a of st.areas) a.t = a.t0 - (this.rt - a.k0) * SIM_DT;
+      for (const a of st.areas) a.t = a.t0 - (this.rt - this.F - a.p0) * SIM_DT;
       st.areas = st.areas.filter((a) => a.t > 0);
     }
     for (const p of st.pickups) {
-      const el = Math.max(0, (this.rt - p.k0) * SIM_DT);
+      const el = Math.max(0, (this.rt - this.F - p.p0) * SIM_DT);
       p.t = el;
       const k = p.pT > 0 ? Math.min(1, el / p.pT) : 1;
       p.x = p.px = p.ox + (p.tx - p.ox) * k; p.y = p.py = p.oy + (p.ty - p.oy) * k;
@@ -990,6 +1017,25 @@ class GuestMatch {
     me.gadLeft = Math.max(0, m[2] - pg);
     me.gadT = pg ? (me.kit.gad && me.kit.gad.cd) || 5 : Math.max(0, m[3] / 10 - el);
     me.slowF = (m[5] || 0) / 100; me.speedF = (m[6] || 0) / 100;
+    this.holdBall(dt);
+  }
+
+  // A ball we hold sits at our predicted brawler (from the moment the host says so); after a kick it
+  // eases from there onto its real path.
+  holdBall(dt) {
+    const bl = this.state.ball, me = this.me, L = this.latest, o = this.ballOff;
+    if (!bl) return;
+    const held = me.alive && (bl.holder === this.local || (L.ball && L.ball[3] === this.local));
+    if (held) {
+      bl.x = bl.px = me.x + Math.cos(me.face) * 0.45; bl.y = bl.py = me.y + Math.sin(me.face) * 0.45; bl.z = 0;
+      o.held = true; o.x = o.y = 0;
+    } else {
+      if (o.held) { o.held = false; o.x = o.lx - bl.x; o.y = o.ly - bl.y; if (Math.abs(o.x) + Math.abs(o.y) > 4) o.x = o.y = 0; }
+      const f = Math.exp(-dt / 0.08);
+      o.x *= f; o.y *= f;
+      bl.x += o.x; bl.y += o.y; bl.px = bl.x; bl.py = bl.y;
+    }
+    o.lx = bl.x; o.ly = bl.y;
   }
 
   finish(r) {

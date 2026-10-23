@@ -113,6 +113,7 @@ class Match {
     const sim = this.sim;
     const me = sim.brawlers[this.local];
     Input.setLocal(me.alive ? me : null, typeof BRAWLERS !== 'undefined' ? BRAWLERS[me.bk] : null);
+    Input.ball = !!sim.ball && sim.ball.holder === this.local;
     for (let i = 0; i < this.ctrls.length; i++) {
       const c = this.ctrls[i];
       const w = c.tick ? c.tick(sim) : c.word(sim);

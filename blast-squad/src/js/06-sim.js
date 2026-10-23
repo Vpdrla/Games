@@ -324,6 +324,8 @@ class Sim {
     if (b.bqN <= 0) b.bqS = null;
   }
 
+  // The online host (13-sync.js) wraps spawnShot to stream new shots to the guest and calls
+  // stepStraight / stepLob to fast-forward the guest's own shots: keep these names and signatures.
   spawnShot(owner, team, s, act, ang, x, y, mul, xstun) {
     const c = Math.cos(ang), sn = Math.sin(ang), r = s.r || 0.15;
     const ob = this.brawlers[owner];

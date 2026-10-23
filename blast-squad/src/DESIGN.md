@@ -249,12 +249,35 @@ slot) and uses only `P`.
 ## Match (14-match.js)
 
 ```js
-const m = new Match(cfg, { mode: 'offline' | 'host' | 'guest', link, localSlot });
-// cfg: { mode, map, seed, slots:[{ team, bk, lvl, gadget, star, name, icon, tro, ctrl:'local'|'bot'|'remote', profile }] }
+const m = new Match(cfg, { net: 'offline' | 'host', link });      // runs the Sim
+const g = new GuestMatch(cfg, { net: 'guest', link });            // 13-sync.js: no sim, no AI
+// Game.startMatch(cfg, opts) picks GuestMatch when opts.net === 'guest'.
+// cfg: { mode, map, seed, slots:[{ team, bk, lvl, gadget, star, name, icon, tro, ctrl:'local'|'bot'|'remote', profile }],
+//        localSlot, guestSlot?, friendly? }
 m.update(dt) / m.draw(ctx)
 m.state     // what View draws (the sim itself offline/host; a mirror with the same entity shapes on the guest)
 m.onEnd = (result) => {}
 ```
+
+- Offline Showdown ends for the player 2.5 s after they are knocked out. Their placement comes from
+  `MODES.sd.rankNow(sim)`.
+- Each tick the match sets `Input.ball` (the local brawler holds the ball), so the buttons show kick
+  and pass.
+
+**Friendly battle (12-net.js, 13-sync.js).**
+- The host runs the `Match`; `SyncHost` hooks `onTick`.
+- Snapshots go out at 15 Hz on the unreliable channel, filtered by the guest team's vision.
+  Events ride 5 snapshots in a row.
+- Tile changes, goals, rounds and the result go on the reliable channel.
+- Projectiles go as one record per volley, and the guest flies them itself.
+- The guest predicts its own movement and reconciles against `brawler.lastSeq`, the last input
+  the host applied. Other brawlers are interpolated with a 70-200 ms delay.
+- The host wraps `sim.spawnShot` to stream new shots. It fast-forwards the guest's own shots with
+  `sim.stepStraight` / `sim.stepLob` by half the round trip, at most 100 ms.
+- Disconnects:
+  - after 2 s of silence an AI holds the guest's brawler
+  - after 12 s the link drops
+  - if the host leaves, the guest's match is void
 
 ## View (17-view.js), Art (15-art.js), FX (16-fx.js)
 

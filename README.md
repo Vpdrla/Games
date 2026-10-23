@@ -14,6 +14,11 @@ no ads and no internet needed once it's on your device.
 > **And [Dawnkeeper](dawnkeeper/)**, a one-thumb roguelite survivor game: hold off an endless
 > horde until dawn, pick upgrades, evolve weapons. Fully offline. It lives at
 > `https://<your-user>.github.io/<repo>/dawnkeeper/`.
+>
+> **And [Blast Squad](blast-squad/)**, a 3v3 hero brawler in landscape: Gem Rush, Showdown,
+> Blast Ball, Knockout and Bounty, with AI teammates and opponents that play like people, plus
+> friendly battles with a friend's phone. It lives at
+> `https://<your-user>.github.io/<repo>/blast-squad/`.
 
 ## Play it on your phone
 

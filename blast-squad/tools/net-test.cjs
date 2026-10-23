@@ -3,7 +3,9 @@
 // starts, and lets both brawlers play on autopilot (the host's sim is sped up for the long part).
 // Passes: (1) Gem Rush with ?lag=150&loss=5, played to the end; (2) Blast Ball (goal freezes) with lag,
 // if that mode exists yet; (3) a short pass without lag: away/AI takeover and the host leaving.
-// Checks: same winner on both result screens, the guest's prediction error, snapshot sizes, page errors.
+// Checks: same winner on both result screens, the guest's prediction error (its predicted position for
+// an input vs. the host's position after that input, and its shown position vs. the host's at the same
+// moment), snapshot sizes, page errors.
 // Needs the `peer` package: npm install --prefix /tmp/peer peer
 // Usage: NODE_PATH=$(npm root -g):/tmp/peer/node_modules node blast-squad/tools/net-test.cjs [shots-dir] [--quick]
 const { chromium } = require('playwright');
@@ -81,9 +83,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await host.evaluate(() => window.__BS.autoplay(0.6));
     await guest.evaluate(() => window.__BS.autoplay(0.6));
     let froze = false, gemsSeen = false, shotsSeen = 0;
+    const gap = [];
     const t0 = Date.now();
     while (Date.now() - t0 < normalSecs * 1000) {
       await sleep(500);
+      // the guest's brawler as the guest shows it vs. as the host has it, at (nearly) the same moment
+      const [hp, gp] = await Promise.all([
+        host.evaluate(() => { const m = window.__BS.match(); const b = m && m.sim.brawlers[m.sync.gs]; return b && b.alive ? [b.x, b.y] : null; }),
+        guest.evaluate(() => { const m = window.__BS.match(); const b = m && m.me; return b && b.alive ? [b.x, b.y] : null; }),
+      ]);
+      if (hp && gp && Math.hypot(hp[0] - gp[0], hp[1] - gp[1]) < 4) gap.push(Math.hypot(hp[0] - gp[0], hp[1] - gp[1]));
       const g = await guest.evaluate(() => { const m = window.__BS.match(); if (!m || !m.state) return null; const s = m.state; return { f: s.freezeT, shots: s.shots.length, picks: s.pickups.length, over: s.over }; });
       if (!g) break;
       if (g.f > 0) froze = true;
@@ -98,6 +107,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     console.log(`  ${tag}: rtt ${Math.round(gn.rtt)} ms, interpolation delay ${Math.round(gn.delay)} ms, jitter ${Math.round(gn.jitter)} ms`);
     console.log(`  ${tag}: guest prediction error mean ${gn.mean.toFixed(3)} tiles, max ${gn.max.toFixed(2)} (${gn.n} samples)`);
     console.log(`  ${tag}: snapshots ${sz.n}, size mean ${sz.mean} B, p95 ${sz.p95} B, max ${sz.max} B`);
+    const gapMean = gap.length ? gap.reduce((x, y) => x + y, 0) / gap.length : 0;
+    console.log(`  ${tag}: guest's brawler on the guest vs on the host at the same moment: ${gapMean.toFixed(2)} tiles on average (${gap.length} samples; it runs ahead by about half a round trip)`);
+    if (gapMean > 1) fail(`${tag}: the guest's brawler is ${gapMean.toFixed(2)} tiles from the host's on average`);
     if (gn.n < 20) fail(`${tag}: too few prediction samples (${gn.n})`);
     else if (gn.mean > 1) fail(`${tag}: guest prediction is off by ${gn.mean.toFixed(2)} tiles on average`); else ok(`${tag}: prediction within a tile on average`);
     if (sz.mean > 1200) fail(`${tag}: snapshots average ${sz.mean} B`); else ok(`${tag}: snapshots average ${sz.mean} B (< 1.2 KB)`);
