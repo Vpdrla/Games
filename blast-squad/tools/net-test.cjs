@@ -76,7 +76,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   ]);
 
   // ---------------- pass 1: Gem Rush with lag and loss, to the end ----------------
-  async function fullMatch(mode, tag, normalSecs) {
+  async function fullMatch(mode, tag, normalSecs, rematch) {
     const q = '&lag=150&loss=5';
     const host = await mk('Hosty', q), guest = await mk('Guesty', q);
     await connect(host, guest, mode, mode === 'gem', tag);
@@ -137,13 +137,28 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const tro = await Promise.all([host, guest].map((p) => p.evaluate(() => window.__BS.save().stats.played)));
     if (tro[0] || tro[1]) fail(`${tag}: a friendly match was counted (${tro})`);
     for (const p of [host, guest]) { const le = await p.evaluate(() => window.__lastError || null); if (le) fail(`${tag}: game error: ${le}`); }
-    await host.click('#rx');
-    await guest.click('#rx');
+    if (rematch) {
+      // both go back to the room from the result screen and the host starts another match
+      await guest.click('#ra');
+      await host.click('#ra');
+      const ready = await host.waitForFunction(() => window.__BS.friend().st.canStart, null, { timeout: 10000 }).then(() => true, () => false);
+      if (!ready) fail(`${tag}: host can't start a rematch`);
+      else {
+        await host.click('[data-fs]');
+        const again = await guest.waitForFunction(() => window.__BS.match() && window.__BS.match().net === 'guest' && window.__BS.match().ready, null, { timeout: 15000 }).then(() => true, () => false);
+        if (again) ok(`${tag}: back to the room and a rematch starts on both phones`); else fail(`${tag}: rematch did not start on the guest`);
+        await host.evaluate(() => window.__BS.Game.leave());
+        await guest.waitForFunction(() => !window.__BS.match(), null, { timeout: 15000 }).catch(() => fail(`${tag}: guest stuck after the host left the rematch`));
+      }
+    } else {
+      await host.click('#rx');
+      await guest.click('#rx');
+    }
     await host.context().close();
     await guest.context().close();
   }
 
-  await fullMatch('gem', 'gem-lag', quick ? 12 : 25);
+  await fullMatch('gem', 'gem-lag', quick ? 12 : 25, true);
 
   // ---------------- pass 2: a mode with freezes (Blast Ball), if it exists ----------------
   const probe = await mk('Probe');

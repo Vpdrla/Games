@@ -480,7 +480,7 @@ const UI = (() => {
     R.innerHTML = `<div class="res-h o ${cls}">${head}</div>${scoreLine}
       <div class="res-rows">${rows}</div>
       <div class="chips">${chips.join('')}</div>
-      <div style="display:flex;gap:.8em"><button class="btn dark o" id="rx">Exit</button>${summary.friendly ? '' : '<button class="btn y o" id="ra">Play again</button>'}</div>`;
+      <div style="display:flex;gap:.8em"><button class="btn dark o" id="rx">Exit</button>${summary.friendly ? (summary.rematch ? '<button class="btn y o" id="ra">Back to room</button>' : '') : '<button class="btn y o" id="ra">Play again</button>'}</div>`;
     show('result');
     paint(R);
     snd(cls === 'win' ? 'victory' : cls === 'draw' ? 'draw' : 'defeat');

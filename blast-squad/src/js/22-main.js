@@ -133,7 +133,8 @@ const Game = {
     const summary = cfg.friendly ? { friendly: true, outcome: outcomeOf(cfg, result, m.local), rank: rankOf(cfg, result, m.local) } : Meta.applyResult(cfg, result, m.local, Date.now());
     if (typeof Music !== 'undefined') Music.play('menu');
     if (m.onFinished) m.onFinished(result);
-    UI.showResult(summary, result, cfg, () => { this.match = null; if (cfg.event) { const ev = Meta.events(Date.now()).find((e) => e.mode === cfg.mode && e.ready) || null; if (ev) this.play(ev, SAVE.sel); else UI.showLobby(); } else UI.showLobby(); }, () => { this.match = null; UI.showLobby(); });
+    if (cfg.friendly && typeof Friend !== 'undefined') summary.rematch = Friend.canRematch();
+    UI.showResult(summary, result, cfg, () => { this.match = null; if (cfg.friendly && typeof Friend !== 'undefined') { Friend.backToRoom(); return; } if (cfg.event) { const ev = Meta.events(Date.now()).find((e) => e.mode === cfg.mode && e.ready) || null; if (ev) this.play(ev, SAVE.sel); else UI.showLobby(); } else UI.showLobby(); }, () => { this.match = null; if (cfg.friendly && typeof Friend !== 'undefined') Friend.leave(); UI.showLobby(); });
   },
 
   pause() {

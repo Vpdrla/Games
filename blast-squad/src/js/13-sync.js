@@ -100,6 +100,14 @@ function syncUnHud(h, poison) {
   return h;
 }
 
+// Radius growth per tile of a shot kind ('bk.atk' / 'bk.sup' / 'bk.gad'), from the brawler data.
+function syncGrow(pk) {
+  const p = String(pk).split('.'), D = BRAWLERS[p[0]];
+  if (!D) return 0;
+  const sp = p[1] === 'sup' ? D.sup : p[1] === 'gad' ? D.gadgets && D.gadgets[0] : D.atk;
+  return (sp && sp.grow) || 0;
+}
+
 // ================= host =================
 // Attached to the host's Match: records what happens each tick, sends snapshots, takes the friend's
 // inputs and hands their brawler to an AI while they are away.
@@ -800,7 +808,8 @@ class GuestMatch {
         s.spd = s.range / Math.max(0.01, T);
         s.ang = Math.atan2(ty - y0, tx - x0);
       } else {
-        s.spd = r[8] / 10; s.range = r[9] / 10; s.r = r[10] / 100;
+        s.spd = r[8] / 10; s.range = r[9] / 10; s.r = s.r0 = r[10] / 100;
+        s.grow = syncGrow(pk); // waves that widen as they travel (Melody)
         this.path(s, r[11 + i] / 1000, x0, y0, s.range);
       }
       s.vx = Math.cos(s.ang); s.vy = Math.sin(s.ang);
@@ -829,7 +838,7 @@ class GuestMatch {
     const s = this.state.shots.find((o) => o.id === r[1]);
     if (!s || s.lob || s.beam) return;
     s.p0 = k0 - this.F;
-    s.spd = r[8] / 10; s.r = r[10] / 100;
+    s.spd = r[8] / 10; s.r = s.r0 = r[10] / 100;
     this.path(s, r[11] / 1000, r[6] / 10, r[7] / 10, r[9] / 10);
   }
 
@@ -853,6 +862,7 @@ class GuestMatch {
     }
     const d = clamp(s.spd * el, 0, s.endL);
     s.trav = d;
+    if (s.grow) s.r = s.r0 + s.grow * d;
     s.x = s.px = s.x0 + s.vx * d; s.y = s.py = s.y0 + s.vy * d;
     if (d < s.endL - 1e-6) return true;
     this.fx([EV.SHOT_END, s.id, s.x, s.y, s.wall]);
@@ -1091,7 +1101,7 @@ class GuestMatch {
 // Wires the Friends panel to the network: host a room or join one by code, swap hellos (name,
 // brawler, power, trophies), start (host), run the match on both phones, tear everything down.
 const Friend = {
-  token: null, link: null, role: '', phase: '', st: null, opts: null, hello: null, sync: null, guest: null, pend: [],
+  token: null, link: null, role: '', phase: '', st: null, opts: null, hello: null, sync: null, guest: null, pend: [], guestIn: false,
 
   wire() {
     UI.onFriendHost = (o) => this.host(o);
@@ -1114,7 +1124,7 @@ const Friend = {
       if (bye) l.send({ t: 'bye' });
       setTimeout(() => l.close('bye'), bye ? 400 : 0);
     }
-    this.token = null; this.link = null; this.role = ''; this.phase = ''; this.hello = null; this.sync = null; this.guest = null; this.pend = [];
+    this.token = null; this.link = null; this.role = ''; this.phase = ''; this.hello = null; this.sync = null; this.guest = null; this.pend = []; this.guestIn = false;
   },
 
   show() { if (this.phase === 'lobby') UI.friendLobby(this.st); },
@@ -1174,6 +1184,11 @@ const Friend = {
         return;
       }
       case 'start': if (this.role === 'guest' && this.phase === 'lobby' && m.cfg) this.startGuest(m.cfg); return;
+      case 'room': // the guest is back in the room after a match
+        if (this.role !== 'host') return;
+        this.guestIn = true;
+        if (this.phase === 'lobby') { this.st.canStart = true; this.st.status = 'Ready!'; this.show(); }
+        return;
       case 'bye': this.peerLeft(); return;
     }
     if (this.role === 'host') { if (this.sync) this.sync.onNet(m); } else if (this.guest) this.guest.onNet(m);
@@ -1183,6 +1198,7 @@ const Friend = {
   // The friend left or the connection died.
   peerLeft() {
     const ph = this.phase;
+    if (ph === 'post') { this.reset(false); UI.toast('Your friend left the room'); return; } // still on the result screen
     if (ph === 'lobby' || ph === 'vs') {
       this.reset(false);
       UI.toast('Your friend left');
@@ -1199,7 +1215,7 @@ const Friend = {
 
   // Host: Start pressed.
   start() {
-    if (this.role !== 'host' || !this.hello || this.phase !== 'lobby') return;
+    if (this.role !== 'host' || !this.hello || this.phase !== 'lobby' || !this.st.canStart) return;
     const s = SAVE, o = this.opts, h = this.hello;
     const hostBk = Meta.owned(o.hostBk) ? o.hostBk : s.sel;
     const cfg = Meta.friendlyCfg({
@@ -1208,6 +1224,7 @@ const Friend = {
     });
     this.link.send({ t: 'start', cfg });
     this.phase = 'vs';
+    this.guestIn = false; this.st.canStart = false;
     if (typeof Sound !== 'undefined') Sound.init();
     UI.showVs(cfg, () => {
       if (this.phase !== 'vs' || !this.link) return;
@@ -1237,12 +1254,27 @@ const Friend = {
     });
   },
 
-  // The result screen is up: the room is done.
+  // The result screen is up. The link stays open: either player can go back to the room for another
+  // match (as with the original's friendly rooms) or leave it.
   finished() {
-    const l = this.link;
-    this.phase = 'done';
-    if (this.token) this.token.cancel();
-    this.token = null; this.link = null; this.sync = null; this.guest = null;
-    if (l && !l.closed) { l.onclose = null; setTimeout(() => { l.send({ t: 'bye' }); setTimeout(() => l.close('done'), 400); }, 1500); }
+    this.phase = 'post'; this.sync = null; this.guest = null; this.pend = [];
+    if (!this.link || this.link.closed) this.reset(false);
+  },
+
+  // True while the friend is still connected after a match.
+  canRematch() { return this.phase === 'post' && !!this.link && !this.link.closed; },
+
+  // From the result screen back to the room (same mode and map; the host starts again).
+  backToRoom() {
+    if (!this.canRematch()) { this.reset(true); UI.open('friends'); return; }
+    this.phase = 'lobby';
+    if (this.role === 'guest') {
+      this.link.send({ t: 'room' });
+      this.st.status = 'Waiting for your friend to start...';
+    } else {
+      this.st.canStart = this.guestIn;
+      this.st.status = this.guestIn ? 'Ready!' : 'Waiting for your friend to come back...';
+    }
+    this.show();
   },
 };
