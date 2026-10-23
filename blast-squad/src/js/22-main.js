@@ -111,7 +111,8 @@ const Game = {
 
   startMatch(cfg, opts) {
     UI.hideAll();
-    this.match = new Match(cfg, opts);
+    // a friendly battle's guest mirrors the host's match (GuestMatch in 13-sync.js)
+    this.match = opts && opts.net === 'guest' ? new GuestMatch(cfg, opts) : new Match(cfg, opts);
     this.match.onEnd = (result) => this.endMatch(result);
     this.last = 0;
     this.slowFrames = 0;
@@ -152,8 +153,9 @@ const Game = {
     if (typeof Music !== 'undefined') Music.play('menu');
     // leaving an offline match early counts as a loss (as in the original)
     if (!m.cfg.friendly && !m.sim.over) {
-      const r = { winner: m.cfg.mode === MODE.SHOWDOWN ? -1 : 1 - m.cfg.slots[m.local].team, rank: [], mvp: -1, stats: m.sim.brawlers.map((b) => Object.assign({}, b.st)) };
+      let r = { winner: m.cfg.mode === MODE.SHOWDOWN ? -1 : 1 - m.cfg.slots[m.local].team, rank: [], mvp: -1, stats: m.sim.brawlers.map((b) => Object.assign({}, b.st)) };
       if (m.cfg.mode === MODE.SHOWDOWN) { r.rank = m.cfg.slots.map((s, i) => i).filter((i) => i !== m.local); r.rank.push(m.local); }
+      if (m.outT != null && m.earlyResult) r = m.earlyResult(); // already knocked out in Showdown: keep the placement
       Meta.applyResult(m.cfg, r, m.local, Date.now());
     }
     UI.showLobby();
@@ -213,6 +215,10 @@ window.__BS = {
     return true;
   },
   telemetry: () => (Game.match && Game.match.telemetry ? Game.match.telemetry.report() : null),
+  modes: () => Object.keys(MODES),
+  friend: () => (typeof Friend !== 'undefined' ? Friend : null),
+  // friendly battles: snapshot sizes on the host, prediction error on the guest
+  net: () => { const m = Game.match; return !m ? null : m.sync ? Object.assign({ role: 'host', rtt: m.sync.link.rtt }, m.sync.stats) : m.report ? Object.assign({ role: 'guest', rtt: m.link.rtt }, m.report()) : null; },
   give: (o) => { Object.assign(SAVE, o); saveGame(); UI.refresh(); },
 };
 

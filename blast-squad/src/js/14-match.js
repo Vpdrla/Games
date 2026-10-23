@@ -3,7 +3,9 @@
 // bot (class Bot: perception -> mind -> motor) or a remote friend (words from the network). The sim
 // runs at SIM_HZ with a fixed-step accumulator; the view interpolates between ticks.
 //   const m = new Match(cfg, { net: 'offline' | 'host', link }); m.update(dt); m.draw(ctx, opts);
-//   m.onEnd(result) is called once, a moment after the sim ends.
+//   m.onEnd(result) is called once, a moment after the sim ends (offline Showdown: 2.5 s after the
+//   player is knocked out). A friendly battle's guest runs GuestMatch (13-sync.js) instead; the host's
+//   SyncHost hooks onTick.
 
 // The local player's words come from the touch / keyboard / pad layer.
 class LocalCtrl {
@@ -13,8 +15,10 @@ class LocalCtrl {
 
 // A remote player's words, queued by the network layer (redundant packets: only new seqs count).
 // Actions are never dropped; when the queue runs dry the last movement repeats without an action.
+// `applied` is the seq of the word used last (the match copies it to brawler.lastSeq, so the guest
+// can match its predictions against the host's positions).
 class RemoteCtrl {
-  constructor(slot) { this.slot = slot; this.q = []; this.last = 0; this.seq = -1; this.lastRecv = 0; this.bot = null; }
+  constructor(slot) { this.slot = slot; this.q = []; this.qs = []; this.last = 0; this.seq = -1; this.applied = 0; this.lastRecv = 0; this.bot = null; this.dry = 0; this.wait = 0; }
   push(seq, words) {
     // words[i] has sequence seq - (words.length - 1 - i)
     for (let i = 0; i < words.length; i++) {
@@ -22,17 +26,29 @@ class RemoteCtrl {
       if (s <= this.seq) continue;
       this.seq = s;
       this.q.push(words[i] >>> 0);
+      this.qs.push(s);
     }
     // a long backlog: drop movement-only words but keep every action
     while (this.q.length > 4) {
       const i = this.q.findIndex((w) => !inAct(w));
       if (i < 0) break;
       this.q.splice(i, 1);
+      this.qs.splice(i, 1);
     }
   }
   word(sim) {
     if (this.bot) return this.bot.tick(sim); // the friend dropped out: an AI holds the brawler
-    if (this.q.length) { const w = this.q.shift(); this.last = noAct(w); return w; }
+    // after running dry, wait (up to 2 ticks) for one word of cushion, so network jitter doesn't
+    // starve the queue every other tick
+    if (this.q.length && (this.wait <= 0 || this.q.length >= 2)) {
+      this.wait = 0;
+      const w = this.q.shift();
+      this.applied = this.qs.shift();
+      this.last = noAct(w);
+      return w;
+    }
+    if (!this.q.length && this.wait <= 0) { this.dry++; this.wait = 3; }
+    if (this.wait > 0) this.wait--;
     return this.last;
   }
 }
@@ -101,6 +117,7 @@ class Match {
       const c = this.ctrls[i];
       const w = c.tick ? c.tick(sim) : c.word(sim);
       sim.setInput(i, w);
+      if (c instanceof RemoteCtrl) sim.brawlers[i].lastSeq = c.applied;
       if (c.outPin != null) { this.pin(i, c.outPin); c.outPin = null; }
       if (c.outEmote != null) { this.emote(i, c.outEmote); c.outEmote = null; }
     }
@@ -142,7 +159,33 @@ class Match {
       this.endT = 0;
       Input.enabled = false;
       setTimeout(() => { if (this.onEnd) this.onEnd(sim.result); }, 1800);
+    } else if (!this.ended && this.net === 'offline' && this.cfg.mode === MODE.SHOWDOWN) this.sdOut(dt);
+  }
+
+  // Offline Showdown: once the player is knocked out the match ends for them 2.5 s later (game time),
+  // placed behind everyone still standing, as in the original.
+  sdOut(dt) {
+    const me = this.sim.brawlers[this.local];
+    if (this.outT == null) { if (me.alive) return; this.outT = 0; }
+    this.outT += dt * this.speed;
+    if (this.outT < 2.5) return;
+    const r = this.earlyResult();
+    this.ended = true;
+    this.endT = 0;
+    Input.enabled = false;
+    if (this.onEnd) this.onEnd(r);
+  }
+
+  // The placement right now: the mode's own ranking, else alive slots then the fallen, last down first.
+  earlyResult() {
+    const sim = this.sim;
+    let rank = sim.mode.rankNow ? sim.mode.rankNow(sim) : null;
+    if (!rank) {
+      rank = sim.brawlers.filter((b) => b.alive).map((b) => b.slot);
+      for (let i = sim.deathOrder.length - 1; i >= 0; i--) if (rank.indexOf(sim.deathOrder[i]) < 0) rank.push(sim.deathOrder[i]);
+      for (const b of sim.brawlers) if (rank.indexOf(b.slot) < 0) rank.push(b.slot);
     }
+    return sim.makeResult(-1, 'out', [0, 0], rank);
   }
 
   // Music gets busier when it matters: a gem countdown, overtime, a close end, few players left.
