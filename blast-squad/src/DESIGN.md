@@ -320,7 +320,7 @@ m.onEnd = (result) => {}
 | Friend matches | `friendlyCfg(opts) -> cfg` (no trophies) |
 
 Currencies: coins, power points (per brawler), gems, credits. Progression follows the original. Below
-1,000 total trophies, wins pay double trophies and there is no trophy loss under 100 brawler trophies.
+1,000 total trophies, trophy gains are tripled and there is no trophy loss under 100 brawler trophies.
 
 ## Roster (03-brawlers.js keys; original names, archetypes like the original)
 

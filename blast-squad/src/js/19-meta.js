@@ -460,8 +460,11 @@ const Meta = (() => {
     return xp;
   }
   // Pays out a finished match and returns a summary for the result screen.
-  function applyResult(cfg, result, slot, now) {
+  // opts.abandoned: the player left (or closed the app) mid-match: a loss with no pass XP, quest
+  // progress or daily win, as in the original.
+  function applyResult(cfg, result, slot, now, opts) {
     if (slot === undefined) slot = cfg.localSlot || 0;
+    const abandoned = !!(opts && opts.abandoned);
     const s = S(), me = cfg.slots[slot];
     const mode = cfg.mode;
     let outcome, rank = 0;
@@ -491,14 +494,14 @@ const Meta = (() => {
     if (mvp) ss.mvps++;
     // pass XP
     const passBefore = passState().tier;
-    let xp = passXpFor(mode, outcome, rank, mvp);
+    let xp = abandoned ? 0 : passXpFor(mode, outcome, rank, mvp);
     // daily win drops
     let dropEarned = false;
-    if (outcome === 'win' && d.wins < DAILY_WIN_DROPS) { d.wins++; s.drops.push(''); dropEarned = true; }
+    if (!abandoned && outcome === 'win' && d.wins < DAILY_WIN_DROPS) { d.wins++; s.drops.push(''); dropEarned = true; }
     // quests
     const questsDone = [];
     for (const q of d.quests) {
-      if (q.done) continue;
+      if (q.done || abandoned) continue;
       let add = 0;
       switch (q.k) {
         case 'play': add = 1; break;

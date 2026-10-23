@@ -171,7 +171,8 @@ const MODES = {
       for (const b of sim.brawlers) if (b.alive) alive++;
       if (alive > 1 && sim.t < this.cap) return null;
       const rank = this.rankNow(sim);
-      return sim.makeResult(sim.brawlers[rank[0]].team, alive === 1 ? 'last' : 'time', [0, 0], rank);
+      // the last ones going down together still end it 'last' (the tie is broken by tick order)
+      return sim.makeResult(sim.brawlers[rank[0]].team, alive <= 1 ? 'last' : 'time', [0, 0], rank);
     },
 
     hud(sim) {
@@ -223,8 +224,10 @@ const MODES = {
     tick(sim) {
       const ms = sim.ms, o = sim.ball;
       sim.stepBall();
+      // a carrier going down this very tick doesn't score (the ball drops with them)
+      const dying = o.holder >= 0 && sim.brawlers[o.holder].hp <= 0;
       for (const g of sim.map.goals) {
-        if (o.x < g.x0 || o.x > g.x1 || o.y < g.y0 || o.y > g.y1) continue;
+        if (dying || o.x < g.x0 || o.x > g.x1 || o.y < g.y0 || o.y > g.y1) continue;
         this.score(sim, 1 - g.team, o.holder >= 0 ? o.holder : o.kicker);
         break;
       }
@@ -329,7 +332,8 @@ const MODES = {
       if (k) {
         sim.ms.stars[k.team] += v.bounty;
         k.st.stars += v.bounty;
-        k.bounty = Math.min(this.max, k.bounty + 1);
+        // a killer who is down too (a same-tick trade, a turret or pet of the fallen) gets no star
+        if (k.alive && k.hp > 0) k.bounty = Math.min(this.max, k.bounty + 1);
       }
       v.bounty = this.base;
     },

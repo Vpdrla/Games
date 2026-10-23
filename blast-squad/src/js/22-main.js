@@ -10,6 +10,8 @@ const Game = {
     this.canvas = $('game');
     this.ctx = this.canvas.getContext('2d', { alpha: false });
     loadGame();
+    const pend = SAVE.pending; // a trophy match that never finished (the app was closed): settle it
+    if (pend) { SAVE.pending = null; this.settle(pend); }
     Input.init(this.canvas);
     Input.setScreenToWorld((sx, sy) => View.screenToWorld(sx, sy)); // mouse aiming
     UI.onPlay = (ev, bk) => this.play(ev, bk);
@@ -38,6 +40,7 @@ const Game = {
     const pb = $('pausebtn');
     if (pb) pb.addEventListener('click', () => this.pause());
     UI.showLobby();
+    if (pend) setTimeout(() => UI.toast(pend.result ? 'Your last match was recorded.' : 'You left your last match: it counted as a loss.'), 600);
     if (typeof Music !== 'undefined') Music.play('menu');
     this.frame = this.frame.bind(this);
     requestAnimationFrame(this.frame);
@@ -115,6 +118,13 @@ const Game = {
     // a friendly battle's guest mirrors the host's match (GuestMatch in 13-sync.js)
     this.match = opts && opts.net === 'guest' ? new GuestMatch(cfg, opts) : new Match(cfg, opts);
     this.match.onEnd = (result) => this.endMatch(result);
+    // a trophy match is on record from the start: closing the app counts as leaving, and a result is
+    // kept as soon as it is known (before its screen shows)
+    if (!cfg.friendly) {
+      SAVE.pending = { cfg, local: this.match.local };
+      saveGame();
+      this.match.onResult = (r) => { if (SAVE.pending) { SAVE.pending.result = r; saveGame(); } };
+    }
     this.last = 0;
     this.slowFrames = 0;
     this.frames = 0;
@@ -130,6 +140,7 @@ const Game = {
     const cfg = m.cfg;
     this.showPauseBtn(false);
     this.keepAwake(false);
+    if (!cfg.friendly) SAVE.pending = null; // applyResult saves
     const summary = cfg.friendly ? { friendly: true, outcome: outcomeOf(cfg, result, m.local), rank: rankOf(cfg, result, m.local) } : Meta.applyResult(cfg, result, m.local, Date.now());
     if (typeof Music !== 'undefined') Music.play('menu');
     if (m.onFinished) m.onFinished(result);
@@ -153,14 +164,26 @@ const Game = {
     this.showPauseBtn(false);
     this.keepAwake(false);
     if (typeof Music !== 'undefined') Music.play('menu');
-    // leaving an offline match early counts as a loss (as in the original)
-    if (!m.cfg.friendly && !m.sim.over) {
-      let r = { winner: m.cfg.mode === MODE.SHOWDOWN ? -1 : 1 - m.cfg.slots[m.local].team, rank: [], mvp: -1, stats: m.sim.brawlers.map((b) => Object.assign({}, b.st)) };
-      if (m.cfg.mode === MODE.SHOWDOWN) { r.rank = m.cfg.slots.map((s, i) => i).filter((i) => i !== m.local); r.rank.push(m.local); }
-      if (m.outT != null && m.earlyResult) r = m.earlyResult(); // already knocked out in Showdown: keep the placement
-      Meta.applyResult(m.cfg, r, m.local, Date.now());
+    // leaving a trophy match early counts as a loss (as in the original); a result already known (the
+    // match just ended, or a Showdown placement) counts as it is
+    const pend = SAVE.pending;
+    if (pend && !m.cfg.friendly) {
+      SAVE.pending = null;
+      if (!pend.result) pend.stats = m.sim.brawlers.map((b) => Object.assign({}, b.st));
+      this.settle(pend);
     }
     UI.showLobby();
+  },
+
+  // Applies a match that ended without its result screen: its known result, or an abandoned loss.
+  settle(p) {
+    try {
+      const cfg = p.cfg, local = p.local | 0;
+      if (p.result) { Meta.applyResult(cfg, p.result, local, Date.now()); return; }
+      const r = { winner: cfg.mode === MODE.SHOWDOWN ? -1 : 1 - cfg.slots[local].team, rank: [], mvp: -1, stats: p.stats || [] };
+      if (cfg.mode === MODE.SHOWDOWN) { r.rank = cfg.slots.map((s, i) => i).filter((i) => i !== local); r.rank.push(local); }
+      Meta.applyResult(cfg, r, local, Date.now(), { abandoned: true });
+    } catch (e) { saveGame(); }
   },
 
   showPauseBtn(on) { const b = $('pausebtn'); if (b) b.style.display = on ? 'block' : 'none'; },

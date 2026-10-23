@@ -805,7 +805,10 @@ function report() {
   check(world.walls > 0, 'walls break');
   check(world.gemDrops > 0, 'gems drop on death');
   check(world.boxes > 0 && world.cubePicks > 0, 'boxes break and cubes get picked up in the Showdown test');
-  check(world.poisonHits > 0, 'poison deals damage in the Showdown test');
+  // Poison damage itself is checked deterministically ("poison hurts outside the safe zone", the poison
+  // dip check). Whether these few scripted Showdown matches last until the poison reaches anyone
+  // depends on the brawler numbers, so the count above is information only.
+  if (!world.poisonHits) console.log('  (no poison hits: the Showdown test matches ended before the poison reached anyone)');
   section('Speed (sim.step only)');
   for (const n of [6, 10]) {
     const steps = statTotals.steps[n];
@@ -947,6 +950,89 @@ function modeRules() {
     const s2 = mkSim('ko', 'dry_gulch', KEYS.slice(0, 6));
     stepN(s2, Math.round(50 / SIM_DT), (i) => 0);
     check(s2.poison.k > 0 && s2.hud().poison, 'the poison closes in after 45 s of a round');
+  }
+
+  section('Review fixes (edge cases)');
+  {
+    // a gadget shield used under spawn protection replaces it (no 3 s of immunity)
+    const s1 = mkSim('test', 'crystal_cove', ['brick', 'dax']);
+    const br = s1.brawlers[0];
+    check(br.spawnSh && br.shieldF === 1, 'spawn protection is up at the start');
+    stepN(s1, 1, (i) => (i === 0 ? A.packIn(0, 0, 0, 1, ACT.GADGET, 1) : 0));
+    check(!br.spawnSh && br.shieldF === 0.5, `Iron Hide ends the spawn shield instead of stretching it (shieldF ${br.shieldF})`);
+    // a cube on the tick a brawler goes down doesn't save them
+    const s2 = mkSim('sd', 'skull_creek', KEYS.slice(0, 10), { teams: KEYS.slice(0, 10).map((_, i) => i) });
+    const v = s2.brawlers[2];
+    const cube = s2.spawnPickup(PICK.CUBE, 1, v.x, v.y, v.x, v.y);
+    cube.t = 1;
+    kill(s2, v, s2.brawlers[5]);
+    stepN(s2, 1);
+    check(!v.alive && !cube.dead, 'a power cube touched at 0 health is not picked up');
+    // Bounty: a same-tick trade scores both sides the same, and no one dead gets a star
+    for (const [a, b] of [[0, 3], [3, 0]]) {
+      const s3 = mkSim('bounty', 'snake_meadow', KEYS.slice(0, 6));
+      kill(s3, s3.brawlers[a], s3.brawlers[b]); kill(s3, s3.brawlers[b], s3.brawlers[a]);
+      stepN(s3, 1);
+      check(s3.ms.stars[0] === 2 && s3.ms.stars[1] === 2 && s3.brawlers[a].bounty === 2 && s3.brawlers[b].bounty === 2, `Bounty trade ${a}<->${b}: stars ${s3.ms.stars}, bounties ${s3.brawlers[a].bounty}/${s3.brawlers[b].bounty}`);
+    }
+    // Showdown: the last two going down together end it 'last', and slot 0 doesn't always lose the tie
+    let zeroWins = 0;
+    for (let k = 0; k < 6; k++) {
+      const s4 = mkSim('sd', 'cavern_ring', KEYS.slice(0, 10), { teams: KEYS.slice(0, 10).map((_, i) => i) });
+      for (const b of s4.brawlers) if (b.slot !== 0 && b.slot !== 7) kill(s4, b, null);
+      stepN(s4, 1 + k);
+      kill(s4, s4.brawlers[0], null); kill(s4, s4.brawlers[7], null);
+      stepN(s4, 1);
+      check(s4.over && s4.result.reason === 'last', 'a double knockout at the end is still last-standing');
+      if (s4.result.rank[0] === 0) zeroWins++;
+    }
+    check(zeroWins > 0 && zeroWins < 6, `same-tick ties don't always go to the same slot (slot 0 won ${zeroWins}/6)`);
+    // poison: dipping into the safe zone for a tick every half second doesn't stop the damage
+    const s5 = mkSim('sd', 'skull_creek', KEYS.slice(0, 10), { teams: KEYS.slice(0, 10).map((_, i) => i) });
+    s5.roundT0 = -80; // 80 s into the round: the poison is closing
+    for (const b of s5.brawlers) { b.hp = b.maxHp = 1e6; unshield(b); }
+    stepN(s5, 1);
+    const p = s5.brawlers[0], cx = (s5.poison.x0 + s5.poison.x1) / 2, cy = (s5.poison.y0 + s5.poison.y1) / 2;
+    for (const b of s5.brawlers) if (b !== p) place(s5, b, cx, cy);
+    let dmg = 0;
+    for (let k = 0; k < 150; k++) {
+      const inside = k % 15 === 14;
+      place(s5, p, inside ? cx : 1.5, inside ? cy : 1.5);
+      const h = p.hp;
+      stepN(s5, 1);
+      dmg += Math.max(0, h - p.hp);
+      p.quietT = 0;
+    }
+    check(dmg >= 3000, `poison keeps hurting someone who dips in for a tick (${dmg} in 5 s)`);
+    // a burst started before picking up the ball stops when the ball is picked up
+    const s6 = mkSim('ball', 'pinball_pitch', ['dax', 'nova', 'brick', 'pip', 'zip', 'frost']);
+    const dx = s6.brawlers[0];
+    for (const b of s6.brawlers) if (b !== dx) place(s6, b, 2.5, b.team ? 3.5 : 29.5);
+    place(s6, dx, s6.ball.x, s6.ball.y + 3);
+    dx.sup = 1; dx.supReady = true; ready(dx);
+    drain(s6);
+    let ev = stepN(s6, 1, (i) => (i === 0 ? A.packIn(0, 0, -Math.PI / 2, 1, ACT.SUPER, 0) : 0));
+    place(s6, dx, s6.ball.x, s6.ball.y);
+    ev = stepN(s6, 30);
+    const after = evs(ev, EV.SPAWN).filter((e) => e[2] === K.SHOT).length;
+    check(s6.ball.holder === 0 && after <= 2, `no burst shots while holding the ball (${after} after the pickup)`);
+    // a lob that comes down on the goal frame doesn't get pushed into the goal
+    const s7 = mkSim('ball', 'pinball_pitch', KEYS.slice(0, 6));
+    for (const b of s7.brawlers) place(s7, b, 10.5, 25.5);
+    const kb = s7.brawlers[0];
+    place(s7, kb, 4.5, 2.1);
+    s7.kickBall(kb, Math.atan2(0.49 - 2.1, 7.5 - 4.5), 3.3 / 1.0, 9, 3);
+    for (let k = 0; k < 90 && !s7.over; k++) { s7.stepBall(); s7.mode.tick.call(s7.mode, s7); if (s7.freezeT > 0) break; }
+    check(s7.ms.goals[0] === 0 && s7.ms.goals[1] === 0 && !(A.flagsAt(s7.map, s7.ball.x, s7.ball.y) & A.TF_MOVE), `a lob landing on the goal frame doesn't score (goals ${s7.ms.goals}, ball ${s7.ball.x.toFixed(2)},${s7.ball.y.toFixed(2)})`);
+    // lasting areas deal dps x duration, not one tick more
+    const s8 = mkSim('test', 'crystal_cove', ['sizzle', 'brick']);
+    const tg = s8.brawlers[1];
+    unshield(tg); tg.hp = tg.maxHp = 1e6;
+    place(s8, tg, 10.5, 22.5);
+    s8.areas.push({ id: 999, kind: K.AREA, team: 0, owner: 0, x: 10.5, y: 22.5, r: 1.2, t: 1.6, T: 1.6, dmg: 1000, heal: 0, slow: 0, act: ACT.ATTACK, tickT: 0, chg: 0, dead: false, pk: 'sizzle.atk' });
+    const h0 = tg.hp;
+    stepN(s8, 60);
+    check(Math.abs(h0 - tg.hp - 1600) <= 5, `an area of 1000/s for 1.6 s deals 1600 (dealt ${h0 - tg.hp})`);
   }
 
   section('Bounty rules');

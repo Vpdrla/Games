@@ -89,6 +89,31 @@ const ok = (m) => console.log('ok - ' + m);
     await page.click('#rx');
     await page.waitForTimeout(300);
   }
+  // ---- leaving, and closing the app mid-match: a loss with no rewards, settled exactly once ----
+  const startGem = () => page.evaluate(() => {
+    const ev = window.__BS.Meta.events(Date.now()).find((e) => e.mode === 'gem' && e.ready);
+    window.__BS.Game.play(ev, window.__BS.save().sel);
+  });
+  const snap = () => page.evaluate(() => { const s = window.__BS.save(); return { xp: s.pass.xp, played: s.stats.played, losses: s.stats.losses, pending: !!s.pending }; });
+  let s0 = await snap();
+  await startGem();
+  await page.waitForFunction(() => !!window.__BS.match(), null, { timeout: 15000 });
+  if (!(await snap()).pending) fail('a trophy match is not on record while it runs');
+  await page.evaluate(() => window.__BS.Game.leave());
+  let s1 = await snap();
+  if (s1.played === s0.played + 1 && s1.losses === s0.losses + 1 && s1.xp === s0.xp && !s1.pending) ok('leaving counts a loss with no pass XP');
+  else fail('leaving: ' + JSON.stringify([s0, s1]));
+  await startGem();
+  await page.waitForFunction(() => !!window.__BS.match(), null, { timeout: 15000 });
+  await page.reload();
+  await page.waitForTimeout(1200);
+  const s2 = await snap();
+  if (s2.played === s1.played + 1 && s2.losses === s1.losses + 1 && s2.xp === s1.xp && !s2.pending) ok('closing the app mid-match counts as leaving (settled on the next start)');
+  else fail('closing mid-match: ' + JSON.stringify([s1, s2]));
+  await page.reload();
+  await page.waitForTimeout(800);
+  if ((await snap()).played === s2.played) ok('the settled match is not counted twice'); else fail('the abandoned match was counted again');
+
   const last = await page.evaluate(() => window.__lastError || null);
   if (last) fail('game error: ' + last);
   await browser.close();

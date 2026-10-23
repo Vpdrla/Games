@@ -1,6 +1,6 @@
 // Service worker: caches the game so it launches and plays with no internet connection.
 // Friend battles still need a connection; everything else works offline.
-const CACHE = 'blast-squad-61c3946e9982';
+const CACHE = 'blast-squad-40b10e17d0b6';
 const ASSETS = [
   './',
   './index.html',

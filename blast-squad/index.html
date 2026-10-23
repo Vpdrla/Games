@@ -537,7 +537,7 @@ const BRAWLERS = {
     hp: 3600, speed: 720, reload: 1.5,
     atk: {
       name: 'Scattershot', text: 'Fires 5 pellets in a cone. Brutal up close.',
-      t: 'shot', n: 5, spread: 0.52, dmg: 300, range: 7.67, spd: 11.3, r: 0.18, chg: 1 / 12,
+      t: 'shot', n: 5, spread: 0.52, dmg: 320, range: 7.67, spd: 11.3, r: 0.18, chg: 1 / 12,
     },
     sup: {
       name: 'Big Bang', text: 'A wide blast of 9 pellets that knocks enemies back and smashes walls.',
@@ -549,7 +549,7 @@ const BRAWLERS = {
   dax: {
     name: 'Dax', rarity: 'rare', role: 'sharp', color: '#d9a441',
     desc: 'A quick-draw gunslinger who melts anything in a straight line.',
-    hp: 2800, speed: 720, reload: 1.6,
+    hp: 3000, speed: 720, reload: 1.6,
     atk: {
       name: 'Six-Shooter', text: 'Fires 6 bullets in a fast line from both revolvers.',
       t: 'shot', n: 6, burst: 0.08, jit: 0.15, dmg: 360, range: 9, spd: 12.7, r: 0.14, chg: 1 / 12,
@@ -579,26 +579,26 @@ const BRAWLERS = {
   bramble: {
     name: 'Bramble', rarity: 'rare', role: 'fighter', color: '#8a5a3a',
     desc: 'A forest kid who never fights alone: her bear has her back.',
-    hp: 4000, speed: 720, reload: 1.1,
+    hp: 4000, speed: 720, reload: 1.25,
     atk: {
       name: 'Root Wave', text: 'A shockwave that pierces through every enemy in its path.',
-      t: 'shot', dmg: 920, range: 6.3, spd: 7.7, r: 0.5, pierce: true, chg: 1 / 3.5,
+      t: 'shot', dmg: 820, range: 6.3, spd: 7.7, r: 0.5, pierce: true, chg: 1 / 3.5,
     },
     sup: {
       name: 'Big Bruno', text: 'Summons Bruno the bear, who mauls nearby enemies.',
       t: 'deploy', unit: 'pet', dk: 'bramble.bear', range: 7, rad: 0.55, hp: 3400, dmg: 350, rate: 1.0, reach: 1.15,
-      spd: 2.9, aggro: 8, chg: 1 / 6, land: { r: 1.3, dmg: 800 },
+      spd: 2.9, aggro: 8, chg: 1 / 7, land: { r: 1.3, dmg: 800 },
     },
     gadgets: [{ name: 'Heavy Paws', text: "Bruno's next hit stuns for 1 second.", cd: 6, req: 'deploy', t: 'buff', what: 'petStun', v: 1.0 }],
-    stars: [{ name: 'Best Buddies', text: 'Bramble heals 500 whenever Bruno lands a hit.', pass: { petHeal: 500 } }],
+    stars: [{ name: 'Best Buddies', text: 'Bramble heals 430 whenever Bruno lands a hit.', pass: { petHeal: 430 } }],
   },
   pip: {
     name: 'Pip', rarity: 'rare', role: 'thrower', color: '#ff8a3d',
     desc: 'A cheerful demolition miner who lobs dynamite over walls.',
-    hp: 2800, speed: 720, reload: 1.7,
+    hp: 2800, speed: 720, reload: 1.55,
     atk: {
       name: 'Fuse Pair', text: 'Lobs 2 sticks of dynamite over walls.',
-      t: 'lob', n: 2, gap: 0.7, T: 0.95, range: 7, dmg: 1050, blast: 0.95, r: 0.18, chg: 1 / 6,
+      t: 'lob', n: 2, gap: 0.7, T: 0.95, range: 7, dmg: 1090, blast: 0.95, r: 0.18, chg: 1 / 6,
     },
     sup: {
       name: 'Big Barrel', text: 'A huge barrel bomb that knocks enemies back and blows up walls.',
@@ -610,17 +610,17 @@ const BRAWLERS = {
   melody: {
     name: 'Melody', rarity: 'rare', role: 'support', color: '#e45bb0',
     desc: 'A street musician whose songs hurt foes and mend friends.',
-    hp: 4000, speed: 720, reload: 1.4,
+    hp: 3600, speed: 720, reload: 1.55,
     atk: {
       name: 'Sonic Chord', text: 'A wide sound wave that pierces enemies.',
-      t: 'shot', dmg: 680, range: 7, spd: 8.7, r: 0.5, grow: 0.18, pierce: true, chg: 1 / 7,
+      t: 'shot', dmg: 650, range: 7, spd: 8.7, r: 0.5, grow: 0.16, pierce: true, chg: 1 / 8,
     },
     sup: {
       name: 'Encore', text: 'A huge wave that heals Melody and every ally it passes.',
       t: 'shot', dmg: 0, heal: 2100, hself: true, range: 9.7, spd: 9, r: 1.0, grow: 0.1, pierce: true,
     },
     gadgets: [{ name: 'Lullaby', text: 'Heals Melody and nearby allies for 1200.', cd: 7, t: 'pulse', r: 3.3, heal: 1200 }],
-    stars: [{ name: 'Harmony', text: 'Sonic Chord also heals allies it passes for 400.', patch: { atk: { heal: 400 } } }],
+    stars: [{ name: 'Harmony', text: 'Sonic Chord also heals allies it passes for 340.', patch: { atk: { heal: 340 } } }],
   },
   sizzle: {
     name: 'Sizzle', rarity: 'super', role: 'thrower', color: '#ff5a1f',
@@ -640,15 +640,15 @@ const BRAWLERS = {
   gizmo: {
     name: 'Gizmo', rarity: 'super', role: 'support', color: '#3fc3b5',
     desc: 'A young inventor whose sparks bounce and whose turret never sleeps.',
-    hp: 3000, speed: 720, reload: 1.5,
+    hp: 3300, speed: 720, reload: 1.5,
     atk: {
       name: 'Spark Orb', text: 'An orb that bounces on to 2 more nearby enemies.',
-      t: 'shot', dmg: 1000, range: 9, spd: 8.3, r: 0.25, bounce: { n: 2, r: 4.7 }, chg: 1 / 4,
+      t: 'shot', dmg: 920, range: 9, spd: 8.3, r: 0.25, bounce: { n: 2, r: 4.7 }, chg: 1 / 4,
     },
     sup: {
       name: 'Turret', text: 'Builds a turret that shoots the nearest enemy.',
-      t: 'deploy', unit: 'turret', dk: 'gizmo.turret', range: 4, rad: 0.5, hp: 3000, aggro: 8.7, rate: 0.4,
-      shot: { pk: 'gizmo.turret', dmg: 260, range: 8.7, spd: 11, r: 0.13 },
+      t: 'deploy', unit: 'turret', dk: 'gizmo.turret', range: 4, rad: 0.5, hp: 2700, aggro: 8.7, rate: 0.4,
+      shot: { pk: 'gizmo.turret', dmg: 225, range: 8.7, spd: 11, r: 0.13 },
     },
     gadgets: [{ name: 'Overclock', text: 'The turret fires twice as fast for 5 seconds.', cd: 7, req: 'deploy', t: 'buff', what: 'deployRate', v: 2, T: 5 }],
     stars: [{ name: 'Repair Kit', text: 'Spark Orb hits repair the turret for 400.', pass: { deployHeal: 400 } }],
@@ -656,11 +656,11 @@ const BRAWLERS = {
   volt: {
     name: 'Volt', rarity: 'super', role: 'control', color: '#ffd23f',
     desc: 'A storm chaser who zaps through crowds in an instant.',
-    hp: 3200, speed: 720, reload: 1.8,
+    hp: 3200, speed: 720, reload: 2.05,
     atk: {
       // no travel time to dodge, so it hits for less than a projectile of the same reload would
       name: 'Arc Beam', text: 'An instant beam that pierces every enemy in a line.',
-      t: 'beam', dmg: 820, range: 8, w: 0.28, pierce: true, chg: 1 / 4,
+      t: 'beam', dmg: 790, range: 8, w: 0.28, pierce: true, chg: 1 / 4,
     },
     sup: {
       name: 'Thunderhead', text: 'Calls a storm cloud that shocks and slows enemies under it.',
@@ -672,10 +672,10 @@ const BRAWLERS = {
   hawk: {
     name: 'Hawk', rarity: 'epic', role: 'sharp', color: '#7b6cf6',
     desc: 'An elegant sharpshooter: the further the target, the harder it hits.',
-    hp: 2600, speed: 720, reload: 2.3,
+    hp: 2750, speed: 720, reload: 2.3,
     atk: {
       name: 'Long Shot', text: 'A single bullet that deals more damage the further it flies.',
-      t: 'shot', dmg: 1680, ramp: [0.35, 1], range: 10, spd: 15, r: 0.14, chg: 1 / 3,
+      t: 'shot', dmg: 1740, ramp: [0.35, 1], range: 10, spd: 15, r: 0.14, chg: 1 / 3,
     },
     sup: {
       name: 'Pop-Up', text: 'Leaps away, dropping 4 grenades where she took off.',
@@ -691,7 +691,7 @@ const BRAWLERS = {
     hp: 3800, speed: 720, reload: 1.4,
     atk: {
       name: 'Snow Flurry', text: 'Throws 6 snowballs in a wide fan.',
-      t: 'shot', n: 6, spread: 0.7, dmg: 380, range: 8, spd: 9.7, r: 0.17, chg: 1 / 14,
+      t: 'shot', n: 6, spread: 0.7, dmg: 330, range: 8, spd: 9.7, r: 0.17, chg: 1 / 14,
     },
     sup: {
       name: 'Gale Wall', text: 'A wide gust that pushes enemies back.',
@@ -703,10 +703,10 @@ const BRAWLERS = {
   shade: {
     name: 'Shade', rarity: 'mythic', role: 'assassin', color: '#6b3fa0',
     desc: 'A gloomy undertaker who dashes in for the finishing blow.',
-    hp: 4200, speed: 820, reload: 2.4,
+    hp: 4350, speed: 820, reload: 2.05,
     atk: {
       name: 'Night Lunge', text: 'Dashes forward, striking every enemy in the way.',
-      t: 'dash', dist: 3, spd: 12, dmg: 1000, w: 0.5, chg: 1 / 4,
+      t: 'dash', dist: 3, spd: 12, dmg: 1030, w: 0.5, chg: 1 / 4,
     },
     sup: {
       name: 'Soul Swarm', text: 'A swarm of bats that pierces enemies and steals their health.',
@@ -718,10 +718,10 @@ const BRAWLERS = {
   zip: {
     name: 'Zip', rarity: 'mythic', role: 'fighter', color: '#ffcc33',
     desc: 'A hyperactive speedster who never stops moving or shooting.',
-    hp: 3300, speed: 820, reload: 1.0,
+    hp: 3100, speed: 820, reload: 1.1,
     atk: {
       name: 'Rapid Fire', text: 'Fires 4 fast bullets in a quick burst.',
-      t: 'shot', n: 4, burst: 0.05, jit: 0.1, dmg: 300, range: 8.7, spd: 13.3, r: 0.13, chg: 1 / 14,
+      t: 'shot', n: 4, burst: 0.05, jit: 0.1, dmg: 285, range: 8.7, spd: 13.3, r: 0.13, chg: 1 / 14,
     },
     sup: {
       name: 'Rush Hour', text: 'Zip and nearby allies move 50% faster for 4 seconds.',
@@ -736,7 +736,7 @@ const BRAWLERS = {
     hp: 3200, speed: 820, reload: 1.9,
     atk: {
       name: 'Spectral Blades', text: '4 blades in a fan. They hit harder up close.',
-      t: 'shot', n: 4, spread: 0.36, dmg: 480, ramp: [1, 0.45], range: 9.7, spd: 11.7, r: 0.14, chg: 1 / 11,
+      t: 'shot', n: 4, spread: 0.36, dmg: 520, ramp: [1, 0.45], range: 9.7, spd: 11.7, r: 0.14, chg: 1 / 11,
     },
     sup: {
       name: 'Fade', text: 'Turns invisible to enemies for 6 seconds. Attacking ends it.',
@@ -748,11 +748,11 @@ const BRAWLERS = {
   thorn: {
     name: 'Thorn', rarity: 'legend', role: 'sharp', color: '#6fcf3f',
     desc: 'A silent cactus whose needle balls burst into spikes.',
-    hp: 2600, speed: 720, reload: 2.0,
+    hp: 2750, speed: 720, reload: 1.75,
     atk: {
       name: 'Needle Ball', text: 'A cactus ball that bursts into 6 spikes when it stops.',
-      t: 'shot', dmg: 770, range: 7.67, spd: 8.3, r: 0.3, chg: 1 / 5,
-      split: { n: 6, dmg: 570, range: 2.7, spd: 9.7, r: 0.12, chg: 1 / 12, pk: 'thorn.spike' },
+      t: 'shot', dmg: 800, range: 7.67, spd: 8.3, r: 0.3, chg: 1 / 5,
+      split: { n: 6, dmg: 595, range: 2.7, spd: 9.7, r: 0.12, chg: 1 / 12, pk: 'thorn.spike' },
     },
     sup: {
       name: 'Briar Patch', text: 'Lobs a spike field that damages and slows enemies.',
@@ -1532,7 +1532,10 @@ class Sim {
       return;
     }
     this.playT += SIM_DT;
-    for (let i = 0; i < B.length; i++) this.applyInput(B[i]); // 1. inputs: move, then fire
+    // 1. inputs: move, then fire, in a per-tick shuffled order (tickOrder), so no slot wins every
+    // same-tick tie (two stuns pressed together, two players going down together)
+    const ord = this.tickOrder();
+    for (let j = 0; j < ord.length; j++) this.applyInput(B[ord[j]]);
     this.stepDeploys(); // 2
     this.stepShots(); // 3
     this.stepAreas(); // 4
@@ -1619,13 +1622,14 @@ class Sim {
       b.gadLeft--;
       b.gadT = s.cd || 5;
     }
+    // any action ends the spawn shield (before the action's own shield, so a gadget can't stretch it)
+    if (b.spawnSh) { b.shieldT = 0; b.shieldF = 0; b.spawnSh = false; }
     if (act !== ACT.GADGET) {
-      // attacking breaks cover: reveals, stops regen, ends invisibility and the spawn shield
+      // attacking breaks cover: reveals, stops regen, ends invisibility
       b.quietT = 0;
       b.regenAcc = 0;
       b.revealT = REVEAL_T;
       b.invisT = 0;
-      if (b.spawnSh) { b.shieldT = 0; b.shieldF = 0; b.spawnSh = false; }
     }
     b.face = ang; b.aimA = ang; b.faceT = 0.35; b.fireT = 0; b.lastAct = act;
     this.ev(EV.FIRE, b.slot, act, b.x, b.y, ang, b.lastSeq);
@@ -2176,7 +2180,7 @@ class Sim {
   addCube(b) {
     b.cubes++;
     b.maxHp += CUBE_HP;
-    if (b.alive) b.hp += CUBE_HP;
+    if (b.alive && b.hp > 0) b.hp += CUBE_HP; // not for someone already going down this tick
   }
 
   // ---- tiles ----
@@ -2516,16 +2520,17 @@ class Sim {
           }
         }
       }
-      if (a.tickT <= 0) {
+      if (a.tickT <= 0 && a.t > 1e-6) { // ticks at 0, 0.5, ... < T; the last one covers only what's left
         a.tickT += Sim.AREA_TICK;
-        this.areaTick(a);
+        this.areaTick(a, Math.min(1, (a.t + dt) / Sim.AREA_TICK));
       }
       if (a.t <= 0) { a.dead = true; this.ev(EV.DESPAWN, a.id, K.AREA); }
     }
   }
 
-  areaTick(a) {
-    const B = this.brawlers, k = Sim.AREA_TICK, r2 = a.r * a.r;
+  // frac: share of a full tick (the last tick of an area whose duration isn't a multiple of AREA_TICK)
+  areaTick(a, frac) {
+    const B = this.brawlers, k = Sim.AREA_TICK * (frac == null ? 1 : frac), r2 = a.r * a.r;
     if (a.dmg > 0) {
       const chg = a.act === ACT.ATTACK ? a.chg : 0;
       for (let i = 0; i < B.length; i++) {
@@ -2610,7 +2615,7 @@ class Sim {
       // rotate who gets the first try so no slot wins every tie
       for (let j = 0; j < nb; j++) {
         const b = B[(j + this.tick) % nb];
-        if (!this.hittable(b) || dist2(b.x, b.y, p.x, p.y) > (b.r + p.r) * (b.r + p.r)) continue;
+        if (!this.hittable(b) || b.hp <= 0 || dist2(b.x, b.y, p.x, p.y) > (b.r + p.r) * (b.r + p.r)) continue;
         if (!this.mode.onPickup(this, b, p)) continue;
         p.dead = true;
         this.ev(EV.PICKUP, b.slot, p.pick, p.n, p.x, p.y);
@@ -2678,7 +2683,8 @@ class Sim {
     for (let i = 0; i < B.length; i++) {
       const b = B[i];
       if (!b.alive) continue;
-      if (b.x >= P.x0 && b.x <= P.x1 && b.y >= P.y0 && b.y <= P.y1) { b.poisAcc = 0.5; continue; }
+      // inside: the clock winds back up to 0.5 s (a one-tick dip doesn't reset it)
+      if (b.x >= P.x0 && b.x <= P.x1 && b.y >= P.y0 && b.y <= P.y1) { if (b.poisAcc < 0.5) b.poisAcc = Math.min(0.5, b.poisAcc + dt); continue; }
       b.poisAcc -= dt;
       if (b.poisAcc <= 0) {
         b.poisAcc += 1;
@@ -2689,11 +2695,28 @@ class Sim {
 
   // ---- 9. deaths ----
   stepDeaths() {
-    const B = this.brawlers;
-    for (let i = 0; i < B.length; i++) {
-      const b = B[i];
+    const B = this.brawlers, ord = this._ord;
+    for (let j = 0; j < ord.length; j++) {
+      const b = B[ord[j]];
       if (b.alive && b.hp <= 0) this.die(b);
     }
+  }
+
+  // The slots in an order that changes every tick (a hash of tick and slot; no RNG draws, no
+  // allocation). Fair to every pair of slots over time, unlike a plain rotation.
+  tickOrder() {
+    const n = this.brawlers.length;
+    const ord = this._ord || (this._ord = new Int8Array(n)), key = this._ordK || (this._ordK = new Uint32Array(n));
+    for (let i = 0; i < n; i++) {
+      let h = (Math.imul(i + 1, 0x9e3779b1) ^ Math.imul(this.tick, 0x85ebca6b)) >>> 0;
+      h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0;
+      h = (h ^ (h >>> 12)) >>> 0;
+      key[i] = h;
+      let j = i;
+      while (j > 0 && key[ord[j - 1]] > h) { ord[j] = ord[j - 1]; j--; }
+      ord[j] = i;
+    }
+    return ord;
   }
 
   die(b) {
@@ -2802,7 +2825,7 @@ class Sim {
   // Blast Ball: the ball entity and its physics. The mode calls stepBall() from its tick and
   // kickBall() from onAction; possession, goals and overtime are the mode's business.
   addBall(x, y) {
-    this.ball = { id: this.nextId++, kind: K.BALL, team: -1, x, y, px: x, py: y, r: 0.35, dead: false, holder: -1, vx: 0, vy: 0, z: 0, vz: 0, kicker: -1, kickT: 0 };
+    this.ball = { id: this.nextId++, kind: K.BALL, team: -1, x, y, px: x, py: y, r: 0.35, dead: false, holder: -1, vx: 0, vy: 0, z: 0, vz: 0, kicker: -1, kickT: 0, fx: x, fy: y };
     this.ev(EV.SPAWN, this.ball.id, K.BALL);
     return this.ball;
   }
@@ -2810,7 +2833,7 @@ class Sim {
   placeBall(x, y) {
     const o = this.ball;
     o.x = o.px = x; o.y = o.py = y;
-    o.holder = -1; o.vx = o.vy = o.z = o.vz = 0; o.kicker = -1; o.kickT = 0;
+    o.holder = -1; o.vx = o.vy = o.z = o.vz = 0; o.kicker = -1; o.kickT = 0; o.fx = x; o.fy = y;
   }
 
   // what: EV.BALL code (2 kick, 3 pass). vz lifts it (lobbed passes fly over brawlers).
@@ -2841,6 +2864,7 @@ class Sim {
       if (!h.alive || h.stunT > 0 || h.kbT > 0) this.dropBall();
       else {
         o.x = h.x + Math.cos(h.face) * 0.45; o.y = h.y + Math.sin(h.face) * 0.45; o.z = 0;
+        o.fx = h.x; o.fy = h.y;
         return;
       }
     }
@@ -2857,12 +2881,14 @@ class Sim {
     if (wall(o.x, ny + sign(o.vy) * o.r)) o.vy = -o.vy * 0.6; else o.y = ny;
     if (o.z === 0) {
       const f = Math.max(0, 1 - 2.2 * dt); o.vx *= f; o.vy *= f;
-      // landed on (or rolled to a stop on) something nobody can stand on: it pops out next to it
-      if ((flagsAt(m, o.x, o.y) & (TF_SHOT | TF_MOVE)) && ((flagsAt(m, o.x, o.y) & TF_SHOT) || o.vx * o.vx + o.vy * o.vy < 0.25)) {
-        this.freeSpot(o.x, o.y, o.r, this._o2);
-        o.x = this._o2.x; o.y = this._o2.y; o.vx *= 0.3; o.vy *= 0.3;
+      // landed on (or rolled to a stop on) something nobody can stand on: it goes back to the last
+      // open spot it crossed (never sideways through a goal frame into the goal)
+      const fl = flagsAt(m, o.x, o.y);
+      if ((fl & (TF_SHOT | TF_MOVE)) && ((fl & TF_SHOT) || o.vx * o.vx + o.vy * o.vy < 0.25)) {
+        o.x = o.fx; o.y = o.fy; o.vx = o.vy = 0;
       }
     }
+    if (!(flagsAt(m, o.x, o.y) & (TF_SHOT | TF_MOVE))) { o.fx = o.x; o.fy = o.y; }
     if (o.z > 0.8) return;
     const B = this.brawlers;
     for (let j = 0; j < B.length; j++) {
@@ -2870,6 +2896,7 @@ class Sim {
       if (!this.canAct(b) || (b.slot === o.kicker && o.kickT > 0)) continue;
       if (dist2(b.x, b.y, o.x, o.y) > (b.r + o.r) * (b.r + o.r)) continue;
       o.holder = b.slot; o.vx = o.vy = 0; o.kicker = -1;
+      b.bqN = 0; // no more shots from a burst started before the pickup
       this.ev(EV.BALL, 1, b.slot);
       break;
     }
@@ -3055,7 +3082,8 @@ const MODES = {
       for (const b of sim.brawlers) if (b.alive) alive++;
       if (alive > 1 && sim.t < this.cap) return null;
       const rank = this.rankNow(sim);
-      return sim.makeResult(sim.brawlers[rank[0]].team, alive === 1 ? 'last' : 'time', [0, 0], rank);
+      // the last ones going down together still end it 'last' (the tie is broken by tick order)
+      return sim.makeResult(sim.brawlers[rank[0]].team, alive <= 1 ? 'last' : 'time', [0, 0], rank);
     },
 
     hud(sim) {
@@ -3107,8 +3135,10 @@ const MODES = {
     tick(sim) {
       const ms = sim.ms, o = sim.ball;
       sim.stepBall();
+      // a carrier going down this very tick doesn't score (the ball drops with them)
+      const dying = o.holder >= 0 && sim.brawlers[o.holder].hp <= 0;
       for (const g of sim.map.goals) {
-        if (o.x < g.x0 || o.x > g.x1 || o.y < g.y0 || o.y > g.y1) continue;
+        if (dying || o.x < g.x0 || o.x > g.x1 || o.y < g.y0 || o.y > g.y1) continue;
         this.score(sim, 1 - g.team, o.holder >= 0 ? o.holder : o.kicker);
         break;
       }
@@ -3213,7 +3243,8 @@ const MODES = {
       if (k) {
         sim.ms.stars[k.team] += v.bounty;
         k.st.stars += v.bounty;
-        k.bounty = Math.min(this.max, k.bounty + 1);
+        // a killer who is down too (a same-tick trade, a turret or pet of the fallen) gets no star
+        if (k.alive && k.hp > 0) k.bounty = Math.min(this.max, k.bounty + 1);
       }
       v.bounty = this.base;
     },
@@ -7008,6 +7039,7 @@ class Match {
       this.ended = true;
       this.endT = 0;
       Input.enabled = false;
+      if (this.onResult) this.onResult(sim.result); // known now, shown in a moment
       setTimeout(() => { if (this.onEnd) this.onEnd(sim.result); }, 1800);
     } else if (!this.ended && this.net === 'offline' && this.cfg.mode === MODE.SHOWDOWN) this.sdOut(dt);
   }
@@ -7016,10 +7048,16 @@ class Match {
   // placed behind everyone still standing, as in the original.
   sdOut(dt) {
     const me = this.sim.brawlers[this.local];
-    if (this.outT == null) { if (me.alive) return; this.outT = 0; }
+    if (this.outT == null) {
+      if (me.alive) return;
+      // the placement is fixed the moment the player falls (everyone still up, or down later, is ahead)
+      this.outT = 0;
+      this.outResult = this.earlyResult();
+      if (this.onResult) this.onResult(this.outResult);
+    }
     this.outT += dt * this.speed;
     if (this.outT < 2.5) return;
-    const r = this.earlyResult();
+    const r = this.outResult;
     this.ended = true;
     this.endT = 0;
     Input.enabled = false;
@@ -11063,6 +11101,7 @@ function defaultSave() {
     stats: { played: 0, wins: 0, losses: 0, draws: 0, sdWins: 0, kills: 0, deaths: 0, mvps: 0, streak: 0, bestStreak: 0 },
     settings: { sound: true, music: true, vibrate: true, quality: 'auto', leftHanded: false, autoAimHint: true },
     seen: {}, // one-time tips and "new" badges
+    pending: null, // { cfg, local, result? } while a trophy match runs (closing the app mid-match is a loss)
   };
 }
 
@@ -11568,8 +11607,11 @@ const Meta = (() => {
     return xp;
   }
   // Pays out a finished match and returns a summary for the result screen.
-  function applyResult(cfg, result, slot, now) {
+  // opts.abandoned: the player left (or closed the app) mid-match: a loss with no pass XP, quest
+  // progress or daily win, as in the original.
+  function applyResult(cfg, result, slot, now, opts) {
     if (slot === undefined) slot = cfg.localSlot || 0;
+    const abandoned = !!(opts && opts.abandoned);
     const s = S(), me = cfg.slots[slot];
     const mode = cfg.mode;
     let outcome, rank = 0;
@@ -11599,14 +11641,14 @@ const Meta = (() => {
     if (mvp) ss.mvps++;
     // pass XP
     const passBefore = passState().tier;
-    let xp = passXpFor(mode, outcome, rank, mvp);
+    let xp = abandoned ? 0 : passXpFor(mode, outcome, rank, mvp);
     // daily win drops
     let dropEarned = false;
-    if (outcome === 'win' && d.wins < DAILY_WIN_DROPS) { d.wins++; s.drops.push(''); dropEarned = true; }
+    if (!abandoned && outcome === 'win' && d.wins < DAILY_WIN_DROPS) { d.wins++; s.drops.push(''); dropEarned = true; }
     // quests
     const questsDone = [];
     for (const q of d.quests) {
-      if (q.done) continue;
+      if (q.done || abandoned) continue;
       let add = 0;
       switch (q.k) {
         case 'play': add = 1; break;
@@ -13075,6 +13117,8 @@ const Game = {
     this.canvas = $('game');
     this.ctx = this.canvas.getContext('2d', { alpha: false });
     loadGame();
+    const pend = SAVE.pending; // a trophy match that never finished (the app was closed): settle it
+    if (pend) { SAVE.pending = null; this.settle(pend); }
     Input.init(this.canvas);
     Input.setScreenToWorld((sx, sy) => View.screenToWorld(sx, sy)); // mouse aiming
     UI.onPlay = (ev, bk) => this.play(ev, bk);
@@ -13103,6 +13147,7 @@ const Game = {
     const pb = $('pausebtn');
     if (pb) pb.addEventListener('click', () => this.pause());
     UI.showLobby();
+    if (pend) setTimeout(() => UI.toast(pend.result ? 'Your last match was recorded.' : 'You left your last match: it counted as a loss.'), 600);
     if (typeof Music !== 'undefined') Music.play('menu');
     this.frame = this.frame.bind(this);
     requestAnimationFrame(this.frame);
@@ -13180,6 +13225,13 @@ const Game = {
     // a friendly battle's guest mirrors the host's match (GuestMatch in 13-sync.js)
     this.match = opts && opts.net === 'guest' ? new GuestMatch(cfg, opts) : new Match(cfg, opts);
     this.match.onEnd = (result) => this.endMatch(result);
+    // a trophy match is on record from the start: closing the app counts as leaving, and a result is
+    // kept as soon as it is known (before its screen shows)
+    if (!cfg.friendly) {
+      SAVE.pending = { cfg, local: this.match.local };
+      saveGame();
+      this.match.onResult = (r) => { if (SAVE.pending) { SAVE.pending.result = r; saveGame(); } };
+    }
     this.last = 0;
     this.slowFrames = 0;
     this.frames = 0;
@@ -13195,6 +13247,7 @@ const Game = {
     const cfg = m.cfg;
     this.showPauseBtn(false);
     this.keepAwake(false);
+    if (!cfg.friendly) SAVE.pending = null; // applyResult saves
     const summary = cfg.friendly ? { friendly: true, outcome: outcomeOf(cfg, result, m.local), rank: rankOf(cfg, result, m.local) } : Meta.applyResult(cfg, result, m.local, Date.now());
     if (typeof Music !== 'undefined') Music.play('menu');
     if (m.onFinished) m.onFinished(result);
@@ -13218,14 +13271,26 @@ const Game = {
     this.showPauseBtn(false);
     this.keepAwake(false);
     if (typeof Music !== 'undefined') Music.play('menu');
-    // leaving an offline match early counts as a loss (as in the original)
-    if (!m.cfg.friendly && !m.sim.over) {
-      let r = { winner: m.cfg.mode === MODE.SHOWDOWN ? -1 : 1 - m.cfg.slots[m.local].team, rank: [], mvp: -1, stats: m.sim.brawlers.map((b) => Object.assign({}, b.st)) };
-      if (m.cfg.mode === MODE.SHOWDOWN) { r.rank = m.cfg.slots.map((s, i) => i).filter((i) => i !== m.local); r.rank.push(m.local); }
-      if (m.outT != null && m.earlyResult) r = m.earlyResult(); // already knocked out in Showdown: keep the placement
-      Meta.applyResult(m.cfg, r, m.local, Date.now());
+    // leaving a trophy match early counts as a loss (as in the original); a result already known (the
+    // match just ended, or a Showdown placement) counts as it is
+    const pend = SAVE.pending;
+    if (pend && !m.cfg.friendly) {
+      SAVE.pending = null;
+      if (!pend.result) pend.stats = m.sim.brawlers.map((b) => Object.assign({}, b.st));
+      this.settle(pend);
     }
     UI.showLobby();
+  },
+
+  // Applies a match that ended without its result screen: its known result, or an abandoned loss.
+  settle(p) {
+    try {
+      const cfg = p.cfg, local = p.local | 0;
+      if (p.result) { Meta.applyResult(cfg, p.result, local, Date.now()); return; }
+      const r = { winner: cfg.mode === MODE.SHOWDOWN ? -1 : 1 - cfg.slots[local].team, rank: [], mvp: -1, stats: p.stats || [] };
+      if (cfg.mode === MODE.SHOWDOWN) { r.rank = cfg.slots.map((s, i) => i).filter((i) => i !== local); r.rank.push(local); }
+      Meta.applyResult(cfg, r, local, Date.now(), { abandoned: true });
+    } catch (e) { saveGame(); }
   },
 
   showPauseBtn(on) { const b = $('pausebtn'); if (b) b.style.display = on ? 'block' : 'none'; },

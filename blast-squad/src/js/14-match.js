@@ -159,6 +159,7 @@ class Match {
       this.ended = true;
       this.endT = 0;
       Input.enabled = false;
+      if (this.onResult) this.onResult(sim.result); // known now, shown in a moment
       setTimeout(() => { if (this.onEnd) this.onEnd(sim.result); }, 1800);
     } else if (!this.ended && this.net === 'offline' && this.cfg.mode === MODE.SHOWDOWN) this.sdOut(dt);
   }
@@ -167,10 +168,16 @@ class Match {
   // placed behind everyone still standing, as in the original.
   sdOut(dt) {
     const me = this.sim.brawlers[this.local];
-    if (this.outT == null) { if (me.alive) return; this.outT = 0; }
+    if (this.outT == null) {
+      if (me.alive) return;
+      // the placement is fixed the moment the player falls (everyone still up, or down later, is ahead)
+      this.outT = 0;
+      this.outResult = this.earlyResult();
+      if (this.onResult) this.onResult(this.outResult);
+    }
     this.outT += dt * this.speed;
     if (this.outT < 2.5) return;
-    const r = this.earlyResult();
+    const r = this.outResult;
     this.ended = true;
     this.endT = 0;
     Input.enabled = false;
