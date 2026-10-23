@@ -61,6 +61,7 @@ class Bot {
     if (mind.outPin != null) { this.outPin = mind.outPin; mind.outPin = null; }
     if (mind.outEmote != null) { this.outEmote = mind.outEmote; mind.outEmote = null; }
     if (!me.alive) { this.mvM = 0; this.flickT0 = -9; this.aimKey = -2; this.telemetry_(P, 0); return IN_IDLE; }
+    if (P.frozen) { this.mvM = 0; this.flickT0 = -9; this.aimKey = -2; this.hist.length = 0; return IN_IDLE; } // thumbs off during the banner
     this.move(P);
     const shot = this.aim(P);
     this.telemetry_(P, shot.act);
@@ -103,9 +104,18 @@ class Bot {
         dx = this._fd.x; dy = this._fd.y;
         if (dx === 0 && dy === 0) { dx = I.gx - me.x; dy = I.gy - me.y; }
       } else {
-        // arrived: mostly stand, sometimes shuffle like an idle thumb
-        want = r.chance(0.04) ? 0.6 : 0;
-        if (want > 0) { const a = r.range(0, TAU); dx = Math.cos(a); dy = Math.sin(a); }
+        // arrived: with enemies on screen people keep shuffling sideways; otherwise mostly stand
+        // (but not out of a bush they're hiding in), staying around their spot
+        if (P.enemies.length && this.p.juke > 0.3 && !me.inBush && I.goal !== 'ambush') {
+          this.jukeT -= dt;
+          if (this.jukeT <= 0) { this.jukeDir = -this.jukeDir; this.jukeT = r.range(0.4, 1.3) / Math.max(0.3, p.juke); this.tel.jukeAt = this.t; }
+          const e = P.enemies[0], ed = Math.hypot(e.x - me.x, e.y - me.y) || 1;
+          dx = (-(e.y - me.y) / ed) * this.jukeDir + (I.gx - me.x) * 0.8; dy = ((e.x - me.x) / ed) * this.jukeDir + (I.gy - me.y) * 0.8;
+          want = 0.5;
+        } else {
+          want = r.chance(0.04) ? 0.6 : 0;
+          if (want > 0) { const a = r.range(0, TAU); dx = Math.cos(a); dy = Math.sin(a); }
+        }
       }
       // carrying gems or retreating: keep away from enemies on screen
       if (I.goal === 'retreat' || I.goal === 'carry') {
@@ -208,16 +218,16 @@ class Bot {
     const me = P.me, I = this.mind.intent, p = this.p, r = this.rng, t = this.t;
     const out = this._shot || (this._shot = { ang: 0, d: 1, act: 0, auto: 0 });
     out.act = 0; out.auto = 0;
-    const m = I.target >= 0 ? this.mind.mem[I.target] : null;
-    let spec = this.kit.atkF, act = 0, tx = 0, ty = 0, key = -1, has = false;
-    // what to point at
-    if (m && m.noticed && m.seen) { has = true; key = I.target; tx = m.x; ty = m.y; }
-    else if (I.bushShot) { has = true; key = 100; tx = I.bushShot.x; ty = I.bushShot.y; }
-    else if (P.ball && P.ball.holderSlot === me.slot && I.goal === 'dribble') {
+    const holding = P.ball && P.ball.holderSlot === me.slot;
+    const m = I.target >= 0 && !holding ? this.mind.mem[I.target] : null;
+    let spec = this.kit.atkF, act = 0, tx = 0, ty = 0, key = -1, has = false, range = 0;
+    // what to point at (with the ball: a teammate to pass to, or the goal; never a brawler)
+    if (holding) {
       const eg = P.map.goals.find((g) => g.team !== me.team);
-      if (eg) { has = true; key = 101; tx = (eg.x0 + eg.x1) / 2; ty = (eg.y0 + eg.y1) / 2; }
-    }
-    if (I.wantGadget && me.gadReady && this.kit.gadF.t !== 'none') { act = ACT.GADGET; spec = this.kit.gadF; } else if (I.wantSuper && me.supReady) { act = ACT.SUPER; spec = this.kit.supF; }
+      const ks = !I.passTo && eg ? this.kickSpot(P, eg) : null;
+      if (I.passTo) { has = true; key = 102; tx = I.passTo.x; ty = I.passTo.y; act = ACT.SUPER; range = Bot.PASS_RANGE; } else if (ks) { has = true; key = 101; tx = ks.x; ty = ks.y; range = Bot.KICK_RANGE; }
+    } else if (m && m.noticed && m.seen) { has = true; key = I.target; tx = m.x; ty = m.y; } else if (I.bushShot) { has = true; key = 100; tx = I.bushShot.x; ty = I.bushShot.y; }
+    if (holding) { if (I.wantGadget && me.gadReady && this.kit.gadF.t === 'buff') { act = ACT.GADGET; spec = this.kit.gadF; } } else if (I.wantGadget && me.gadReady && this.kit.gadF.t !== 'none') { act = ACT.GADGET; spec = this.kit.gadF; } else if (I.wantSuper && me.supReady) { act = ACT.SUPER; spec = this.kit.supF; }
     if (!has) {
       // nothing to shoot: aim drifts where you walk
       this.aimA = wrapAng(this.aimA + angDiff(this.aimA, this.mvA) * 0.1);
@@ -231,7 +241,7 @@ class Bot {
     let px = tx, py = ty;
     if (m && key === I.target) { px += m.vx * tf * p.lead; py += m.vy * tf * p.lead; }
     let ang = Math.atan2(py - me.y, px - me.x);
-    const mode = act === ACT.GADGET ? I.gadMode : act === ACT.SUPER ? I.superMode : 'target';
+    const mode = key >= 101 ? 'target' : act === ACT.GADGET ? I.gadMode : act === ACT.SUPER ? I.superMode : 'target';
     if (mode === 'away') ang = wrapAng(ang + Math.PI + r.range(-0.4, 0.4));
     // a new target or a big swing: flick there (with overshoot), else follow smoothly
     const goalAng = ang;
@@ -260,11 +270,14 @@ class Bot {
     } else this.aimA = this.to;
     const settled = k >= 1;
     out.ang = this.aimA;
-    const range = spec.range || this.kit.atkF.range || 1;
+    if (!range) range = spec.range || this.kit.atkF.range || 1;
     out.d = clamp(d / range, 0.05, 1);
     if (t < this.tapAt) return out;
-    // decide to shoot
-    if (act === 0) {
+    // decide to shoot (a kick: in range, with a clear line to the goal mouth)
+    if (act === 0 && key === 101) {
+      if (d > range * lerp(0.75, 1, p.discipline) || !shotClear(P.map, me.x, me.y, tx, ty)) return out;
+      act = ACT.ATTACK;
+    } else if (act === 0) {
       const atk = this.kit.atkF;
       if (me.ammo < 1) return out;
       const reach = atk.range * lerp(1.15, 0.98, p.discipline);
@@ -273,12 +286,35 @@ class Bot {
       act = ACT.ATTACK;
     }
     // auto-aim taps skip the flick (and aim at the target's current spot, chosen by the sim)
-    const auto = act === ACT.ATTACK && key < 100 && r.chance(p.autoAim);
+    const auto = act === ACT.ATTACK && (key < 100 || key === 101) && r.chance(p.autoAim);
     if (!settled && !auto) return out;
     out.act = act;
     out.auto = auto ? 1 : 0;
     this.fired(act, auto);
     return out;
+  }
+
+  // A point in the goal mouth with an open lane: no wall, and no enemy I know of standing in the way
+  // (a kick into a defender is just a gift). Centre first, then the posts.
+  kickSpot(P, g) {
+    const me = P.me, gy = (g.y0 + g.y1) / 2, foes = this.mind.known(true);
+    for (const gx of [(g.x0 + g.x1) / 2, g.x0 + 0.7, g.x1 - 0.7]) {
+      if (!shotClear(P.map, me.x, me.y, gx, gy)) continue;
+      const dx = gx - me.x, dy = gy - me.y, L2 = dx * dx + dy * dy || 1;
+      let open = true;
+      for (const f of foes) {
+        const k = ((f.x - me.x) * dx + (f.y - me.y) * dy) / L2;
+        if (k < 0.05 || k > 1) continue;
+        const px = me.x + dx * k - f.x, py = me.y + dy * k - f.y;
+        if (px * px + py * py < 0.85) { open = false; break; }
+      }
+      if (open) {
+        const o = this._ks || (this._ks = { x: 0, y: 0 });
+        o.x = gx; o.y = gy;
+        return o;
+      }
+    }
+    return null;
   }
 
   fired(act, auto) {
@@ -289,6 +325,7 @@ class Bot {
     if (act === ACT.ATTACK) { T.fires++; if (auto) T.autoTaps++; } else if (act === ACT.SUPER) { T.supers++; if (T.supReadyT >= 0) { T.supDelay.push(this.t - T.supReadyT); T.supReadyT = -1; } } else if (act === ACT.GADGET) T.gadgets++;
     if (act === ACT.SUPER) this.mind.intent.wantSuper = false;
     if (act === ACT.GADGET) this.mind.intent.wantGadget = false;
+    if (act === ACT.SUPER) this.mind.intent.passTo = null;
   }
 
   // ---- telemetry (and getting unstuck) ----
@@ -331,6 +368,9 @@ class Bot {
 
 // Measures one player (bot or human) from the sim and its events, the same way for both, so bot
 // behaviour can be compared with real play (window.__BS.telemetry()).
+Bot.KICK_RANGE = 9; // a kicked ball rolls about 10 tiles (MODES.ball.kickSpd)
+Bot.PASS_RANGE = 8; // MODES.ball.passRange
+
 class Telemetry {
   constructor(sim, slot) {
     this.sim = sim; this.slot = slot;
@@ -344,7 +384,7 @@ class Telemetry {
   tick(evs) {
     const sim = this.sim, b = sim.brawlers[this.slot], t = sim.t;
     this.t = t;
-    if (b.alive) {
+    if (b.alive && !(sim.freezeT > 0)) { // a frozen world (goal, round end) isn't play time
       this.alive++;
       const w = sim.inputs[this.slot];
       const I = unpackIn(w, this._in);

@@ -818,8 +818,164 @@ function report() {
   }
 }
 
+
+// ---------------------------------------------------------------- 1b. maps and mode rules
+function modeRules() {
+  section('Maps');
+  for (const key of Object.keys(A.MAPS)) {
+    if (key.startsWith('zz_')) continue;
+    const m = A.parseMap(key), modes = A.MAPS[key].modes;
+    const team = m.spawns.length === 2;
+    if (team) {
+      check(m.spawns[0].length === 3 && m.spawns[1].length === 3, `${key}: 3 spawns per team`);
+      // mirrored top to bottom, so both sides are the same map
+      const mir = m.spawns[1].map((p) => `${p.x},${m.h - p.y}`).sort().join(' '), own = m.spawns[0].map((p) => `${p.x},${p.y}`).sort().join(' ');
+      check(mir === own, `${key}: team spawns mirror each other`);
+    } else check(m.spawns[0].length >= 10, `${key}: at least 10 Showdown spawns (${m.spawns[0].length})`);
+    if (modes.includes('gem')) check(!!m.mine, `${key}: a gem mine`);
+    if (modes.includes('ball')) check(m.goals.length === 2 && !!m.obj, `${key}: two goals and a ball spot`);
+    if (modes.includes('bounty')) check(!!m.obj, `${key}: a centre star spot`);
+    const all = m.spawns.flat();
+    const d = A.flowField(m, [all[0]]);
+    const at = (x, y) => d[Math.floor(y) * m.w + Math.floor(x)];
+    const targets = all.slice(1).concat(m.obj ? [m.obj] : [], m.goals.map((g) => ({ x: (g.x0 + g.x1) / 2, y: (g.y0 + g.y1) / 2 })));
+    check(targets.every((p) => Number.isFinite(at(p.x, p.y))), `${key}: every spawn and objective can be walked to`);
+    if (m.mine) check([[-1, 0], [1, 0], [0, -1], [0, 1]].some(([dx, dy]) => Number.isFinite(at(m.mine.x + dx, m.mine.y + dy))), `${key}: the gem mine can be reached`);
+    let open = 0, reach = 0;
+    for (let i = 0; i < m.w * m.h; i++) if (!(A.flagsAt(m, (i % m.w) + 0.5, Math.floor(i / m.w) + 0.5) & A.TF_MOVE)) { open++; if (Number.isFinite(d[i])) reach++; }
+    check(open === reach, `${key}: no walled-off pockets (${open - reach} unreachable tiles)`);
+    console.log(`  ${key.padEnd(14)} ${m.w}x${m.h} ${modes.join(',')} spawns ${all.length}`);
+  }
+  for (const mode of ['gem', 'sd', 'ball', 'ko', 'bounty']) check(Object.keys(A.MAPS).filter((k) => A.MAPS[k].modes.includes(mode)).length >= 2, `${mode}: at least two maps`);
+
+  const kill = (sim, v, k) => { v.killer = k ? k.slot : -1; v.hp = 0; v.shieldT = 0; };
+
+  section('Showdown rules');
+  {
+    const sim = mkSim('sd', 'skull_creek', KEYS.slice(0, 10), { teams: KEYS.slice(0, 10).map((_, i) => i) });
+    const B = sim.brawlers;
+    check(new Set(B.map((b) => `${b.x},${b.y}`)).size === 10, 'ten different spawn points');
+    check(sim.hud().mode === 'sd' && sim.hud().alive === 10 && sim.poison, 'HUD: 10 alive, poison rect');
+    sim.addCube(B[3]); sim.addCube(B[3]);
+    drain(sim);
+    kill(sim, B[3], B[4]);
+    let ev = stepN(sim, 1);
+    check(!B[3].alive && B[3].respawnT < 0 && sim.pickups.filter((p) => p.pick === PICK.CUBE).length === 2, 'no respawn; a fallen brawler drops their cubes');
+    check(B[4].st.kills === 1 && evs(ev, EV.KILL).length === 1, 'the takedown is credited');
+    const order = [];
+    for (const b of B) if (b.slot !== 3 && b.slot !== 7) { kill(sim, b, null); stepN(sim, 1); order.push(b.slot); }
+    check(sim.over && sim.result.reason === 'last' && sim.result.winner === B[7].team, `the last one standing wins (${sim.result && sim.result.reason})`);
+    check(sim.result.rank[0] === 7 && sim.result.rank[1] === order[order.length - 1] && sim.result.rank[9] === 3, `placement: survivor, then last one down first (${sim.result.rank})`);
+    const s2 = mkSim('sd', 'cavern_ring', KEYS.slice(0, 10), { teams: KEYS.slice(0, 10).map((_, i) => i), seed: 3 });
+    stepN(s2, Math.round(40 / SIM_DT));
+    check(s2.poison.k > 0 && s2.poisonStage >= 1, 'the poison starts closing after 30 s');
+  }
+
+  section('Blast Ball rules');
+  {
+    const sim = mkSim('ball', 'pinball_pitch', KEYS.slice(0, 6));
+    const m = sim.map, ball = sim.ball, B = sim.brawlers;
+    check(ball && Math.abs(ball.x - m.obj.x) < 1e-9 && Math.abs(ball.y - m.obj.y) < 1e-9, 'the ball starts on its spot');
+    let h = sim.hud();
+    check(h.mode === 'ball' && h.goals[0] === 0 && !h.ot && Math.abs(h.time - 150) < 0.1, 'HUD: 0-0, 2:30 on the clock');
+    // pick up, then a tap kicks at the enemy goal (team 1 defends the top)
+    const b = B[0];
+    for (const o of B) if (o !== b) place(sim, o, 2.5, o.team ? 3.5 : 29.5);
+    place(sim, b, ball.x + 0.3, ball.y + 0.2);
+    stepN(sim, 2);
+    check(ball.holder === 0, 'touching the ball picks it up');
+    ready(b);
+    let ev = stepN(sim, 1, (i) => (i === 0 ? A.packIn(0, 0, 0, 1, ACT.ATTACK, 1) : 0));
+    check(ball.holder < 0 && ball.vy < -5 && evs(ev, EV.FIRE).length === 0 && evs(ev, EV.BALL).some((e) => e[1] === 2), `holding the ball, attack kicks it (towards the top goal) instead of shooting (vy ${ball.vy.toFixed(1)})`);
+    // a goal: the ball in team 1's goal mouth scores for team 0, credited to the kicker
+    ball.x = 10.5; ball.y = 0.6; ball.vx = ball.vy = 0; ball.kicker = 0; ball.holder = -1;
+    ev = stepN(sim, 1);
+    check(sim.ms.goals[0] === 1 && evs(ev, EV.GOAL).some((e) => e[1] === 0 && e[2] === 0) && b.st.goals === 1, 'a ball in the goal scores for the attackers');
+    check(sim.freezeT > 0, 'the world freezes for the celebration');
+    const bx = b.x, by = b.y;
+    stepN(sim, 30, (i) => A.packIn(0, 1, 0, 1, ACT.ATTACK, 0));
+    check(b.x === bx && b.y === by && sim.ms.goals[0] === 1, 'nothing moves (or scores again) while frozen');
+    ev = stepN(sim, Math.round(2.6 / SIM_DT));
+    check(sim.freezeT === 0 && Math.abs(ball.x - m.obj.x) < 1e-9 && ball.holder < 0 && evs(ev, EV.RESPAWN).length === 6, 'after the celebration, the ball and everyone go back to the start');
+    // an own goal: team 1 knocks it into its own goal; no credit
+    ball.x = 10.5; ball.y = 0.6; ball.kicker = 3; ball.holder = -1; ball.vx = ball.vy = 0;
+    ev = stepN(sim, 1);
+    check(sim.over && sim.result.winner === 0 && sim.result.reason === 'goals' && B[3].st.goals === 0 && evs(ev, EV.GOAL).some((e) => e[2] === -1), 'second goal wins; an own goal counts for the other team without credit');
+    // a lobbed pass flies over walls
+    const s2 = mkSim('ball', 'center_kick', KEYS.slice(0, 6));
+    const c = s2.brawlers[0];
+    for (const o of s2.brawlers) place(s2, o, 0.5 + o.slot, 31.5);
+    place(s2, c, 10.5, 13.5);
+    s2.kickBall(c, Math.PI / 2, 6, 9, 3);
+    for (let k = 0; k < 75; k++) s2.stepBall();
+    check(s2.ball.y > 17.5 && !(A.flagsAt(s2.map, s2.ball.x, s2.ball.y) & A.TF_MOVE), `a lobbed pass clears the wall rows (lands at y ${s2.ball.y.toFixed(1)})`);
+    // tied at the end: sudden-death overtime with the breakable walls gone, then a draw
+    const s3 = mkSim('ball', 'center_kick', KEYS.slice(0, 6));
+    s3.playT = 150 - SIM_DT / 2;
+    stepN(s3, 2);
+    check(s3.ms.ot && s3.hud().ot && !tiles(s3.map, (t) => t === TILE.WALL).length && !s3.over, 'tied after 2:30: overtime, walls removed');
+    s3.playT = 210 - SIM_DT / 2;
+    stepN(s3, 2);
+    check(s3.over && s3.result.winner === -1, 'still tied after overtime: a draw');
+  }
+
+  section('Knockout rules');
+  {
+    const sim = mkSim('ko', 'canyon_cross', KEYS.slice(0, 6));
+    const B = sim.brawlers, m = sim.map;
+    const w = tiles(m, (t) => t === TILE.WALL)[0];
+    sim.breakTile(w.ti, 0, 2);
+    let h = sim.hud();
+    check(h.mode === 'ko' && h.round === 1 && h.rounds[0] === 0, 'HUD: round 1, 0-0');
+    for (const b of B) if (b.team === 1) kill(sim, b, B[0]);
+    let ev = stepN(sim, 1);
+    check(evs(ev, EV.ROUND).some((e) => e[1] === 0 && e[2] === 1) && sim.ms.rounds[0] === 1 && sim.freezeT > 0 && !sim.over, 'a wiped team loses the round; the world freezes');
+    check(B.filter((b) => b.team === 1).every((b) => !b.alive && b.respawnT < 0), 'no respawns in Knockout');
+    stepN(sim, Math.round(3.1 / SIM_DT));
+    check(B.every((b) => b.alive && b.hp === b.maxHp) && m.tiles[w.ti] === TILE.WALL && sim.hud().round === 2, 'next round: everyone back, the map restored');
+    // a double knockout is a drawn round
+    for (const b of B) kill(sim, b, null);
+    ev = stepN(sim, 1);
+    check(evs(ev, EV.ROUND).some((e) => e[1] === -1) && sim.ms.rounds[0] === 1 && sim.ms.rounds[1] === 0, 'everyone down at once: a drawn round');
+    stepN(sim, Math.round(3.1 / SIM_DT));
+    // the round cap: more brawlers standing wins
+    kill(sim, B[4], B[0]);
+    stepN(sim, 1);
+    sim.roundT0 = sim.t - 120;
+    stepN(sim, 1);
+    check(sim.over && sim.result.winner === 0 && sim.result.reason === 'rounds' && sim.result.score[0] === 2, `at the round cap the team with more standing wins; 2 rounds win the match (${JSON.stringify(sim.result && sim.result.score)})`);
+    const s2 = mkSim('ko', 'dry_gulch', KEYS.slice(0, 6));
+    stepN(s2, Math.round(50 / SIM_DT), (i) => 0);
+    check(s2.poison.k > 0 && s2.hud().poison, 'the poison closes in after 45 s of a round');
+  }
+
+  section('Bounty rules');
+  {
+    const sim = mkSim('bounty', 'snake_meadow', KEYS.slice(0, 6));
+    const B = sim.brawlers, m = sim.map;
+    check(B.every((b) => b.bounty === 2) && sim.pickups.some((p) => p.pick === PICK.STAR), 'everyone starts with 2 stars; a star waits in the middle');
+    kill(sim, B[3], B[0]);
+    stepN(sim, 1);
+    check(sim.ms.stars[0] === 2 && B[0].bounty === 3 && B[3].bounty === 2 && B[0].st.stars === 2, 'a takedown scores the victim\'s stars and raises the bounty');
+    for (let k = 0; k < 6; k++) { stepN(sim, Math.round(3.2 / SIM_DT)); kill(sim, B[4], B[0]); stepN(sim, 1); }
+    check(B[0].bounty === 7 && sim.ms.stars[0] === 14, `the bounty stops at 7 (${B[0].bounty}, stars ${sim.ms.stars[0]})`);
+    kill(sim, B[0], B[5]);
+    stepN(sim, 1);
+    check(sim.ms.stars[1] === 7 && B[0].bounty === 2, 'taking down a 7-star brawler scores 7');
+    stepN(sim, Math.round(3.2 / SIM_DT));
+    place(sim, B[1], m.obj.x, m.obj.y);
+    stepN(sim, 12);
+    check(sim.ms.stars[0] === 15 && !sim.pickups.some((p) => p.pick === PICK.STAR), 'the centre star is worth 1');
+    check(Math.abs(sim.hud().time - (120 - sim.playT)) < 1e-6, 'HUD clock counts down from 2:00');
+    sim.playT = 120 - SIM_DT / 2;
+    stepN(sim, 1);
+    check(sim.over && sim.result.winner === 0 && sim.result.reason === 'stars', 'most stars after 2:00 wins');
+  }
+}
+
 const T0 = Date.now();
 unitTests();
+modeRules();
 matches();
 determinism();
 report();

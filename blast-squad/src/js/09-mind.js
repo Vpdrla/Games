@@ -216,7 +216,19 @@ class Mind {
       if (me.ammo < 1 && !atk.melee) f -= 0.18;
       if (d > atk.range * 1.8) f -= 0.15;
       if (t < this.bias.attack) f += 0.2;
-      add('fight', f, target.x, target.y, target, 1 + p.aggr * 0.3 + tilt * 0.3);
+      if (sd) {
+        // Showdown: a fight now invites a third party; most players farm cubes first and pick
+        // fights they can win, more so as the poison squeezes everyone together
+        const k = P.poison ? P.poison.k : 0, weak = target.hp / target.maxHp < 0.45, close = d < atk.range;
+        f -= (weak || close ? 0.05 : 0.32) * (1 - k) + Math.max(0, visible.length - 1) * 0.09;
+        f += (me.cubes - (target.cubes || 0)) * 0.05;
+      }
+      if (P.mode === MODE.KNOCKOUT) {
+        // no respawns: don't take a fight you're likely to lose, and poke rather than charge
+        const al = (P.hud && P.hud.alive) || [3, 3], mine = al[me.team], theirs = al[1 - me.team];
+        f -= 0.12 + Math.max(0, theirs - mine) * 0.18 - Math.max(0, mine - theirs) * 0.1;
+      }
+      add('fight', f, target.x, target.y, target, (1 + p.aggr * 0.3 + tilt * 0.3) * (P.mode === MODE.KNOCKOUT ? 0.85 : 1));
     }
     // retreat to heal
     const rhp = p.retreatHP * (1 - tilt * 0.4);
@@ -281,7 +293,9 @@ class Mind {
     if (P.mode === MODE.SHOWDOWN) {
       const pz = P.poison;
       const cx = pz ? (pz.x0 + pz.x1) / 2 : m.w / 2, cy = pz ? (pz.y0 + pz.y1) / 2 : m.h / 2;
-      if (!this._roam || P.t > this._roamT) { this._roam = { x: lerp(me.x, cx, 0.35) + this.rng.range(-4, 4), y: lerp(me.y, cy, 0.35) + this.rng.range(-4, 4) }; this._roamT = P.t + this.rng.range(4, 9); }
+      // roam near where you are early on; drift inwards as the poison closes
+      const k = pz ? pz.k : 0, pull = 0.12 + 0.6 * k;
+      if (!this._roam || P.t > this._roamT) { this._roam = { x: lerp(me.x, cx, pull) + this.rng.range(-4, 4), y: lerp(me.y, cy, pull) + this.rng.range(-4, 4) }; this._roamT = P.t + this.rng.range(4, 9); }
       return this._roam;
     }
     const lane = [0.22, 0.5, 0.78][(this.slot % 3)];
@@ -289,7 +303,15 @@ class Mind {
     let depth = role === 'sharp' || role === 'thrower' ? 0.55 : role === 'support' ? 0.62 : role === 'tank' || role === 'assassin' ? 0.86 : 0.74;
     depth += (this.p.aggr - 0.5) * 0.2;
     if (P.t < this.bias.defend) depth -= 0.25;
-    const x = lerp(m.w * lane, mid.x, 0.25), y = lerp(B.y, mid.y, depth);
+    // Knockout: nobody can wait forever; as a round goes on, everyone creeps forward
+    if (P.mode === MODE.KNOCKOUT && P.hud) depth += Math.min(0.3, Math.max(0, 120 - P.hud.time) / 45 * 0.3);
+    // nobody holds a spot perfectly still: drift a little around it every few seconds
+    if (!this._hOff || P.t > this._hOffT) {
+      const R = 1 + 1.6 * (1 - this.p.patience);
+      this._hOff = { x: this.rng.range(-R, R), y: this.rng.range(-R, R) * 0.6 };
+      this._hOffT = P.t + this.rng.range(1.3, 3.2);
+    }
+    const x = lerp(m.w * lane, mid.x, 0.25) + this._hOff.x, y = lerp(B.y, mid.y, depth) + this._hOff.y;
     return { x: clamp(x, 1, m.w - 1), y: clamp(y, 1, m.h - 1) };
   }
 
@@ -337,8 +359,24 @@ class Mind {
       const ball = P.ball, enemyGoal = map.goals.find((g) => g.team !== me.team), ownGoal = map.goals.find((g) => g.team === me.team);
       const eg = enemyGoal ? { x: (enemyGoal.x0 + enemyGoal.x1) / 2, y: (enemyGoal.y0 + enemyGoal.y1) / 2 } : { x: map.w / 2, y: me.team === 0 ? 0 : map.h };
       const og = ownGoal ? { x: (ownGoal.x0 + ownGoal.x1) / 2, y: (ownGoal.y0 + ownGoal.y1) / 2 } : this.base(P);
-      if (ball.holderSlot === me.slot) add('dribble', 1.2, eg.x, eg.y, null, 1.2);
-      else if (ball.holderSlot < 0) {
+      const I = this.intent;
+      if (ball.holderSlot !== me.slot) I.passTo = null;
+      if (ball.holderSlot === me.slot) {
+        add('dribble', 1.6, eg.x, eg.y, null, 1.2);
+        // pressed by an enemy: pass to a teammate further up who is in the open (if I think of it)
+        const dGoal = Math.hypot(eg.x - me.x, eg.y - me.y);
+        const press = this.known(true).filter((q) => Math.hypot(q.x - me.x, q.y - me.y) < 3.2).length;
+        if (!I.passTo && press && dGoal > Bot.KICK_RANGE * 0.8 && r.chance(0.2 + p.teamwork * 0.45)) {
+          let best = null, bs = 2;
+          for (const a of P.allies) {
+            if (!a.alive) continue;
+            const da = Math.hypot(a.x - me.x, a.y - me.y), gain = dGoal - Math.hypot(eg.x - a.x, eg.y - a.y);
+            const open = !this.known(true).some((q) => Math.hypot(q.x - a.x, q.y - a.y) < 2.2);
+            if (da > 2.5 && da < Bot.PASS_RANGE + 0.5 && open && gain > bs) { bs = gain; best = a; }
+          }
+          if (best) I.passTo = { x: best.x, y: best.y };
+        }
+      } else if (ball.holderSlot < 0) {
         const dMe = Math.hypot(ball.x - me.x, ball.y - me.y);
         const closer = P.allies.filter((a) => a.alive && Math.hypot(ball.x - a.x, ball.y - a.y) < dMe - 0.5).length;
         add('ball', (closer === 0 ? 0.95 : 0.45) + p.greed * 0.1, ball.x, ball.y, null, 1.1);
@@ -355,8 +393,9 @@ class Mind {
         for (const q of cubes) { const d = Math.hypot(q.x - me.x, q.y - me.y); if (d < cd) { cd = d; c = q; } }
         add('collect', 0.62 + p.greed * 0.3 - danger * 0.2, c.x, c.y, null, 0.8);
       }
-      const box = this.nearestBox(P, 9);
-      if (box && !target) add('box', 0.45 + p.greed * 0.25, box.x, box.y, null, 0.9);
+      const box = this.nearestBox(P, 10);
+      const td = target ? Math.hypot(target.x - me.x, target.y - me.y) : 99;
+      if (box && td > kit.atkF.range + 1.5) add('box', 0.5 + p.greed * 0.25 - (target ? 0.12 : 0), box.x, box.y, null, 0.9);
     } else if (P.mode === MODE.BOUNTY) {
       if ((me.bounty || 0) >= 4) add('hold', 0.55 + (me.bounty || 0) * 0.05, lerp(hold.x, this.base(P).x, 0.4), lerp(hold.y, this.base(P).y, 0.4), null, 0.6);
       const star = P.pickups.find((q) => q.pick === PICK.STAR);

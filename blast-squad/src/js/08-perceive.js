@@ -13,7 +13,7 @@ function newPercept() {
     tick: 0, t: 0, mode: '', map: null, cam: { x0: 0, y0: 0, x1: 0, y1: 0, cx: 0, cy: 0 }, flip: false,
     me: { slot: 0, team: 0, bk: '', x: 0, y: 0, hp: 0, maxHp: 1, ammo: 0, sup: 0, supReady: false, gadLeft: 0, gadReady: false, carry: 0, cubes: 0, alive: false, respawnT: 0, inBush: false, invis: false, stunned: false, face: 0, lvl: 1, shield: false },
     allies: [], enemies: [], shots: [], areas: [], pickups: [], deploys: [], cues: [], pins: [],
-    ball: null, hud: null, poison: null, nTeams: 2,
+    ball: null, hud: null, poison: null, nTeams: 2, frozen: false,
   };
 }
 
@@ -81,6 +81,7 @@ function perceive(sim, slot, P, rng) {
   } else P.ball = null;
   P.hud = sim.hud();
   P.poison = sim.poison;
+  P.frozen = sim.freezeT > 0; // the GOAL / ROUND banner is up: nothing moves
   // quick-chat pins from teammates (the last few seconds)
   P.pins.length = 0;
   if (sim.pins) for (const p of sim.pins) if (p.slot !== slot && B[p.slot].team === me.team) P.pins.push({ slot: p.slot, id: p.id, age: sim.t - p.t });

@@ -168,5 +168,48 @@ for (const [hi, lo, want] of [[0.88, 0.15, [0.65, 0.9]], [0.5, 0.15, [0.55, 0.85
   say(wr >= want[0] && wr <= want[1], `skill ${hi} vs ${lo}`, `wins ${pct(wr)} of ${games} decided (${want.map(pct).join('-')})`);
 }
 
+// ---- 5. every mode: bots play the objective, never get stuck, and matches feel the right length ----
+console.log('== Modes');
+{
+  const PER_MAP = +((argv.find((a) => a.startsWith('--per-map=')) || '--per-map=4').slice(10));
+  const sum = (a) => a.reduce((x, y) => x + y, 0);
+  for (const mode of ['gem', 'sd', 'ball', 'ko', 'bounty']) {
+    const maps = mapFor(mode), runs = [];
+    for (const map of maps) {
+      for (let g = 0; g < PER_MAP; g++) {
+        const size = A.MODE_INFO[mode].teams * A.MODE_INFO[mode].size, keys = [];
+        for (let i = 0; i < size; i++) keys.push(A.BRAWLER_KEYS[(g * 7 + i * 4 + map.length) % A.BRAWLER_KEYS.length]);
+        runs.push(play(mode, map, 9000 + g * 11 + map.length, new Array(size).fill(0.5), keys));
+      }
+    }
+    const n = runs.length, secs = runs.map((r) => r.secs).sort((a, b) => a - b), medSecs = secs[Math.floor(n / 2)];
+    const stuck = sum(runs.map((r) => sum(r.bots.map((b) => b.telemetry.stuck))));
+    const idle = sum(runs.map((r) => sum(r.tel.map((t) => t.idle)) / r.tel.length)) / n;
+    say(stuck === 0, `${mode}: stuck`, `${stuck} in ${n} matches`);
+    say(idle >= 0.03 && idle <= 0.12, `${mode}: idle while alive`, `${pct(idle)} (3-12%)`);
+    const by = (reason) => runs.filter((r) => r.result.reason === reason).length;
+    if (mode === 'gem') say(by('gems') / n >= 0.7, 'gem: won by gems', `${by('gems')}/${n}, median ${medSecs.toFixed(0)} s`);
+    if (mode === 'sd') {
+      say(by('last') / n >= 0.75, 'sd: one survivor at the end', `${by('last')}/${n}`);
+      say(medSecs >= 60 && medSecs <= 160, 'sd: match length', `median ${medSecs.toFixed(0)} s (60-160)`);
+    }
+    if (mode === 'ball') {
+      const scored = runs.filter((r) => r.result.score[0] + r.result.score[1] > 0).length, draws = runs.filter((r) => r.result.winner < 0).length;
+      say(scored / n >= 0.6, 'ball: goals get scored', `${scored}/${n} matches with a goal, ${by('goals')} won by 2 goals or a golden goal, ${draws} draws, median ${medSecs.toFixed(0)} s`);
+      say(draws / n <= 0.35, 'ball: few draws', `${draws}/${n}`);
+    }
+    if (mode === 'ko') {
+      const rl = sum(runs.map((r) => r.sim.playT / r.sim.ms.round)) / n;
+      say(by('rounds') === n, 'ko: decided by rounds', `${by('rounds')}/${n}`);
+      say(rl >= 20 && rl <= 70, 'ko: round length', `${rl.toFixed(0)} s per round (20-70)`);
+    }
+    if (mode === 'bounty') {
+      const stars = runs.map((r) => r.result.score[0] + r.result.score[1]), dec = runs.filter((r) => r.result.winner >= 0).length;
+      say(Math.min(...stars) >= 8, 'bounty: stars change hands', `${Math.min(...stars)}-${Math.max(...stars)} stars per match`);
+      say(dec / n >= 0.7, 'bounty: decided', `${dec}/${n} not drawn`);
+    }
+  }
+}
+
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll AI checks passed');
 process.exit(failures ? 1 : 0);

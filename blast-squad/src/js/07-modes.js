@@ -2,24 +2,16 @@
 // Each mode is a set of hooks the sim calls (see DESIGN.md "Modes"); its state lives in sim.ms.
 // ModeKit.make(key, hooks) fills in defaults, so a mode only writes what differs.
 //
-// Adding a mode (Showdown, Blast Ball, Knockout, Bounty come in a later wave) — what the sim offers:
+// What the sim offers modes:
 //   - spawns: ModeKit.spawnPoint picks map.spawns by team (3v3) or by slot / sim.ms.order (Showdown).
-//   - poison: set `poison: { start, shrink, minHalf, dmg }` on the mode. The sim keeps sim.poison
-//     (the safe rect), deals `dmg` per second outside it, emits EV.POISON, and measures time from
-//     sim.roundT0 (restarted by sim.resetRound()).
-//   - Showdown: map BOX tiles have sim.boxHp and drop PICK.CUBE pickups when destroyed; take them in
-//     onPickup with ModeKit.cube (sim.addCube adds CUBE_HP and CUBE_DMG). sim.deathOrder lists the
-//     slots in the order they went down; return `rank` (1st first) from checkEnd. canRespawn: false.
-//     Drop cubes on death with sim.dropPickups(PICK.CUBE, n, x, y).
-//   - Knockout: canRespawn false; when a team is wiped, EV.ROUND then sim.resetRound({ tiles }).
-//   - Blast Ball: sim.addBall(x, y) in init, sim.stepBall() in tick, onAction(sim, b, act, input)
-//     returning true when the holder kicks (sim.kickBall) instead of attacking. Goal rects are in
-//     map.goals; count b.st.goals and emit EV.GOAL.
-//   - Bounty: b.bounty (stars on the head), PICK.STAR pickups at map.obj, b.st.stars.
+//   - poison: `poison: { start, shrink, minHalf, dmg }`. The sim keeps sim.poison (the safe rect),
+//     deals `dmg` per second outside it, emits EV.POISON, and measures time from sim.roundT0
+//     (restarted by sim.resetRound()).
+//   - freeze: setting sim.freezeT stops the world (goal celebrations, between rounds); when it runs
+//     out the sim calls thaw(sim). Mode clocks use sim.playT, which doesn't run while frozen.
+//   - boxes: map BOX tiles have sim.boxHp and drop PICK.CUBE pickups (ModeKit.cube takes them).
 //   - every mode: hud(sim) returns the HUD object of DESIGN.md; checkEnd returns
 //     sim.makeResult(winner, reason, score, rank) or null.
-//   tools/sim-test.cjs registers a minimal Showdown-like mode ('zz_sd': poison, no respawn, cubes
-//   dropped on death, placement from sim.deathOrder) on a generated 44 x 44 map: a working sketch.
 
 const ModeKit = {
   base: {
@@ -143,6 +135,221 @@ const MODES = {
       const ms = sim.ms;
       // no visible clock in Gem Rush: time is the elapsed time
       return { mode: 'gem', time: sim.t, gems: [ms.gems[0], ms.gems[1]], count: ms.countTeam >= 0 ? Math.max(0, Math.ceil(ms.count - 1e-6)) : 0, countTeam: ms.countTeam };
+    },
+  }),
+
+  // Showdown (solo): 10 players, no respawns, power cubes from boxes and from the fallen, poison
+  // closing in from every side. Placement: the survivors first, then the fallen, last one down first.
+  sd: ModeKit.make(MODE.SHOWDOWN, {
+    poison: { start: 30, shrink: 100, minHalf: 0.5, dmg: 1000 },
+    cap: 300, // the poison covers everything long before this; a safety net
+
+    init(sim) {
+      // who starts at which spawn (a map may have more spawns than players: any of them)
+      const n = Math.max(sim.map.spawns[0].length, sim.brawlers.length), idx = [];
+      for (let i = 0; i < n; i++) idx.push(i);
+      sim.rng.shuffle(idx);
+      sim.ms = { order: sim.brawlers.map((b) => idx[b.slot]) };
+    },
+
+    canRespawn() { return false; },
+
+    onKill(sim, v) {
+      if (v.cubes > 0) sim.dropPickups(PICK.CUBE, v.cubes, v.x, v.y);
+    },
+
+    // Placement right now: the living by health (most first), then the fallen in reverse order.
+    rankNow(sim) {
+      const rank = sim.brawlers.filter((b) => b.alive).sort((a, c) => c.hp - a.hp || a.slot - c.slot).map((b) => b.slot);
+      for (let i = sim.deathOrder.length - 1; i >= 0; i--) if (!rank.includes(sim.deathOrder[i])) rank.push(sim.deathOrder[i]);
+      for (const b of sim.brawlers) if (!rank.includes(b.slot)) rank.push(b.slot);
+      return rank;
+    },
+
+    checkEnd(sim) {
+      let alive = 0;
+      for (const b of sim.brawlers) if (b.alive) alive++;
+      if (alive > 1 && sim.t < this.cap) return null;
+      const rank = this.rankNow(sim);
+      return sim.makeResult(sim.brawlers[rank[0]].team, alive === 1 ? 'last' : 'time', [0, 0], rank);
+    },
+
+    hud(sim) {
+      let n = 0;
+      for (const b of sim.brawlers) if (b.alive) n++;
+      return { mode: 'sd', time: sim.t, alive: n, poison: sim.poison };
+    },
+  }),
+
+  // Blast Ball: first to 2 goals. Holding the ball, attack kicks it (a tap kicks at the enemy goal)
+  // and super lobs a pass over walls; gadgets still work. After a goal the world freezes for the
+  // celebration, then everyone and the ball go back to the start. Tied at the end of the clock:
+  // sudden-death overtime with every breakable wall gone; still tied, a draw.
+  ball: ModeKit.make(MODE.BALL, {
+    len: 150,
+    otLen: 60,
+    goal: 2,
+    celebrate: 2.5,
+    kickSpd: 14, // rolls about 10 tiles
+    passRange: 8,
+
+    init(sim) {
+      const m = sim.map, o = m.obj || { x: m.w / 2, y: m.h / 2 };
+      sim.ms = { goals: [0, 0], ot: false };
+      sim.addBall(o.x, o.y);
+    },
+
+    goalCentre(sim, team) {
+      const g = sim.map.goals.find((q) => q.team === team);
+      return g ? { x: (g.x0 + g.x1) / 2, y: (g.y0 + g.y1) / 2 } : { x: sim.map.w / 2, y: team === 1 ? 0 : sim.map.h };
+    },
+
+    onAction(sim, b, act, I) {
+      const o = sim.ball;
+      if (!o || o.holder !== b.slot || (act !== ACT.ATTACK && act !== ACT.SUPER)) return false;
+      const eg = this.goalCentre(sim, 1 - b.team);
+      const ang = I.auto ? Math.atan2(eg.y - b.y, eg.x - b.x) : I.aimA;
+      if (act === ACT.ATTACK) sim.kickBall(b, ang, this.kickSpd, 0, 2);
+      else {
+        // a lob: about 0.85 s in the air, then a hop and a short roll (~1.55x the flight distance)
+        const d = (I.auto ? 0.85 : clamp(I.aimD, 0.15, 1)) * this.passRange;
+        sim.kickBall(b, ang, d / 1.55, 9, 3);
+      }
+      b.face = ang;
+      b.faceT = 0.25;
+      return true;
+    },
+
+    tick(sim) {
+      const ms = sim.ms, o = sim.ball;
+      sim.stepBall();
+      for (const g of sim.map.goals) {
+        if (o.x < g.x0 || o.x > g.x1 || o.y < g.y0 || o.y > g.y1) continue;
+        this.score(sim, 1 - g.team, o.holder >= 0 ? o.holder : o.kicker);
+        break;
+      }
+      if (!ms.ot && sim.playT >= this.len && ms.goals[0] === ms.goals[1]) {
+        ms.ot = true;
+        const m = sim.map;
+        for (let i = 0; i < m.tiles.length; i++) if (m.tiles[i] === TILE.WALL) sim.setTile(i, TILE.FLOOR);
+      }
+    },
+
+    score(sim, team, slot) {
+      const ms = sim.ms, o = sim.ball;
+      ms.goals[team]++;
+      const sc = slot >= 0 ? sim.brawlers[slot] : null;
+      const own = !sc || sc.team !== team; // an own goal: nobody gets the credit
+      if (!own) sc.st.goals++;
+      if (o.holder >= 0) sim.dropBall();
+      o.vx = o.vy = o.vz = 0;
+      sim.ev(EV.GOAL, team, own ? -1 : slot);
+      sim.freezeT = this.celebrate;
+    },
+
+    thaw(sim) { sim.resetRound({}); },
+
+    checkEnd(sim) {
+      const ms = sim.ms, g = ms.goals, lead = ModeKit.leader(g);
+      if (g[0] >= this.goal || g[1] >= this.goal) return sim.makeResult(lead, 'goals', g.slice());
+      if (ms.ot && lead >= 0) return sim.makeResult(lead, 'goals', g.slice());
+      if (!ms.ot && sim.playT >= this.len && lead >= 0) return sim.makeResult(lead, 'time', g.slice());
+      if (sim.playT >= this.len + this.otLen) return sim.makeResult(-1, 'time', g.slice());
+      return null;
+    },
+
+    hud(sim) {
+      const ms = sim.ms;
+      return { mode: 'ball', time: Math.max(0, (ms.ot ? this.len + this.otLen : this.len) - sim.playT), goals: [ms.goals[0], ms.goals[1]], ot: ms.ot };
+    },
+  }),
+
+  // Knockout: best of 3 rounds, no respawns. A round goes to the team that knocks out the other;
+  // poison closes in after 45 s. Between rounds the world freezes, then the map and everyone reset.
+  ko: ModeKit.make(MODE.KNOCKOUT, {
+    poison: { start: 45, shrink: 40, minHalf: 1, dmg: 1000 },
+    roundCap: 120, // the poison has won by then; a safety net decided by who is still standing
+    need: 2,
+    maxRounds: 5, // drawn rounds don't count
+    pause: 3,
+
+    init(sim) { sim.ms = { round: 1, rounds: [0, 0], alive: [0, 0] }; },
+    canRespawn() { return false; },
+
+    tick(sim) {
+      const a = sim.ms.alive;
+      a[0] = a[1] = 0;
+      for (const b of sim.brawlers) if (b.alive) a[b.team]++;
+    },
+
+    checkEnd(sim) {
+      const ms = sim.ms, a = [0, 0], hp = [0, 0];
+      for (const b of sim.brawlers) if (b.alive) { a[b.team]++; hp[b.team] += b.hp / b.maxHp; }
+      ms.alive[0] = a[0]; ms.alive[1] = a[1];
+      let w;
+      if (!a[0] && !a[1]) w = -1;
+      else if (!a[0]) w = 1;
+      else if (!a[1]) w = 0;
+      else if (sim.t - sim.roundT0 >= this.roundCap) w = a[0] !== a[1] ? (a[0] > a[1] ? 0 : 1) : hp[0] !== hp[1] ? (hp[0] > hp[1] ? 0 : 1) : -1;
+      else return null;
+      if (w >= 0) ms.rounds[w]++;
+      sim.ev(EV.ROUND, w, ms.round);
+      if (ms.rounds[0] >= this.need || ms.rounds[1] >= this.need || ms.round >= this.maxRounds) {
+        return sim.makeResult(ModeKit.leader(ms.rounds), 'rounds', ms.rounds.slice());
+      }
+      ms.round++;
+      sim.freezeT = this.pause;
+      return null;
+    },
+
+    thaw(sim) { sim.resetRound({ tiles: true }); },
+
+    hud(sim) {
+      const ms = sim.ms;
+      return { mode: 'ko', time: Math.max(0, this.roundCap - (sim.t - sim.roundT0)), round: ms.round, rounds: [ms.rounds[0], ms.rounds[1]], alive: [ms.alive[0], ms.alive[1]], poison: sim.poison && sim.poison.k > 0 ? sim.poison : null };
+    },
+  }),
+
+  // Bounty: everyone wears 2 stars, +1 per takedown (up to 7). Taking someone down scores their
+  // stars for your team and puts them back to 2. The centre star is worth 1. Most stars after
+  // 2 minutes wins.
+  bounty: ModeKit.make(MODE.BOUNTY, {
+    len: 120,
+    base: 2,
+    max: 7,
+
+    init(sim) {
+      sim.ms = { stars: [0, 0] };
+      for (const b of sim.brawlers) b.bounty = this.base;
+      const o = sim.map.obj;
+      if (o) sim.spawnPickup(PICK.STAR, 1, o.x, o.y, o.x, o.y);
+    },
+
+    onKill(sim, v, k) {
+      if (k) {
+        sim.ms.stars[k.team] += v.bounty;
+        k.st.stars += v.bounty;
+        k.bounty = Math.min(this.max, k.bounty + 1);
+      }
+      v.bounty = this.base;
+    },
+
+    onPickup(sim, b, p) {
+      if (p.pick !== PICK.STAR) return false;
+      sim.ms.stars[b.team] += p.n;
+      b.st.stars += p.n;
+      return true;
+    },
+
+    checkEnd(sim) {
+      if (sim.playT < this.len) return null;
+      const s = sim.ms.stars;
+      return sim.makeResult(ModeKit.leader(s), 'stars', s.slice());
+    },
+
+    hud(sim) {
+      const s = sim.ms.stars;
+      return { mode: 'bounty', time: Math.max(0, this.len - sim.playT), stars: [s[0], s[1]] };
     },
   }),
 
