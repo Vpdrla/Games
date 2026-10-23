@@ -31,6 +31,7 @@ const ModeKit = {
     onKill() {},
     onPickup(sim, b, p) { return ModeKit.cube(sim, b, p); },
     canRespawn() { return true; },
+    thaw() {}, // the sim's freeze (sim.freezeT) just ended
     checkEnd() { return null; },
     hud(sim) { return { mode: this.key, time: sim.t }; },
   },

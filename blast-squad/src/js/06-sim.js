@@ -19,6 +19,8 @@ class Sim {
     this.tick = 0;
     this.t = 0;
     this.roundT0 = 0; // the poison clock starts here (Knockout restarts it every round)
+    this.freezeT = 0; // > 0: the world stands still (goal celebration, between rounds)
+    this.playT = 0; // time spent playing (sim.t minus the frozen time): mode clocks use it
     this.events = [];
     this.over = false;
     this.result = null;
@@ -127,6 +129,13 @@ class Sim {
     this.tick++;
     this.t = this.tick * SIM_DT;
     const B = this.brawlers;
+    if (this.freezeT > 0) { // nothing moves; the mode's thaw() picks up from here
+      for (let i = 0; i < B.length; i++) { const b = B[i]; this.inputs[i] = 0; b.px = b.x; b.py = b.y; b.mvx = b.mvy = 0; }
+      this.freezeT -= SIM_DT;
+      if (this.freezeT <= 1e-9) { this.freezeT = 0; this.mode.thaw(this); this.updateVision(); }
+      return;
+    }
+    this.playT += SIM_DT;
     for (let i = 0; i < B.length; i++) this.applyInput(B[i]); // 1. inputs: move, then fire
     this.stepDeploys(); // 2
     this.stepShots(); // 3
@@ -1441,12 +1450,21 @@ class Sim {
     o.vz -= 22 * dt;
     o.z += o.vz * dt;
     if (o.z <= 0) { o.z = 0; o.vz = o.vz < -3 ? -o.vz * 0.35 : 0; }
-    // walls bounce it back (axis by axis); water and fences don't stop a rolling ball
+    // walls bounce it back (axis by axis), unless it flies high over them (a lobbed pass); the map
+    // edge always does. Water and fences don't stop a rolling ball.
+    const high = o.z > 0.9, wall = (x, y) => (high ? x < 0 || y < 0 || x >= m.w || y >= m.h : (flagsAt(m, x, y) & TF_SHOT) !== 0);
     const nx = o.x + o.vx * dt;
-    if (flagsAt(m, nx + sign(o.vx) * o.r, o.y) & TF_SHOT) o.vx = -o.vx * 0.6; else o.x = nx;
+    if (wall(nx + sign(o.vx) * o.r, o.y)) o.vx = -o.vx * 0.6; else o.x = nx;
     const ny = o.y + o.vy * dt;
-    if (flagsAt(m, o.x, ny + sign(o.vy) * o.r) & TF_SHOT) o.vy = -o.vy * 0.6; else o.y = ny;
-    if (o.z === 0) { const f = Math.max(0, 1 - 2.2 * dt); o.vx *= f; o.vy *= f; }
+    if (wall(o.x, ny + sign(o.vy) * o.r)) o.vy = -o.vy * 0.6; else o.y = ny;
+    if (o.z === 0) {
+      const f = Math.max(0, 1 - 2.2 * dt); o.vx *= f; o.vy *= f;
+      // landed on (or rolled to a stop on) something nobody can stand on: it pops out next to it
+      if ((flagsAt(m, o.x, o.y) & (TF_SHOT | TF_MOVE)) && ((flagsAt(m, o.x, o.y) & TF_SHOT) || o.vx * o.vx + o.vy * o.vy < 0.25)) {
+        this.freeSpot(o.x, o.y, o.r, this._o2);
+        o.x = this._o2.x; o.y = this._o2.y; o.vx *= 0.3; o.vy *= 0.3;
+      }
+    }
     if (o.z > 0.8) return;
     const B = this.brawlers;
     for (let j = 0; j < B.length; j++) {
