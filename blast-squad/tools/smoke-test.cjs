@@ -54,10 +54,13 @@ const ok = (m) => console.log('ok - ' + m);
   await page.evaluate(() => window.__BS.UI.showLobby());
 
   // ---- matches ----
-  const modes = modesArg ? modesArg.split(',') : ['gem'];
+  const modes = modesArg ? modesArg.split(',') : ['gem', 'sd', 'ball', 'ko', 'bounty'];
   for (const mode of modes) {
     const started = await page.evaluate((mode) => {
-      const ev = window.__BS.Meta.events(Date.now()).find((e) => e.mode === mode && e.ready);
+      const M = window.__BS.Meta, evs = M.events(Date.now());
+      // Knockout and Bounty share a rotating slot: play the one that is off rotation through its slot
+      let ev = evs.find((e) => e.mode === mode && e.ready);
+      if (!ev) { const slot = evs.find((e) => e.ready && (e.mode === 'ko' || e.mode === 'bounty')); if (slot && M.mapsFor(mode).length) ev = Object.assign({}, slot, { mode, map: M.mapsFor(mode)[0] }); }
       if (!ev) return false;
       window.__BS.Game.play(ev, window.__BS.save().sel);
       return true;
