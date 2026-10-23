@@ -178,8 +178,22 @@ sim.rng                        // RNG for gameplay randomness
 ```js
 { init(sim), spawnPoint(sim, b) -> {x, y}, tick(sim), onKill(sim, victim, killer /* brawler|null */),
   onPickup(sim, b, p) -> bool (true = picked), canRespawn(sim, b) -> bool, checkEnd(sim) -> result|null,
+  onAction(sim, b, act, input) -> bool (true = the mode used the press, no attack), thaw(sim),
   hud(sim) -> object, poison: sched|null }
 ```
+
+**Freeze.** A mode may set `sim.freezeT` (seconds). While it runs the world stands still: inputs are
+ignored and nothing moves. Goal celebrations and the pause between Knockout rounds use it. When it
+runs out, the sim calls `thaw(sim)`.
+
+`sim.playT` is the time spent playing, excluding frozen time. Mode clocks use it.
+
+| Mode | Rules |
+|---|---|
+| Showdown `sd` | 10 solo players with spawn order shuffled by `sim.rng`. No respawn. Boxes and fallen brawlers drop their power cubes. Poison `{start 30, shrink 100, minHalf 0.5}`. `rankNow(sim)` lists the living by health, then the fallen with the last one down first. |
+| Blast Ball `ball` | While holding the ball, attack kicks it (auto-aim kicks at the enemy goal) and super lobs a pass over walls. A ball entering a goal rect scores; own goals count, without credit. Each goal triggers a 2.5 s freeze, then `resetRound({})`. First to 2 wins. A 150 s clock; a tie goes to 60 s of sudden-death overtime with every breakable wall removed, then a draw. |
+| Knockout `ko` | No respawn. A wiped team loses the round: `EV.ROUND`, a 3 s freeze, then `resetRound({tiles: true})`. First to 2 rounds, at most 5. Poison after 45 s. At 120 s, the team with more brawlers standing (then more health) takes the round. |
+| Bounty `bounty` | Brawlers carry 2 to 7 stars (+1 per takedown). A takedown scores the victim's stars for the killer's team and resets the victim to 2. The centre star at `O` is worth 1. 120 s on `playT`. |
 
 Shape of `hud(sim)`:
 
@@ -191,7 +205,7 @@ Shape of `hud(sim)`:
 | Knockout | `{ mode:'ko', time, round, rounds:[a,b], alive:[a,b], poison: rect|null }` |
 | Bounty | `{ mode:'bounty', time, stars:[a,b] }` |
 
-`time` counts down where the mode has a clock.
+`time` counts down where the mode has a clock (Showdown and Gem Rush count up).
 
 ## Bot perception (08-perceive.js)
 
@@ -211,7 +225,9 @@ rectangle (`cameraRect`, which also drives the view) plus the HUD. Bots never to
   deploys: [{ team, dk, x, y, hp }],
   ball:    { x, y, holderSlot, holderTeam } | null,
   cues:    [{ x, y }],         // unseen enemy shots fired within 7 tiles, position jittered +-1.5 tiles
-  hud:     sim.hud() copy, poison rect when there is poison }
+  hud:     sim.hud() copy, poison rect when there is poison,
+  frozen:  bool,               // a goal / round banner is up and nothing moves (players see it too)
+  pins:    [{ slot, id, age }] }  // teammates' quick-chat pins
 ```
 
 Percepts carry **no velocities**. Bots estimate motion from successive sightings.

@@ -19,6 +19,7 @@
 //   Input.setFlip(flip)                team 1 sees the map turned 180 degrees: screen angles are
 //                                      rotated by PI before packing, so words carry world angles
 //   Input.setLocal(me, brawlerData)    local brawler entity (null when none) and its BRAWLERS entry
+//   Input.ball = bool                  the local brawler holds the ball (set by the match each tick)
 //   Input.setScreenToWorld(fn)         fn(sx, sy) -> {x, y} world tiles, for mouse aiming
 //   Input.word()                       the word for this tick (polls the pad; at most one action,
 //                                      and an action is sent once)
@@ -31,6 +32,7 @@ const Input = {
   canvas: null, W: 844, H: 390, dpr: 1, s: 1,
   safe: { l: 0, r: 0, t: 0, b: 0 },
   size: 1, opacity: 1, leftHanded: false, _lh: false,
+  ball: false, // the local brawler holds the ball (Blast Ball): attack kicks, super passes
   flip: false, me: null, data: null, s2w: null,
   _en: false, touchMode: false, device: 'mouse', tick: 0, anim: 0,
   // controls (centres and radii in CSS px, filled by layout)
@@ -456,7 +458,7 @@ const Input = {
     else this.queue(ACT.GADGET, 1, 0, 1);
   },
 
-  superReady() { return !this.me || !!this.me.supReady; },
+  superReady() { return !this.me || !!this.me.supReady || this.ball; }, // holding the ball, super passes
   hasGadget() {
     const me = this.me;
     if (!me) return !!(this.data && this.data.gadgets && this.data.gadgets.length);
@@ -651,13 +653,13 @@ const Input = {
   drawAimBtn(ctx, k, me, op) {
     const b = this.btn[k], a = this.st[k], s = this.s, R = this.R;
     const sup = k === 'sup';
-    const ready = sup ? !!(me ? me.supReady : false) : true;
+    const ready = sup ? !!(me ? me.supReady : false) || this.ball : true;
     const charge = sup ? (me ? clamp(me.sup || 0, 0, 1) : 0) : 1;
     const held = a.id !== null;
     const col = sup ? '#ffc21a' : '#ff5a3c';
     const pulse = 0.5 + 0.5 * Math.sin(this.anim * 6);
     // super-ready glow
-    if (sup && ready) {
+    if (sup && ready && !this.ball) {
       ctx.globalAlpha = op * (0.35 + 0.3 * pulse);
       circle(ctx, b.x, b.y, b.r * (1.3 + 0.08 * pulse));
       ctx.fillStyle = 'rgba(255,214,60,0.55)';
@@ -691,7 +693,7 @@ const Input = {
         ctx.moveTo(kx + c, ky - c); ctx.lineTo(kx - c, ky + c);
         ctx.stroke();
         outlineText(ctx, 'CANCEL', b.x, b.y - R - 10 * s, 12 * s, '#ff8a8a');
-      } else this.icon(ctx, k, kx, ky, b.r * 0.62, true);
+      } else this.icon(ctx, this.ball ? (sup ? 'pass' : 'ball') : k, kx, ky, b.r * 0.62, true);
       return;
     }
     // resting button
@@ -712,7 +714,7 @@ const Input = {
       ctx.stroke();
     }
     ctx.globalAlpha = op * (ready ? 1 : 0.55);
-    this.icon(ctx, k, b.x, b.y, b.r, ready);
+    this.icon(ctx, this.ball ? (sup ? 'pass' : 'ball') : k, b.x, b.y, b.r, ready);
   },
 
   drawGadget(ctx, me, op) {
@@ -883,11 +885,38 @@ const Input = {
     }
   },
 
-  // Button pictograms: crosshair (attack), skull (super), bolt (gadget), speech bubble (chat).
+  // Button pictograms: crosshair (attack), skull (super), bolt (gadget), speech bubble (chat); with
+  // the ball (Blast Ball), a ball (kick) and an arched arrow (pass).
   icon(ctx, k, x, y, r, lit) {
     const lw = Math.max(1.5, r * 0.11);
     ctx.lineWidth = lw;
-    if (k === 'atk') {
+    if (k === 'ball') {
+      ctx.fillStyle = '#ffffff';
+      circle(ctx, x, y, r * 0.48);
+      ctx.fill();
+      ctx.fillStyle = '#1b2236';
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + (i * TAU) / 5; ctx.lineTo(x + Math.cos(a) * r * 0.18, y + Math.sin(a) * r * 0.18); }
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#1b2236';
+      ctx.lineWidth = lw * 0.7;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + (i * TAU) / 5; ctx.moveTo(x + Math.cos(a) * r * 0.18, y + Math.sin(a) * r * 0.18); ctx.lineTo(x + Math.cos(a) * r * 0.46, y + Math.sin(a) * r * 0.46); }
+      ctx.stroke();
+    } else if (k === 'pass') {
+      ctx.strokeStyle = lit ? '#3a2400' : '#d8d8d8';
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.lineWidth = lw * 1.3;
+      ctx.beginPath();
+      ctx.arc(x, y + r * 0.3, r * 0.45, Math.PI * 1.08, Math.PI * 1.85);
+      ctx.stroke();
+      const ex = x + Math.cos(Math.PI * 1.85) * r * 0.45, ey = y + r * 0.3 + Math.sin(Math.PI * 1.85) * r * 0.45;
+      ctx.beginPath();
+      ctx.moveTo(ex + r * 0.2, ey + r * 0.02); ctx.lineTo(ex - r * 0.12, ey - r * 0.14); ctx.lineTo(ex - r * 0.02, ey + r * 0.2);
+      ctx.closePath();
+      ctx.fill();
+    } else if (k === 'atk') {
       ctx.strokeStyle = '#fff';
       circle(ctx, x, y, r * 0.36);
       ctx.stroke();

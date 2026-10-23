@@ -473,7 +473,11 @@ const UI = (() => {
       if (summary.roadReady) chips.push(`<span class="chip o" style="color:#ffd23f">Trophy Road reward ready!</span>`);
       if (summary.mvp) chips.push('<span class="chip o" style="color:#ffd23f">You were the star player!</span>');
     }
-    R.innerHTML = `<div class="res-h o ${cls}">${head}</div>
+    // the final score, your team first (gems, goals, rounds or stars)
+    const unit = { gem: 'gems', ball: 'goals', ko: 'rounds', bounty: 'stars' }[cfg.mode];
+    const sc = result.score || [0, 0], mine = me.team === 1 ? [sc[1], sc[0]] : sc;
+    const scoreLine = unit && cfg.mode !== MODE.SHOWDOWN ? `<div class="o" style="font-size:1.05em;margin-top:-.3em"><span style="color:#5ab4ff">${mine[0] | 0}</span> - <span style="color:#ff6a6a">${mine[1] | 0}</span> ${unit}</div>` : '';
+    R.innerHTML = `<div class="res-h o ${cls}">${head}</div>${scoreLine}
       <div class="res-rows">${rows}</div>
       <div class="chips">${chips.join('')}</div>
       <div style="display:flex;gap:.8em"><button class="btn dark o" id="rx">Exit</button>${summary.friendly ? '' : '<button class="btn y o" id="ra">Play again</button>'}</div>`;
