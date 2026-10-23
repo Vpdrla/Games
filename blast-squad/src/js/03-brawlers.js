@@ -46,7 +46,7 @@ const BRAWLERS = {
     hp: 3600, speed: 720, reload: 1.5,
     atk: {
       name: 'Scattershot', text: 'Fires 5 pellets in a cone. Brutal up close.',
-      t: 'shot', n: 5, spread: 0.52, dmg: 300, range: 7.67, spd: 11.3, r: 0.18, chg: 1 / 12,
+      t: 'shot', n: 5, spread: 0.52, dmg: 320, range: 7.67, spd: 11.3, r: 0.18, chg: 1 / 12,
     },
     sup: {
       name: 'Big Bang', text: 'A wide blast of 9 pellets that knocks enemies back and smashes walls.',
@@ -58,7 +58,7 @@ const BRAWLERS = {
   dax: {
     name: 'Dax', rarity: 'rare', role: 'sharp', color: '#d9a441',
     desc: 'A quick-draw gunslinger who melts anything in a straight line.',
-    hp: 2800, speed: 720, reload: 1.6,
+    hp: 3000, speed: 720, reload: 1.6,
     atk: {
       name: 'Six-Shooter', text: 'Fires 6 bullets in a fast line from both revolvers.',
       t: 'shot', n: 6, burst: 0.08, jit: 0.15, dmg: 360, range: 9, spd: 12.7, r: 0.14, chg: 1 / 12,
@@ -88,26 +88,26 @@ const BRAWLERS = {
   bramble: {
     name: 'Bramble', rarity: 'rare', role: 'fighter', color: '#8a5a3a',
     desc: 'A forest kid who never fights alone: her bear has her back.',
-    hp: 4000, speed: 720, reload: 1.1,
+    hp: 4000, speed: 720, reload: 1.25,
     atk: {
       name: 'Root Wave', text: 'A shockwave that pierces through every enemy in its path.',
-      t: 'shot', dmg: 920, range: 6.3, spd: 7.7, r: 0.5, pierce: true, chg: 1 / 3.5,
+      t: 'shot', dmg: 820, range: 6.3, spd: 7.7, r: 0.5, pierce: true, chg: 1 / 3.5,
     },
     sup: {
       name: 'Big Bruno', text: 'Summons Bruno the bear, who mauls nearby enemies.',
       t: 'deploy', unit: 'pet', dk: 'bramble.bear', range: 7, rad: 0.55, hp: 3400, dmg: 350, rate: 1.0, reach: 1.15,
-      spd: 2.9, aggro: 8, chg: 1 / 6, land: { r: 1.3, dmg: 800 },
+      spd: 2.9, aggro: 8, chg: 1 / 7, land: { r: 1.3, dmg: 800 },
     },
     gadgets: [{ name: 'Heavy Paws', text: "Bruno's next hit stuns for 1 second.", cd: 6, req: 'deploy', t: 'buff', what: 'petStun', v: 1.0 }],
-    stars: [{ name: 'Best Buddies', text: 'Bramble heals 500 whenever Bruno lands a hit.', pass: { petHeal: 500 } }],
+    stars: [{ name: 'Best Buddies', text: 'Bramble heals 430 whenever Bruno lands a hit.', pass: { petHeal: 430 } }],
   },
   pip: {
     name: 'Pip', rarity: 'rare', role: 'thrower', color: '#ff8a3d',
     desc: 'A cheerful demolition miner who lobs dynamite over walls.',
-    hp: 2800, speed: 720, reload: 1.7,
+    hp: 2800, speed: 720, reload: 1.55,
     atk: {
       name: 'Fuse Pair', text: 'Lobs 2 sticks of dynamite over walls.',
-      t: 'lob', n: 2, gap: 0.7, T: 0.95, range: 7, dmg: 1050, blast: 0.95, r: 0.18, chg: 1 / 6,
+      t: 'lob', n: 2, gap: 0.7, T: 0.95, range: 7, dmg: 1090, blast: 0.95, r: 0.18, chg: 1 / 6,
     },
     sup: {
       name: 'Big Barrel', text: 'A huge barrel bomb that knocks enemies back and blows up walls.',
@@ -119,17 +119,17 @@ const BRAWLERS = {
   melody: {
     name: 'Melody', rarity: 'rare', role: 'support', color: '#e45bb0',
     desc: 'A street musician whose songs hurt foes and mend friends.',
-    hp: 4000, speed: 720, reload: 1.4,
+    hp: 3600, speed: 720, reload: 1.55,
     atk: {
       name: 'Sonic Chord', text: 'A wide sound wave that pierces enemies.',
-      t: 'shot', dmg: 680, range: 7, spd: 8.7, r: 0.5, grow: 0.18, pierce: true, chg: 1 / 7,
+      t: 'shot', dmg: 650, range: 7, spd: 8.7, r: 0.5, grow: 0.16, pierce: true, chg: 1 / 8,
     },
     sup: {
       name: 'Encore', text: 'A huge wave that heals Melody and every ally it passes.',
       t: 'shot', dmg: 0, heal: 2100, hself: true, range: 9.7, spd: 9, r: 1.0, grow: 0.1, pierce: true,
     },
     gadgets: [{ name: 'Lullaby', text: 'Heals Melody and nearby allies for 1200.', cd: 7, t: 'pulse', r: 3.3, heal: 1200 }],
-    stars: [{ name: 'Harmony', text: 'Sonic Chord also heals allies it passes for 400.', patch: { atk: { heal: 400 } } }],
+    stars: [{ name: 'Harmony', text: 'Sonic Chord also heals allies it passes for 340.', patch: { atk: { heal: 340 } } }],
   },
   sizzle: {
     name: 'Sizzle', rarity: 'super', role: 'thrower', color: '#ff5a1f',
@@ -149,15 +149,15 @@ const BRAWLERS = {
   gizmo: {
     name: 'Gizmo', rarity: 'super', role: 'support', color: '#3fc3b5',
     desc: 'A young inventor whose sparks bounce and whose turret never sleeps.',
-    hp: 3000, speed: 720, reload: 1.5,
+    hp: 3300, speed: 720, reload: 1.5,
     atk: {
       name: 'Spark Orb', text: 'An orb that bounces on to 2 more nearby enemies.',
-      t: 'shot', dmg: 1000, range: 9, spd: 8.3, r: 0.25, bounce: { n: 2, r: 4.7 }, chg: 1 / 4,
+      t: 'shot', dmg: 920, range: 9, spd: 8.3, r: 0.25, bounce: { n: 2, r: 4.7 }, chg: 1 / 4,
     },
     sup: {
       name: 'Turret', text: 'Builds a turret that shoots the nearest enemy.',
-      t: 'deploy', unit: 'turret', dk: 'gizmo.turret', range: 4, rad: 0.5, hp: 3000, aggro: 8.7, rate: 0.4,
-      shot: { pk: 'gizmo.turret', dmg: 260, range: 8.7, spd: 11, r: 0.13 },
+      t: 'deploy', unit: 'turret', dk: 'gizmo.turret', range: 4, rad: 0.5, hp: 2700, aggro: 8.7, rate: 0.4,
+      shot: { pk: 'gizmo.turret', dmg: 225, range: 8.7, spd: 11, r: 0.13 },
     },
     gadgets: [{ name: 'Overclock', text: 'The turret fires twice as fast for 5 seconds.', cd: 7, req: 'deploy', t: 'buff', what: 'deployRate', v: 2, T: 5 }],
     stars: [{ name: 'Repair Kit', text: 'Spark Orb hits repair the turret for 400.', pass: { deployHeal: 400 } }],
@@ -165,11 +165,11 @@ const BRAWLERS = {
   volt: {
     name: 'Volt', rarity: 'super', role: 'control', color: '#ffd23f',
     desc: 'A storm chaser who zaps through crowds in an instant.',
-    hp: 3200, speed: 720, reload: 1.8,
+    hp: 3200, speed: 720, reload: 2.05,
     atk: {
       // no travel time to dodge, so it hits for less than a projectile of the same reload would
       name: 'Arc Beam', text: 'An instant beam that pierces every enemy in a line.',
-      t: 'beam', dmg: 820, range: 8, w: 0.28, pierce: true, chg: 1 / 4,
+      t: 'beam', dmg: 790, range: 8, w: 0.28, pierce: true, chg: 1 / 4,
     },
     sup: {
       name: 'Thunderhead', text: 'Calls a storm cloud that shocks and slows enemies under it.',
@@ -181,10 +181,10 @@ const BRAWLERS = {
   hawk: {
     name: 'Hawk', rarity: 'epic', role: 'sharp', color: '#7b6cf6',
     desc: 'An elegant sharpshooter: the further the target, the harder it hits.',
-    hp: 2600, speed: 720, reload: 2.3,
+    hp: 2750, speed: 720, reload: 2.3,
     atk: {
       name: 'Long Shot', text: 'A single bullet that deals more damage the further it flies.',
-      t: 'shot', dmg: 1680, ramp: [0.35, 1], range: 10, spd: 15, r: 0.14, chg: 1 / 3,
+      t: 'shot', dmg: 1740, ramp: [0.35, 1], range: 10, spd: 15, r: 0.14, chg: 1 / 3,
     },
     sup: {
       name: 'Pop-Up', text: 'Leaps away, dropping 4 grenades where she took off.',
@@ -200,7 +200,7 @@ const BRAWLERS = {
     hp: 3800, speed: 720, reload: 1.4,
     atk: {
       name: 'Snow Flurry', text: 'Throws 6 snowballs in a wide fan.',
-      t: 'shot', n: 6, spread: 0.7, dmg: 380, range: 8, spd: 9.7, r: 0.17, chg: 1 / 14,
+      t: 'shot', n: 6, spread: 0.7, dmg: 330, range: 8, spd: 9.7, r: 0.17, chg: 1 / 14,
     },
     sup: {
       name: 'Gale Wall', text: 'A wide gust that pushes enemies back.',
@@ -212,10 +212,10 @@ const BRAWLERS = {
   shade: {
     name: 'Shade', rarity: 'mythic', role: 'assassin', color: '#6b3fa0',
     desc: 'A gloomy undertaker who dashes in for the finishing blow.',
-    hp: 4200, speed: 820, reload: 2.4,
+    hp: 4350, speed: 820, reload: 2.05,
     atk: {
       name: 'Night Lunge', text: 'Dashes forward, striking every enemy in the way.',
-      t: 'dash', dist: 3, spd: 12, dmg: 1000, w: 0.5, chg: 1 / 4,
+      t: 'dash', dist: 3, spd: 12, dmg: 1030, w: 0.5, chg: 1 / 4,
     },
     sup: {
       name: 'Soul Swarm', text: 'A swarm of bats that pierces enemies and steals their health.',
@@ -227,10 +227,10 @@ const BRAWLERS = {
   zip: {
     name: 'Zip', rarity: 'mythic', role: 'fighter', color: '#ffcc33',
     desc: 'A hyperactive speedster who never stops moving or shooting.',
-    hp: 3300, speed: 820, reload: 1.0,
+    hp: 3100, speed: 820, reload: 1.1,
     atk: {
       name: 'Rapid Fire', text: 'Fires 4 fast bullets in a quick burst.',
-      t: 'shot', n: 4, burst: 0.05, jit: 0.1, dmg: 300, range: 8.7, spd: 13.3, r: 0.13, chg: 1 / 14,
+      t: 'shot', n: 4, burst: 0.05, jit: 0.1, dmg: 285, range: 8.7, spd: 13.3, r: 0.13, chg: 1 / 14,
     },
     sup: {
       name: 'Rush Hour', text: 'Zip and nearby allies move 50% faster for 4 seconds.',
@@ -245,7 +245,7 @@ const BRAWLERS = {
     hp: 3200, speed: 820, reload: 1.9,
     atk: {
       name: 'Spectral Blades', text: '4 blades in a fan. They hit harder up close.',
-      t: 'shot', n: 4, spread: 0.36, dmg: 480, ramp: [1, 0.45], range: 9.7, spd: 11.7, r: 0.14, chg: 1 / 11,
+      t: 'shot', n: 4, spread: 0.36, dmg: 520, ramp: [1, 0.45], range: 9.7, spd: 11.7, r: 0.14, chg: 1 / 11,
     },
     sup: {
       name: 'Fade', text: 'Turns invisible to enemies for 6 seconds. Attacking ends it.',
@@ -257,11 +257,11 @@ const BRAWLERS = {
   thorn: {
     name: 'Thorn', rarity: 'legend', role: 'sharp', color: '#6fcf3f',
     desc: 'A silent cactus whose needle balls burst into spikes.',
-    hp: 2600, speed: 720, reload: 2.0,
+    hp: 2750, speed: 720, reload: 1.75,
     atk: {
       name: 'Needle Ball', text: 'A cactus ball that bursts into 6 spikes when it stops.',
-      t: 'shot', dmg: 770, range: 7.67, spd: 8.3, r: 0.3, chg: 1 / 5,
-      split: { n: 6, dmg: 570, range: 2.7, spd: 9.7, r: 0.12, chg: 1 / 12, pk: 'thorn.spike' },
+      t: 'shot', dmg: 800, range: 7.67, spd: 8.3, r: 0.3, chg: 1 / 5,
+      split: { n: 6, dmg: 595, range: 2.7, spd: 9.7, r: 0.12, chg: 1 / 12, pk: 'thorn.spike' },
     },
     sup: {
       name: 'Briar Patch', text: 'Lobs a spike field that damages and slows enemies.',
