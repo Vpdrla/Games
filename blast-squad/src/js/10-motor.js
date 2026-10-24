@@ -150,11 +150,11 @@ class Bot {
       dx += -vy * sgn * 2.2; dy += vx * sgn * 2.2;
       this.tel.jukeAt = this.t;
     }
-    // step out of harmful zones
+    // step out of harmful zones (once noticed; they hurt as soon as your body touches them)
     for (const a of P.areas) {
-      if (!a.harm) continue;
+      if (!a.harm || !(this.t >= this.mind.areaMem.get(a.id))) continue;
       const ad = Math.hypot(me.x - a.x, me.y - a.y);
-      if (ad < a.r + 0.5) { dx += ((me.x - a.x) / (ad || 1)) * 1.5; dy += ((me.y - a.y) / (ad || 1)) * 1.5; }
+      if (ad < a.r + BRAWLER_R + 0.15) { dx += ((me.x - a.x) / (ad || 1)) * 1.5; dy += ((me.y - a.y) / (ad || 1)) * 1.5; }
     }
     // stuck against something: wiggle like a person would
     if (this.wiggleT > 0) { this.wiggleT -= dt; dx = Math.cos(this.wiggleA); dy = Math.sin(this.wiggleA); want = 1; }
@@ -234,8 +234,12 @@ class Bot {
       const eg = P.map.goals.find((g) => g.team !== me.team);
       const ks = !I.passTo && !I.clearTo && eg ? this.kickSpot(P, eg) : null;
       if (I.passTo) { has = true; key = 102; tx = I.passTo.x; ty = I.passTo.y; act = ACT.SUPER; range = Bot.PASS_RANGE; } else if (I.clearTo) { has = true; key = 103; tx = I.clearTo.x; ty = I.clearTo.y; act = ACT.ATTACK; range = Bot.KICK_RANGE; } else if (ks) { has = true; key = 101; tx = ks.x; ty = ks.y; range = Bot.KICK_RANGE; }
-    } else if (m && m.noticed && m.seen) { has = true; key = I.target; tx = m.x; ty = m.y; } else if (I.bushShot) { has = true; key = 100; tx = I.bushShot.x; ty = I.bushShot.y; }
-    if (holding) { if (I.wantGadget && me.gadReady && this.kit.gadF.t === 'buff') { act = ACT.GADGET; spec = this.kit.gadF; } } else if (I.wantGadget && me.gadReady && this.kit.gadF.t !== 'none') { act = ACT.GADGET; spec = this.kit.gadF; } else if (I.wantSuper && me.supReady) { act = ACT.SUPER; spec = this.kit.supF; }
+    } else {
+      const dp = this.deployTarget(P, m && m.noticed && m.seen ? Math.hypot(m.x - me.x, m.y - me.y) : Infinity);
+      if (dp) { has = true; key = 104; tx = dp.x; ty = dp.y; } else if (m && m.noticed && m.seen) { has = true; key = I.target; tx = m.x; ty = m.y; } else if (I.bushShot) { has = true; key = 100; tx = I.bushShot.x; ty = I.bushShot.y; }
+    }
+    // with the ball only a buff gadget; on a pet or turret only the main attack
+    if (holding) { if (I.wantGadget && me.gadReady && this.kit.gadF.t === 'buff') { act = ACT.GADGET; spec = this.kit.gadF; } } else if (key === 104) { /* main attack */ } else if (I.wantGadget && me.gadReady && this.kit.gadF.t !== 'none') { act = ACT.GADGET; spec = this.kit.gadF; } else if (I.wantSuper && me.supReady) { act = ACT.SUPER; spec = this.kit.supF; }
     if (!has) {
       // nothing to shoot: aim drifts where you walk
       this.aimA = wrapAng(this.aimA + angDiff(this.aimA, this.mvA) * 0.1);
@@ -318,6 +322,19 @@ class Bot {
     out.auto = auto ? 1 : 0;
     this.fired(act, auto);
     return out;
+  }
+
+  // An enemy pet closing in on me, or a turret within reach, that's nearer than the brawler I'm after
+  // (md): people shoot those down first rather than let them chew on them.
+  deployTarget(P, md) {
+    const me = P.me, reach = this.kit.atkF.range * 0.9;
+    let best = null, bd = md;
+    for (const d of P.deploys) {
+      if (d.team === me.team) continue;
+      const dd = Math.hypot(d.x - me.x, d.y - me.y);
+      if (dd < bd && dd < (d.dk.includes('bear') ? 3.5 : reach)) { bd = dd; best = d; }
+    }
+    return best;
   }
 
   // A point in the goal mouth with an open lane: no wall, and no enemy I know of standing in the way

@@ -88,7 +88,7 @@ function perceive(sim, slot, P, rng) {
   P.areas.length = 0;
   for (const a of sim.areas) {
     if (a.dead || !inRect(cam, a.x, a.y, a.r)) continue;
-    P.areas.push({ x: a.x, y: a.y, r: a.r, team: a.team, harm: a.team !== me.team && (a.dmg > 0 || a.slow > 0), heal: a.team === me.team && a.heal > 0 });
+    P.areas.push({ id: a.id, x: a.x, y: a.y, r: a.r, team: a.team, harm: a.team !== me.team && (a.dmg > 0 || a.slow > 0), heal: a.team === me.team && a.heal > 0 });
   }
   P.pickups.length = 0;
   for (const p of sim.pickups) {

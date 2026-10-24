@@ -58,6 +58,7 @@ class Mind {
     this.pinIn = []; // teammates' pins still being read: { at, id, slot }
     this.mem = {}; // enemy slot -> memory
     this.shotMem = new Map(); // shot id -> { noticeAt, dodge }
+    this.areaMem = new Map(); // harmful area id -> when it's noticed
     this.intent = { goal: 'hold', gx: 0, gy: 0, target: -1, stance: 1, wantSuper: false, wantGadget: false, superMode: 'target', gadMode: 'target', bushShot: null, boxShot: null, kick: null };
     this.goalT = 0; // when the current goal started
     this.nextThink = 0;
@@ -134,6 +135,9 @@ class Mind {
       if (!this.shotMem.has(s.id)) this.shotMem.set(s.id, { noticeAt: t + Math.max(0.16, this.reaction() + this.rng.range(0.03, 0.08)), dodge: this.rng.chance(p.dodge), born: t, err: this.rng.range(-1, 1) * lerp(0.55, 0.2, p.s) });
     }
     if (this.shotMem.size > 80) for (const [id, v] of this.shotMem) if (t - v.born > 3) this.shotMem.delete(id);
+    // a puddle or field that lands on you: noticed after a reaction too, not on the frame it appears
+    for (const a of P.areas) if (a.harm && !this.areaMem.has(a.id)) this.areaMem.set(a.id, t + this.reaction());
+    if (this.areaMem.size > 40) for (const [id, at] of this.areaMem) if (t - at > 8) this.areaMem.delete(id);
     // teammates' pins (once each); reading one and acting on it takes a moment
     for (const pin of P.pins) {
       const key = pin.slot * 1000 + Math.round((t - pin.age) * 10);

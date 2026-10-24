@@ -534,10 +534,10 @@ const BRAWLERS = {
   nova: {
     name: 'Nova', rarity: 'start', role: 'fighter', color: '#e8574a',
     desc: 'A scrappy shotgunner who wins every fight up close.',
-    hp: 3600, speed: 720, reload: 1.5,
+    hp: 3900, speed: 720, reload: 1.5,
     atk: {
       name: 'Scattershot', text: 'Fires 5 pellets in a cone. Brutal up close.',
-      t: 'shot', n: 5, spread: 0.52, dmg: 320, range: 7.67, spd: 11.3, r: 0.18, chg: 1 / 12,
+      t: 'shot', n: 5, spread: 0.52, dmg: 340, range: 7.67, spd: 11.3, r: 0.18, chg: 1 / 12,
     },
     sup: {
       name: 'Big Bang', text: 'A wide blast of 9 pellets that knocks enemies back and smashes walls.',
@@ -549,7 +549,7 @@ const BRAWLERS = {
   dax: {
     name: 'Dax', rarity: 'rare', role: 'sharp', color: '#d9a441',
     desc: 'A quick-draw gunslinger who melts anything in a straight line.',
-    hp: 3000, speed: 720, reload: 1.6,
+    hp: 2800, speed: 720, reload: 1.6,
     atk: {
       name: 'Six-Shooter', text: 'Fires 6 bullets in a fast line from both revolvers.',
       t: 'shot', n: 6, burst: 0.08, jit: 0.15, dmg: 360, range: 9, spd: 12.7, r: 0.14, chg: 1 / 12,
@@ -595,7 +595,7 @@ const BRAWLERS = {
   pip: {
     name: 'Pip', rarity: 'rare', role: 'thrower', color: '#ff8a3d',
     desc: 'A cheerful demolition miner who lobs dynamite over walls.',
-    hp: 2800, speed: 720, reload: 1.55,
+    hp: 2800, speed: 720, reload: 1.7,
     atk: {
       name: 'Fuse Pair', text: 'Lobs 2 sticks of dynamite over walls.',
       t: 'lob', n: 2, gap: 0.7, T: 0.95, range: 7, dmg: 1090, blast: 0.95, r: 0.18, chg: 1 / 6,
@@ -610,7 +610,7 @@ const BRAWLERS = {
   melody: {
     name: 'Melody', rarity: 'rare', role: 'support', color: '#e45bb0',
     desc: 'A street musician whose songs hurt foes and mend friends.',
-    hp: 3600, speed: 720, reload: 1.55,
+    hp: 3400, speed: 720, reload: 1.55,
     atk: {
       name: 'Sonic Chord', text: 'A wide sound wave that pierces enemies.',
       t: 'shot', dmg: 650, range: 7, spd: 8.7, r: 0.5, grow: 0.16, pierce: true, chg: 1 / 8,
@@ -619,7 +619,7 @@ const BRAWLERS = {
       name: 'Encore', text: 'A huge wave that heals Melody and every ally it passes.',
       t: 'shot', dmg: 0, heal: 2100, hself: true, range: 9.7, spd: 9, r: 1.0, grow: 0.1, pierce: true,
     },
-    gadgets: [{ name: 'Lullaby', text: 'Heals Melody and nearby allies for 1200.', cd: 7, t: 'pulse', r: 3.3, heal: 1200 }],
+    gadgets: [{ name: 'Lullaby', text: 'Heals Melody and nearby allies for 1050.', cd: 7, t: 'pulse', r: 3.3, heal: 1050 }],
     stars: [{ name: 'Harmony', text: 'Sonic Chord also heals allies it passes for 340.', patch: { atk: { heal: 340 } } }],
   },
   sizzle: {
@@ -640,15 +640,15 @@ const BRAWLERS = {
   gizmo: {
     name: 'Gizmo', rarity: 'super', role: 'support', color: '#3fc3b5',
     desc: 'A young inventor whose sparks bounce and whose turret never sleeps.',
-    hp: 3300, speed: 720, reload: 1.5,
+    hp: 3450, speed: 720, reload: 1.5,
     atk: {
       name: 'Spark Orb', text: 'An orb that bounces on to 2 more nearby enemies.',
       t: 'shot', dmg: 920, range: 9, spd: 8.3, r: 0.25, bounce: { n: 2, r: 4.7 }, chg: 1 / 4,
     },
     sup: {
       name: 'Turret', text: 'Builds a turret that shoots the nearest enemy.',
-      t: 'deploy', unit: 'turret', dk: 'gizmo.turret', range: 4, rad: 0.5, hp: 2700, aggro: 8.7, rate: 0.4,
-      shot: { pk: 'gizmo.turret', dmg: 225, range: 8.7, spd: 11, r: 0.13 },
+      t: 'deploy', unit: 'turret', dk: 'gizmo.turret', range: 4, rad: 0.5, hp: 3000, aggro: 8.7, rate: 0.4,
+      shot: { pk: 'gizmo.turret', dmg: 260, range: 8.7, spd: 11, r: 0.13 },
     },
     gadgets: [{ name: 'Overclock', text: 'The turret fires twice as fast for 5 seconds.', cd: 7, req: 'deploy', t: 'buff', what: 'deployRate', v: 2, T: 5 }],
     stars: [{ name: 'Repair Kit', text: 'Spark Orb hits repair the turret for 400.', pass: { deployHeal: 400 } }],
@@ -706,7 +706,7 @@ const BRAWLERS = {
     hp: 4350, speed: 820, reload: 2.05,
     atk: {
       name: 'Night Lunge', text: 'Dashes forward, striking every enemy in the way.',
-      t: 'dash', dist: 3, spd: 12, dmg: 1030, w: 0.5, chg: 1 / 4,
+      t: 'dash', dist: 3.3, spd: 12, dmg: 1030, w: 0.5, chg: 1 / 3.6,
     },
     sup: {
       name: 'Soul Swarm', text: 'A swarm of bats that pierces enemies and steals their health.',
@@ -721,7 +721,7 @@ const BRAWLERS = {
     hp: 3100, speed: 820, reload: 1.1,
     atk: {
       name: 'Rapid Fire', text: 'Fires 4 fast bullets in a quick burst.',
-      t: 'shot', n: 4, burst: 0.05, jit: 0.1, dmg: 285, range: 8.7, spd: 13.3, r: 0.13, chg: 1 / 14,
+      t: 'shot', n: 4, burst: 0.05, jit: 0.1, dmg: 275, range: 8.7, spd: 13.3, r: 0.13, chg: 1 / 14,
     },
     sup: {
       name: 'Rush Hour', text: 'Zip and nearby allies move 50% faster for 4 seconds.',
@@ -736,7 +736,7 @@ const BRAWLERS = {
     hp: 3200, speed: 820, reload: 1.9,
     atk: {
       name: 'Spectral Blades', text: '4 blades in a fan. They hit harder up close.',
-      t: 'shot', n: 4, spread: 0.36, dmg: 520, ramp: [1, 0.45], range: 9.7, spd: 11.7, r: 0.14, chg: 1 / 11,
+      t: 'shot', n: 4, spread: 0.36, dmg: 550, ramp: [1, 0.45], range: 9.7, spd: 11.7, r: 0.14, chg: 1 / 11,
     },
     sup: {
       name: 'Fade', text: 'Turns invisible to enemies for 6 seconds. Attacking ends it.',
@@ -751,8 +751,8 @@ const BRAWLERS = {
     hp: 2750, speed: 720, reload: 1.75,
     atk: {
       name: 'Needle Ball', text: 'A cactus ball that bursts into 6 spikes when it stops.',
-      t: 'shot', dmg: 800, range: 7.67, spd: 8.3, r: 0.3, chg: 1 / 5,
-      split: { n: 6, dmg: 595, range: 2.7, spd: 9.7, r: 0.12, chg: 1 / 12, pk: 'thorn.spike' },
+      t: 'shot', dmg: 800, range: 7.67, spd: 9.5, r: 0.3, chg: 1 / 5,
+      split: { n: 6, dmg: 595, range: 3.0, spd: 9.7, r: 0.12, chg: 1 / 12, pk: 'thorn.spike' },
     },
     sup: {
       name: 'Briar Patch', text: 'Lobs a spike field that damages and slows enemies.',
@@ -2515,7 +2515,7 @@ class Sim {
         // slows act every tick so walking out frees you at once
         for (let j = 0; j < B.length; j++) {
           const e = B[j];
-          if (this.hittable(e) && e.team !== a.team && dist2(a.x, a.y, e.x, e.y) <= a.r * a.r) {
+          if (this.hittable(e) && e.team !== a.team && dist2(a.x, a.y, e.x, e.y) <= (a.r + e.r) * (a.r + e.r)) {
             if (e.slowT < 0.2) this.slow(e, 0.3, a.slow, a.owner, a.act);
             else { e.slowT = Math.max(e.slowT, 0.3); e.slowF = Math.max(e.slowF, a.slow); }
           }
@@ -2529,9 +2529,10 @@ class Sim {
     }
   }
 
-  // frac: share of a full tick (the last tick of an area whose duration isn't a multiple of AREA_TICK)
+  // frac: share of a full tick (the last tick of an area whose duration isn't a multiple of AREA_TICK).
+  // Like blasts, an area reaches anyone whose body overlaps it, not only those whose centre is inside.
   areaTick(a, frac) {
-    const B = this.brawlers, k = Sim.AREA_TICK * (frac == null ? 1 : frac), r2 = a.r * a.r;
+    const B = this.brawlers, k = Sim.AREA_TICK * (frac == null ? 1 : frac), rb = a.r + BRAWLER_R, r2 = rb * rb;
     if (a.dmg > 0) {
       const chg = a.act === ACT.ATTACK ? a.chg : 0;
       for (let i = 0; i < B.length; i++) {
@@ -3378,7 +3379,7 @@ function perceive(sim, slot, P, rng) {
   P.areas.length = 0;
   for (const a of sim.areas) {
     if (a.dead || !inRect(cam, a.x, a.y, a.r)) continue;
-    P.areas.push({ x: a.x, y: a.y, r: a.r, team: a.team, harm: a.team !== me.team && (a.dmg > 0 || a.slow > 0), heal: a.team === me.team && a.heal > 0 });
+    P.areas.push({ id: a.id, x: a.x, y: a.y, r: a.r, team: a.team, harm: a.team !== me.team && (a.dmg > 0 || a.slow > 0), heal: a.team === me.team && a.heal > 0 });
   }
   P.pickups.length = 0;
   for (const p of sim.pickups) {
@@ -3475,6 +3476,7 @@ class Mind {
     this.pinIn = []; // teammates' pins still being read: { at, id, slot }
     this.mem = {}; // enemy slot -> memory
     this.shotMem = new Map(); // shot id -> { noticeAt, dodge }
+    this.areaMem = new Map(); // harmful area id -> when it's noticed
     this.intent = { goal: 'hold', gx: 0, gy: 0, target: -1, stance: 1, wantSuper: false, wantGadget: false, superMode: 'target', gadMode: 'target', bushShot: null, boxShot: null, kick: null };
     this.goalT = 0; // when the current goal started
     this.nextThink = 0;
@@ -3551,6 +3553,9 @@ class Mind {
       if (!this.shotMem.has(s.id)) this.shotMem.set(s.id, { noticeAt: t + Math.max(0.16, this.reaction() + this.rng.range(0.03, 0.08)), dodge: this.rng.chance(p.dodge), born: t, err: this.rng.range(-1, 1) * lerp(0.55, 0.2, p.s) });
     }
     if (this.shotMem.size > 80) for (const [id, v] of this.shotMem) if (t - v.born > 3) this.shotMem.delete(id);
+    // a puddle or field that lands on you: noticed after a reaction too, not on the frame it appears
+    for (const a of P.areas) if (a.harm && !this.areaMem.has(a.id)) this.areaMem.set(a.id, t + this.reaction());
+    if (this.areaMem.size > 40) for (const [id, at] of this.areaMem) if (t - at > 8) this.areaMem.delete(id);
     // teammates' pins (once each); reading one and acting on it takes a moment
     for (const pin of P.pins) {
       const key = pin.slot * 1000 + Math.round((t - pin.age) * 10);
@@ -4089,11 +4094,11 @@ class Bot {
       dx += -vy * sgn * 2.2; dy += vx * sgn * 2.2;
       this.tel.jukeAt = this.t;
     }
-    // step out of harmful zones
+    // step out of harmful zones (once noticed; they hurt as soon as your body touches them)
     for (const a of P.areas) {
-      if (!a.harm) continue;
+      if (!a.harm || !(this.t >= this.mind.areaMem.get(a.id))) continue;
       const ad = Math.hypot(me.x - a.x, me.y - a.y);
-      if (ad < a.r + 0.5) { dx += ((me.x - a.x) / (ad || 1)) * 1.5; dy += ((me.y - a.y) / (ad || 1)) * 1.5; }
+      if (ad < a.r + BRAWLER_R + 0.15) { dx += ((me.x - a.x) / (ad || 1)) * 1.5; dy += ((me.y - a.y) / (ad || 1)) * 1.5; }
     }
     // stuck against something: wiggle like a person would
     if (this.wiggleT > 0) { this.wiggleT -= dt; dx = Math.cos(this.wiggleA); dy = Math.sin(this.wiggleA); want = 1; }
@@ -4173,8 +4178,12 @@ class Bot {
       const eg = P.map.goals.find((g) => g.team !== me.team);
       const ks = !I.passTo && !I.clearTo && eg ? this.kickSpot(P, eg) : null;
       if (I.passTo) { has = true; key = 102; tx = I.passTo.x; ty = I.passTo.y; act = ACT.SUPER; range = Bot.PASS_RANGE; } else if (I.clearTo) { has = true; key = 103; tx = I.clearTo.x; ty = I.clearTo.y; act = ACT.ATTACK; range = Bot.KICK_RANGE; } else if (ks) { has = true; key = 101; tx = ks.x; ty = ks.y; range = Bot.KICK_RANGE; }
-    } else if (m && m.noticed && m.seen) { has = true; key = I.target; tx = m.x; ty = m.y; } else if (I.bushShot) { has = true; key = 100; tx = I.bushShot.x; ty = I.bushShot.y; }
-    if (holding) { if (I.wantGadget && me.gadReady && this.kit.gadF.t === 'buff') { act = ACT.GADGET; spec = this.kit.gadF; } } else if (I.wantGadget && me.gadReady && this.kit.gadF.t !== 'none') { act = ACT.GADGET; spec = this.kit.gadF; } else if (I.wantSuper && me.supReady) { act = ACT.SUPER; spec = this.kit.supF; }
+    } else {
+      const dp = this.deployTarget(P, m && m.noticed && m.seen ? Math.hypot(m.x - me.x, m.y - me.y) : Infinity);
+      if (dp) { has = true; key = 104; tx = dp.x; ty = dp.y; } else if (m && m.noticed && m.seen) { has = true; key = I.target; tx = m.x; ty = m.y; } else if (I.bushShot) { has = true; key = 100; tx = I.bushShot.x; ty = I.bushShot.y; }
+    }
+    // with the ball only a buff gadget; on a pet or turret only the main attack
+    if (holding) { if (I.wantGadget && me.gadReady && this.kit.gadF.t === 'buff') { act = ACT.GADGET; spec = this.kit.gadF; } } else if (key === 104) { /* main attack */ } else if (I.wantGadget && me.gadReady && this.kit.gadF.t !== 'none') { act = ACT.GADGET; spec = this.kit.gadF; } else if (I.wantSuper && me.supReady) { act = ACT.SUPER; spec = this.kit.supF; }
     if (!has) {
       // nothing to shoot: aim drifts where you walk
       this.aimA = wrapAng(this.aimA + angDiff(this.aimA, this.mvA) * 0.1);
@@ -4257,6 +4266,19 @@ class Bot {
     out.auto = auto ? 1 : 0;
     this.fired(act, auto);
     return out;
+  }
+
+  // An enemy pet closing in on me, or a turret within reach, that's nearer than the brawler I'm after
+  // (md): people shoot those down first rather than let them chew on them.
+  deployTarget(P, md) {
+    const me = P.me, reach = this.kit.atkF.range * 0.9;
+    let best = null, bd = md;
+    for (const d of P.deploys) {
+      if (d.team === me.team) continue;
+      const dd = Math.hypot(d.x - me.x, d.y - me.y);
+      if (dd < bd && dd < (d.dk.includes('bear') ? 3.5 : reach)) { bd = dd; best = d; }
+    }
+    return best;
   }
 
   // A point in the goal mouth with an open lane: no wall, and no enemy I know of standing in the way

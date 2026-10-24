@@ -21,7 +21,7 @@ const NAMES = [
   'Sim', 'RNG', 'BRAWLERS', 'BRAWLER_KEYS', 'MAPS', 'MODES', 'ModeKit', 'parseMap', 'packIn', 'unpackIn',
   'ACT', 'EV', 'K', 'PICK', 'TILE', 'TF_MOVE', 'TF_SHOT', 'TF_BUSH', 'flowField', 'flowDir', 'shotClear',
   'flagsAt', 'tileAt', 'SIM_DT', 'MAX_AMMO', 'REGEN_DELAY', 'REGEN_RATE', 'SPAWN_SHIELD_T', 'REVEAL_R',
-  'LEVEL_MULT', 'CUBE_HP', 'CUBE_DMG', 'IN_IDLE', 'RESPAWN_T', 'brawlerKit',
+  'LEVEL_MULT', 'CUBE_HP', 'CUBE_DMG', 'IN_IDLE', 'RESPAWN_T', 'brawlerKit', 'BRAWLER_R',
 ];
 const A = load({ files: FILES, names: NAMES });
 for (const n of NAMES) if (A[n] === undefined) { console.error('missing global ' + n); process.exit(1); }
@@ -1033,6 +1033,18 @@ function modeRules() {
     const h0 = tg.hp;
     stepN(s8, 60);
     check(Math.abs(h0 - tg.hp - 1600) <= 5, `an area of 1000/s for 1.6 s deals 1600 (dealt ${h0 - tg.hp})`);
+    // like blasts, an area reaches a body that overlaps its edge, not only a centre inside it
+    const edge = (off) => {
+      const s9 = mkSim('test', 'crystal_cove', ['sizzle', 'brick']);
+      const t9 = s9.brawlers[1];
+      unshield(t9); t9.hp = t9.maxHp = 1e6;
+      place(s9, t9, 10.5 + 1.2 + off, 22.5);
+      s9.areas.push({ id: 999, kind: K.AREA, team: 0, owner: 0, x: 10.5, y: 22.5, r: 1.2, t: 1, T: 1, dmg: 1000, heal: 0, slow: 0, act: ACT.ATTACK, tickT: 0, chg: 0, dead: false, pk: 'sizzle.atk' });
+      stepN(s9, 5);
+      return 1e6 - t9.hp;
+    };
+    const inEdge = edge(A.BRAWLER_R - 0.1), outEdge = edge(A.BRAWLER_R + 0.1);
+    check(inEdge > 0 && outEdge === 0, `an area hits a body overlapping its edge (${inEdge}) and not one just clear of it (${outEdge})`);
   }
 
   section('Bounty rules');

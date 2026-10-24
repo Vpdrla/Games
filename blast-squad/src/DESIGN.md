@@ -138,7 +138,8 @@ sim.rng                        // RNG for gameplay randomness
   - `dmg, r, pierce, hitMask` (bits of slots already hit), `sup` (from a super), `breaks`
   - `lob`: `{ tx, ty, T, t }` for lobs, else null. They fly over everything and only act on landing.
 - **Area (`K.AREA`):** `owner, ak` (visual key), `r, t, T` (time left / total), `dmg` (per second
-  vs enemies), `heal` (per second for allies), `slow`.
+  vs enemies), `heal` (per second for allies), `slow`. Like a blast, it reaches every body that overlaps
+  it (`r + BRAWLER_R` from the centre), not only those whose centre is inside.
 - **Pickup (`K.PICKUP`):** `pick` (`PICK.GEM` / `PICK.CUBE` / `PICK.STAR`), `n` (count), `vx, vy`
   (pop-out motion), `t`.
 - **Deploy (`K.DEPLOY`):** `owner, dk` (visual key, e.g. `'gizmo.turret'`), `hp, maxHp`, `face`, `t`.
@@ -222,7 +223,7 @@ rectangle (`cameraRect`, which also drives the view) plus the HUD. Bots never to
   enemies: [{ slot, bk, x, y, hp, maxHp, carry, cubes, inBush }], // visible to my team AND on my screen
   shots:   [{ x, y, ang, spd, r, team, lob: {tx, ty, tLeft}|null }],      // enemy shots on my screen; a lob's
            //   landing spot is an estimate (judged from the shadow, closer as it comes down)
-  areas:   [{ x, y, r, team, harm: bool }],
+  areas:   [{ id, x, y, r, team, harm: bool }],  // a bot steps out of a harmful one only after a reaction
   pickups: [{ pick, x, y, n }],
   deploys: [{ team, dk, x, y, hp }],
   ball:    { x, y, holderSlot, holderTeam, seen } | null,  // as last seen; its spot at kickoff and after goals

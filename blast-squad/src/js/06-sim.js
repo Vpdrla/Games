@@ -1119,7 +1119,7 @@ class Sim {
         // slows act every tick so walking out frees you at once
         for (let j = 0; j < B.length; j++) {
           const e = B[j];
-          if (this.hittable(e) && e.team !== a.team && dist2(a.x, a.y, e.x, e.y) <= a.r * a.r) {
+          if (this.hittable(e) && e.team !== a.team && dist2(a.x, a.y, e.x, e.y) <= (a.r + e.r) * (a.r + e.r)) {
             if (e.slowT < 0.2) this.slow(e, 0.3, a.slow, a.owner, a.act);
             else { e.slowT = Math.max(e.slowT, 0.3); e.slowF = Math.max(e.slowF, a.slow); }
           }
@@ -1133,9 +1133,10 @@ class Sim {
     }
   }
 
-  // frac: share of a full tick (the last tick of an area whose duration isn't a multiple of AREA_TICK)
+  // frac: share of a full tick (the last tick of an area whose duration isn't a multiple of AREA_TICK).
+  // Like blasts, an area reaches anyone whose body overlaps it, not only those whose centre is inside.
   areaTick(a, frac) {
-    const B = this.brawlers, k = Sim.AREA_TICK * (frac == null ? 1 : frac), r2 = a.r * a.r;
+    const B = this.brawlers, k = Sim.AREA_TICK * (frac == null ? 1 : frac), rb = a.r + BRAWLER_R, r2 = rb * rb;
     if (a.dmg > 0) {
       const chg = a.act === ACT.ATTACK ? a.chg : 0;
       for (let i = 0; i < B.length; i++) {
