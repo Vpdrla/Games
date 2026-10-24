@@ -28,13 +28,15 @@ class RemoteCtrl {
       this.q.push(words[i] >>> 0);
       this.qs.push(s);
     }
-    // a long backlog: drop movement-only words but keep every action
+    // a long backlog: drop movement-only words but keep actions; past 12 words (0.4 s) the oldest go
+    // too, so a flood can't build an endless queue
     while (this.q.length > 4) {
       const i = this.q.findIndex((w) => !inAct(w));
       if (i < 0) break;
       this.q.splice(i, 1);
       this.qs.splice(i, 1);
     }
+    if (this.q.length > 12) { this.q.splice(0, this.q.length - 12); this.qs.splice(0, this.qs.length - 12); }
   }
   word(sim) {
     if (this.bot) return this.bot.tick(sim); // the friend dropped out: an AI holds the brawler
@@ -97,6 +99,7 @@ class Match {
   pin(slot, id) {
     const sim = this.sim;
     sim.pins.push({ slot, id, t: sim.t });
+    if (sim.pins.length > 12) sim.pins.shift();
     sim.ev(EV.PIN, slot, id);
   }
   emote(slot, id) { this.sim.ev(EV.EMOTE, slot, id); }
@@ -159,6 +162,7 @@ class Match {
       this.ended = true;
       this.endT = 0;
       Input.enabled = false;
+      if (this.onResult) this.onResult(sim.result); // known now, shown in a moment
       setTimeout(() => { if (this.onEnd) this.onEnd(sim.result); }, 1800);
     } else if (!this.ended && this.net === 'offline' && this.cfg.mode === MODE.SHOWDOWN) this.sdOut(dt);
   }
@@ -167,10 +171,16 @@ class Match {
   // placed behind everyone still standing, as in the original.
   sdOut(dt) {
     const me = this.sim.brawlers[this.local];
-    if (this.outT == null) { if (me.alive) return; this.outT = 0; }
+    if (this.outT == null) {
+      if (me.alive) return;
+      // the placement is fixed the moment the player falls (everyone still up, or down later, is ahead)
+      this.outT = 0;
+      this.outResult = this.earlyResult();
+      if (this.onResult) this.onResult(this.outResult);
+    }
     this.outT += dt * this.speed;
     if (this.outT < 2.5) return;
-    const r = this.earlyResult();
+    const r = this.outResult;
     this.ended = true;
     this.endT = 0;
     Input.enabled = false;

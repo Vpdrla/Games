@@ -19,10 +19,13 @@ class Bot {
     // move stick
     this.mvA = 0; this.mvM = 0; this.jukeDir = this.rng.chance(0.5) ? 1 : -1; this.latV = 0; this.jukeT = 0;
     this.wiggleT = 0; this.wiggleA = 0;
+    this.fidgetUntil = 0; this.fidgetNext = this.rng.range(1, 4); this.fidgetA = 0; // idle thumb fidgets
     this.hist = []; // recent positions for stuck detection { t, x, y, push }
     // aim
     this.aimA = 0; this.from = 0; this.to = 0; this.over = 0; this.flickT0 = -9; this.flickDur = 0; this.aimKey = -2;
     this.tapAt = 0; this.aimStopUntil = 0;
+    this.aimGoal = 0; this.errOff = 0; this.depthErr = 0; this.corrAt = 0; // the aim's own error, kept until corrected
+    this.prevAmmo = MAX_AMMO; this.ammoAt = 0; // a bar that just refilled is noticed a moment later
     // paths
     this.flow = null; this.flowKey = -1; this.flowT = -9; this._fd = { x: 0, y: 0, d: 0 };
     this.outPin = null; this.outEmote = null;
@@ -112,9 +115,12 @@ class Bot {
           const e = P.enemies[0], ed = Math.hypot(e.x - me.x, e.y - me.y) || 1;
           dx = (-(e.y - me.y) / ed) * this.jukeDir + (I.gx - me.x) * 0.8; dy = ((e.x - me.x) / ed) * this.jukeDir + (I.gy - me.y) * 0.8;
           want = 0.5;
+        } else if (this.t < this.fidgetUntil) {
+          want = 0.5; dx = Math.cos(this.fidgetA); dy = Math.sin(this.fidgetA);
         } else {
-          want = r.chance(0.04) ? 0.6 : 0;
-          if (want > 0) { const a = r.range(0, TAU); dx = Math.cos(a); dy = Math.sin(a); }
+          // standing: now and then a short fidget walk, like a thumb resting on the stick
+          want = 0;
+          if (this.t >= this.fidgetNext) { this.fidgetUntil = this.t + r.range(0.2, 0.6); this.fidgetNext = this.fidgetUntil + r.range(2, 5); this.fidgetA = r.range(0, TAU); }
         }
       }
       // carrying gems or retreating: keep away from enemies on screen
@@ -138,17 +144,17 @@ class Bot {
       const rx = me.x - s.x, ry = me.y - s.y;
       const along = rx * vx + ry * vy;
       if (along < 0 || along / Math.max(1, s.spd) > 0.9) continue;
-      const side = rx * -vy + ry * vx;
+      const side = rx * -vy + ry * vx + sm.err; // judged by eye: a little off
       if (Math.abs(side) > s.r + BRAWLER_R + 0.35) continue;
       const sgn = side >= 0 ? 1 : -1;
       dx += -vy * sgn * 2.2; dy += vx * sgn * 2.2;
       this.tel.jukeAt = this.t;
     }
-    // step out of harmful zones
+    // step out of harmful zones (once noticed; they hurt as soon as your body touches them)
     for (const a of P.areas) {
-      if (!a.harm) continue;
+      if (!a.harm || !(this.t >= this.mind.areaMem.get(a.id))) continue;
       const ad = Math.hypot(me.x - a.x, me.y - a.y);
-      if (ad < a.r + 0.5) { dx += ((me.x - a.x) / (ad || 1)) * 1.5; dy += ((me.y - a.y) / (ad || 1)) * 1.5; }
+      if (ad < a.r + BRAWLER_R + 0.15) { dx += ((me.x - a.x) / (ad || 1)) * 1.5; dy += ((me.y - a.y) / (ad || 1)) * 1.5; }
     }
     // stuck against something: wiggle like a person would
     if (this.wiggleT > 0) { this.wiggleT -= dt; dx = Math.cos(this.wiggleA); dy = Math.sin(this.wiggleA); want = 1; }
@@ -218,16 +224,22 @@ class Bot {
     const me = P.me, I = this.mind.intent, p = this.p, r = this.rng, t = this.t;
     const out = this._shot || (this._shot = { ang: 0, d: 1, act: 0, auto: 0 });
     out.act = 0; out.auto = 0;
+    if (me.ammo >= 1 && this.prevAmmo < 1) this.ammoAt = t + r.range(0.06, 0.3) * lerp(1.4, 0.8, p.s);
+    this.prevAmmo = me.ammo;
     const holding = P.ball && P.ball.holderSlot === me.slot;
     const m = I.target >= 0 && !holding ? this.mind.mem[I.target] : null;
     let spec = this.kit.atkF, act = 0, tx = 0, ty = 0, key = -1, has = false, range = 0;
     // what to point at (with the ball: a teammate to pass to, or the goal; never a brawler)
     if (holding) {
       const eg = P.map.goals.find((g) => g.team !== me.team);
-      const ks = !I.passTo && eg ? this.kickSpot(P, eg) : null;
-      if (I.passTo) { has = true; key = 102; tx = I.passTo.x; ty = I.passTo.y; act = ACT.SUPER; range = Bot.PASS_RANGE; } else if (ks) { has = true; key = 101; tx = ks.x; ty = ks.y; range = Bot.KICK_RANGE; }
-    } else if (m && m.noticed && m.seen) { has = true; key = I.target; tx = m.x; ty = m.y; } else if (I.bushShot) { has = true; key = 100; tx = I.bushShot.x; ty = I.bushShot.y; }
-    if (holding) { if (I.wantGadget && me.gadReady && this.kit.gadF.t === 'buff') { act = ACT.GADGET; spec = this.kit.gadF; } } else if (I.wantGadget && me.gadReady && this.kit.gadF.t !== 'none') { act = ACT.GADGET; spec = this.kit.gadF; } else if (I.wantSuper && me.supReady) { act = ACT.SUPER; spec = this.kit.supF; }
+      const ks = !I.passTo && !I.clearTo && eg ? this.kickSpot(P, eg) : null;
+      if (I.passTo) { has = true; key = 102; tx = I.passTo.x; ty = I.passTo.y; act = ACT.SUPER; range = Bot.PASS_RANGE; } else if (I.clearTo) { has = true; key = 103; tx = I.clearTo.x; ty = I.clearTo.y; act = ACT.ATTACK; range = Bot.KICK_RANGE; } else if (ks) { has = true; key = 101; tx = ks.x; ty = ks.y; range = Bot.KICK_RANGE; }
+    } else {
+      const dp = this.deployTarget(P, m && m.noticed && m.seen ? Math.hypot(m.x - me.x, m.y - me.y) : Infinity);
+      if (dp) { has = true; key = 104; tx = dp.x; ty = dp.y; } else if (m && m.noticed && m.seen) { has = true; key = I.target; tx = m.x; ty = m.y; } else if (I.bushShot) { has = true; key = 100; tx = I.bushShot.x; ty = I.bushShot.y; }
+    }
+    // with the ball only a buff gadget; on a pet or turret only the main attack
+    if (holding) { if (I.wantGadget && me.gadReady && this.kit.gadF.t === 'buff') { act = ACT.GADGET; spec = this.kit.gadF; } } else if (key === 104) { /* main attack */ } else if (I.wantGadget && me.gadReady && this.kit.gadF.t !== 'none') { act = ACT.GADGET; spec = this.kit.gadF; } else if (I.wantSuper && me.supReady) { act = ACT.SUPER; spec = this.kit.supF; }
     if (!has) {
       // nothing to shoot: aim drifts where you walk
       this.aimA = wrapAng(this.aimA + angDiff(this.aimA, this.mvA) * 0.1);
@@ -236,30 +248,48 @@ class Bot {
       return out;
     }
     const d = Math.hypot(tx - me.x, ty - me.y) || 0.01;
-    // lead: aim where it will be, partly (people under-lead)
-    const tf = spec.lob ? spec.T : spec.spd === Infinity ? 0.05 : d / spec.spd;
+    // lead: aim where it will be, partly (people under-lead). A lob's flight time depends on how far
+    // it's thrown (short throws land sooner), and the throw goes to the led spot, not the target.
+    let tf = spec.lob ? spec.T : spec.spd === Infinity ? 0.05 : d / spec.spd;
     let px = tx, py = ty;
-    if (m && key === I.target) { px += m.vx * tf * p.lead; py += m.vy * tf * p.lead; }
+    if (m && key === I.target) {
+      px = tx + m.vx * tf * p.lead; py = ty + m.vy * tf * p.lead;
+      if (spec.lob && spec.range > 0) {
+        for (let i = 0; i < 2; i++) {
+          tf = spec.T * (0.6 + 0.4 * Math.min(1, Math.hypot(px - me.x, py - me.y) / spec.range));
+          px = tx + m.vx * tf * p.lead; py = ty + m.vy * tf * p.lead;
+        }
+      }
+    }
+    const dl = Math.hypot(px - me.x, py - me.y) || 0.01;
     let ang = Math.atan2(py - me.y, px - me.x);
     const mode = key >= 101 ? 'target' : act === ACT.GADGET ? I.gadMode : act === ACT.SUPER ? I.superMode : 'target';
     if (mode === 'away') ang = wrapAng(ang + Math.PI + r.range(-0.4, 0.4));
     // a new target or a big swing: flick there (with overshoot), else follow smoothly
     const goalAng = ang;
-    if (key !== this.aimKey || Math.abs(angDiff(this.to, goalAng)) > 0.45) {
+    if (key !== this.aimKey || Math.abs(angDiff(this.aimGoal, goalAng)) > 0.45) {
       const lateral = m && key === I.target ? Math.abs((m.vx * -(py - me.y) + m.vy * (px - me.x)) / d) : 0;
       const stress = me.hp / me.maxHp < 0.35 ? 0.5 : 0;
       const errTiles = p.aimErr * (0.1 + 0.045 * d + 0.12 * lateral) * (1 + stress);
-      const z = Math.sqrt(-2 * Math.log(1 - r.next() * 0.999999)) * Math.cos(TAU * r.next());
+      const g1 = Math.sqrt(-2 * Math.log(1 - r.next() * 0.999999)), g2 = TAU * r.next();
       this.from = this.aimA;
-      this.to = wrapAng(goalAng + (z * errTiles) / Math.max(1, d));
+      this.errOff = (g1 * Math.cos(g2) * errTiles) / Math.max(1, d); // sideways miss (angle)
+      this.depthErr = g1 * Math.sin(g2) * errTiles * 0.8; // and too short / too long (tiles: lobs, leaps)
+      this.aimGoal = goalAng;
+      this.to = wrapAng(goalAng + this.errOff);
       const D = Math.abs(angDiff(this.from, this.to)) * Math.max(1, d);
       this.flickDur = p.flick + p.fitts * Math.log2(1 + D / 0.6);
       this.over = angDiff(this.from, this.to) * r.range(0.1, 0.2);
       this.flickT0 = t;
+      this.corrAt = t + this.flickDur + r.range(0.15, 0.35); // noticing the aim is off takes a moment
       this.aimKey = key;
       if (key < 100 && r.chance(p.aimStop)) this.aimStopUntil = t + this.flickDur * r.range(0.4, 0.9);
     } else {
-      this.to = wrapAng(this.to + angDiff(this.to, goalAng) * 0.12); // smooth pursuit
+      // smooth pursuit of a moving target keeps the aim's own error; it's corrected only after a
+      // moment, and slowly by weaker players
+      this.aimGoal = goalAng;
+      if (t > this.corrAt) { const f = Math.exp(-lerp(0.8, 3, p.s) * SIM_DT); this.errOff *= f; this.depthErr *= f; }
+      this.to = wrapAng(goalAng + this.errOff);
     }
     const k = (t - this.flickT0) / Math.max(0.05, this.flickDur);
     if (k < 0.75) {
@@ -271,15 +301,15 @@ class Bot {
     const settled = k >= 1;
     out.ang = this.aimA;
     if (!range) range = spec.range || this.kit.atkF.range || 1;
-    out.d = clamp(d / range, 0.05, 1);
+    out.d = clamp((dl + (spec.lob ? this.depthErr : 0)) / range, 0.05, 1);
     if (t < this.tapAt) return out;
     // decide to shoot (a kick: in range, with a clear line to the goal mouth)
     if (act === 0 && key === 101) {
-      if (d > range * lerp(0.75, 1, p.discipline) || !shotClear(P.map, me.x, me.y, tx, ty)) return out;
+      if (d > range * lerp(0.85, 1, p.s) || !shotClear(P.map, me.x, me.y, tx, ty)) return out;
       act = ACT.ATTACK;
     } else if (act === 0) {
       const atk = this.kit.atkF;
-      if (me.ammo < 1) return out;
+      if (me.ammo < 1 || t < this.ammoAt) return out;
       const reach = atk.range * lerp(1.15, 0.98, p.discipline);
       if (d > reach) return out;
       if (!atk.lob && atk.t === 'shot' && !shotClear(P.map, me.x, me.y, tx, ty)) return out;
@@ -292,6 +322,19 @@ class Bot {
     out.auto = auto ? 1 : 0;
     this.fired(act, auto);
     return out;
+  }
+
+  // An enemy pet closing in on me, or a turret within reach, that's nearer than the brawler I'm after
+  // (md): people shoot those down first rather than let them chew on them.
+  deployTarget(P, md) {
+    const me = P.me, reach = this.kit.atkF.range * 0.9;
+    let best = null, bd = md;
+    for (const d of P.deploys) {
+      if (d.team === me.team) continue;
+      const dd = Math.hypot(d.x - me.x, d.y - me.y);
+      if (dd < bd && dd < (d.dk.includes('bear') ? 3.5 : reach)) { bd = dd; best = d; }
+    }
+    return best;
   }
 
   // A point in the goal mouth with an open lane: no wall, and no enemy I know of standing in the way
@@ -326,6 +369,7 @@ class Bot {
     if (act === ACT.SUPER) this.mind.intent.wantSuper = false;
     if (act === ACT.GADGET) this.mind.intent.wantGadget = false;
     if (act === ACT.SUPER) this.mind.intent.passTo = null;
+    if (act === ACT.ATTACK) this.mind.intent.clearTo = null;
   }
 
   // ---- telemetry (and getting unstuck) ----

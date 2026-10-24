@@ -88,18 +88,25 @@ rather than a script with perfect information:
 
 - **Perception.** An AI only knows what its own phone screen would show:
   - bushes hide enemies
-  - nothing outside the screen is known
-  - unseen shots are heard only roughly
+  - nothing outside the screen is known: teammates and the ball that leave the screen are
+    remembered where they were last seen
+  - unseen shots are heard only roughly, and where a lobbed bomb will land is judged from its
+    shadow, roughly at first
   - it guesses movement from what it saw, without reading speeds from the game
 - **Reactions** follow a human distribution. Beginners take about 0.37 s and experts about
   0.23 s, never under 0.13 s.
-- **Thumbs.** The move stick turns at a limited speed and jukes sideways in fights. Aiming is a
-  quick flick that overshoots a little and corrects, and misses more at long range or under
-  pressure. Beginners mostly tap auto-aim.
+- **Thumbs.** The move stick turns at a limited speed and jukes sideways in fights; how much each
+  AI jukes is personal. Aiming is a quick flick that overshoots a little; the aim's own error is
+  corrected only after a moment, so it misses more at long range or under pressure. A dodge
+  starts after a reaction and a moment to pick a side, and sometimes misjudges the shot. A bar of
+  ammo that just refilled is noticed a beat later, not on the exact frame. A burning puddle that
+  lands on it is also noticed only after a reaction. It shoots down a pet chasing it or a turret in
+  reach before the brawler behind it. Beginners mostly tap auto-aim.
 - **Decisions.** Each AI weighs options such as hold the lane, fight, retreat to heal, grab
-  gems, carry the ball, farm power cubes, ambush from a bush or dodge the poison. It keeps a
-  plan for a moment instead of flickering between them. Each AI has its own aggression,
-  patience, greed, teamwork and tilt, and makes the occasional human mistake.
+  gems, carry or clear the ball, farm power cubes, ambush from a bush or dodge the poison. It
+  sticks to a plan unless something clearly better comes up, instead of flickering between them.
+  Each AI has its own aggression, patience, greed, teamwork and tilt, and makes human mistakes
+  (beginners more often: overextending, chasing, forgetting the objective).
 - **Teamwork** happens through the same quick-chat pins you use. They arrive a little late and
   are followed according to each AI's teamwork.
 - **Skill follows trophies.** Low trophies meet beginner-like players and high trophies meet
@@ -220,6 +227,8 @@ follow the genre's best-known game.
 - 반응 시간이 사람과 비슷합니다. 초보는 약 0.37초, 고수는 약 0.23초이고, 0.13초보다 빠른 반응은
   없습니다.
 - 엄지로 하듯 조준이 살짝 지나쳤다가 바로잡히고, 멀거나 위급할 때 더 빗나갑니다.
+- 발밑에 떨어진 장판도 반응 시간이 지나야 알아채고 빠져나갑니다. 쫓아오는 곰이나 사거리 안의 포탑은
+  뒤에 있는 브롤러보다 먼저 부숩니다.
 - 각자 공격성, 인내심, 욕심, 팀워크, 멘탈(틸트) 성향이 있고 가끔 사람 같은 실수를 합니다.
 - 팀원끼리 퀵 채팅 핀으로 소통합니다. 핀은 조금 늦게 도착합니다.
 - 트로피가 높을수록 더 잘하는 상대를 만납니다.

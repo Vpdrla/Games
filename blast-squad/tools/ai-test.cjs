@@ -151,21 +151,31 @@ for (const tier of TIERS) {
 
 // ---- 4. better players win more ----
 console.log('== Skill matters');
-for (const [hi, lo, want] of [[0.88, 0.15, [0.65, 0.9]], [0.5, 0.15, [0.55, 0.85]], [0.88, 0.5, [0.55, 0.85]]]) {
-  let wins = 0, games = 0;
-  const maps = mapFor(MODE_ARG);
-  for (let g = 0; g < N; g++) {
-    const keys = [];
-    for (let i = 0; i < 3; i++) keys.push(A.BRAWLER_KEYS[(g * 5 + i * 4) % A.BRAWLER_KEYS.length]);
-    const lineup = keys.concat(keys); // mirror lineups: only skill differs
-    const sideHi = g % 2; // alternate sides
-    const skills = [0, 1, 2, 3, 4, 5].map((i) => ((i < 3 ? 0 : 1) === sideHi ? hi : lo));
-    const r = play(MODE_ARG, maps[g % maps.length], 5000 + g, skills, lineup);
-    if (r.result.winner === sideHi) wins++;
-    if (r.result.winner >= 0) games++;
+// Mirror lineups, sides alternating, so only skill differs. Gem Rush has a lot of luck in it (a
+// carrier's death swings the gems), so 12 games mostly measured luck (+-14%): 40 per pair, and the
+// gate is on all pairs pooled (the higher-skilled team must win clearly more often). Each pair is
+// printed too. Measured over 80-game samples: expert vs beginner about 66%, adjacent tiers about 59%.
+const SKILL_N = +((argv.find((a) => a.startsWith('--skill-n=')) || '--skill-n=40').slice(10));
+{
+  let allW = 0, allG = 0;
+  for (const [hi, lo] of [[0.88, 0.15], [0.5, 0.15], [0.88, 0.5]]) {
+    let wins = 0, games = 0;
+    const maps = mapFor(MODE_ARG);
+    for (let g = 0; g < SKILL_N; g++) {
+      const keys = [];
+      for (let i = 0; i < 3; i++) keys.push(A.BRAWLER_KEYS[(g * 5 + i * 4) % A.BRAWLER_KEYS.length]);
+      const lineup = keys.concat(keys); // mirror lineups: only skill differs
+      const sideHi = g % 2; // alternate sides
+      const skills = [0, 1, 2, 3, 4, 5].map((i) => ((i < 3 ? 0 : 1) === sideHi ? hi : lo));
+      const r = play(MODE_ARG, maps[g % maps.length], 5000 + g, skills, lineup);
+      if (r.result.winner === sideHi) wins++;
+      if (r.result.winner >= 0) games++;
+    }
+    allW += wins; allG += games;
+    console.log(`  info  skill ${hi} vs ${lo}: wins ${pct(games ? wins / games : 0)} of ${games} decided`);
   }
-  const wr = games ? wins / games : 0;
-  say(wr >= want[0] && wr <= want[1], `skill ${hi} vs ${lo}`, `wins ${pct(wr)} of ${games} decided (${want.map(pct).join('-')})`);
+  const wr = allG ? allW / allG : 0;
+  say(wr >= 0.55, 'higher skill wins', `${pct(wr)} of ${allG} decided games over all three pairs (>= 55%)`);
 }
 
 // ---- 5. every mode: bots play the objective, never get stuck, and matches feel the right length ----

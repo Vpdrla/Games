@@ -534,10 +534,10 @@ const BRAWLERS = {
   nova: {
     name: 'Nova', rarity: 'start', role: 'fighter', color: '#e8574a',
     desc: 'A scrappy shotgunner who wins every fight up close.',
-    hp: 3600, speed: 720, reload: 1.5,
+    hp: 3900, speed: 720, reload: 1.5,
     atk: {
       name: 'Scattershot', text: 'Fires 5 pellets in a cone. Brutal up close.',
-      t: 'shot', n: 5, spread: 0.52, dmg: 300, range: 7.67, spd: 11.3, r: 0.18, chg: 1 / 12,
+      t: 'shot', n: 5, spread: 0.52, dmg: 340, range: 7.67, spd: 11.3, r: 0.18, chg: 1 / 12,
     },
     sup: {
       name: 'Big Bang', text: 'A wide blast of 9 pellets that knocks enemies back and smashes walls.',
@@ -579,18 +579,18 @@ const BRAWLERS = {
   bramble: {
     name: 'Bramble', rarity: 'rare', role: 'fighter', color: '#8a5a3a',
     desc: 'A forest kid who never fights alone: her bear has her back.',
-    hp: 4000, speed: 720, reload: 1.1,
+    hp: 4000, speed: 720, reload: 1.25,
     atk: {
       name: 'Root Wave', text: 'A shockwave that pierces through every enemy in its path.',
-      t: 'shot', dmg: 920, range: 6.3, spd: 7.7, r: 0.5, pierce: true, chg: 1 / 3.5,
+      t: 'shot', dmg: 820, range: 6.3, spd: 7.7, r: 0.5, pierce: true, chg: 1 / 3.5,
     },
     sup: {
       name: 'Big Bruno', text: 'Summons Bruno the bear, who mauls nearby enemies.',
       t: 'deploy', unit: 'pet', dk: 'bramble.bear', range: 7, rad: 0.55, hp: 3400, dmg: 350, rate: 1.0, reach: 1.15,
-      spd: 2.9, aggro: 8, chg: 1 / 6, land: { r: 1.3, dmg: 800 },
+      spd: 2.9, aggro: 8, chg: 1 / 7, land: { r: 1.3, dmg: 800 },
     },
     gadgets: [{ name: 'Heavy Paws', text: "Bruno's next hit stuns for 1 second.", cd: 6, req: 'deploy', t: 'buff', what: 'petStun', v: 1.0 }],
-    stars: [{ name: 'Best Buddies', text: 'Bramble heals 500 whenever Bruno lands a hit.', pass: { petHeal: 500 } }],
+    stars: [{ name: 'Best Buddies', text: 'Bramble heals 430 whenever Bruno lands a hit.', pass: { petHeal: 430 } }],
   },
   pip: {
     name: 'Pip', rarity: 'rare', role: 'thrower', color: '#ff8a3d',
@@ -598,7 +598,7 @@ const BRAWLERS = {
     hp: 2800, speed: 720, reload: 1.7,
     atk: {
       name: 'Fuse Pair', text: 'Lobs 2 sticks of dynamite over walls.',
-      t: 'lob', n: 2, gap: 0.7, T: 0.95, range: 7, dmg: 1050, blast: 0.95, r: 0.18, chg: 1 / 6,
+      t: 'lob', n: 2, gap: 0.7, T: 0.95, range: 7, dmg: 1090, blast: 0.95, r: 0.18, chg: 1 / 6,
     },
     sup: {
       name: 'Big Barrel', text: 'A huge barrel bomb that knocks enemies back and blows up walls.',
@@ -610,17 +610,17 @@ const BRAWLERS = {
   melody: {
     name: 'Melody', rarity: 'rare', role: 'support', color: '#e45bb0',
     desc: 'A street musician whose songs hurt foes and mend friends.',
-    hp: 4000, speed: 720, reload: 1.4,
+    hp: 3400, speed: 720, reload: 1.55,
     atk: {
       name: 'Sonic Chord', text: 'A wide sound wave that pierces enemies.',
-      t: 'shot', dmg: 680, range: 7, spd: 8.7, r: 0.5, grow: 0.18, pierce: true, chg: 1 / 7,
+      t: 'shot', dmg: 650, range: 7, spd: 8.7, r: 0.5, grow: 0.16, pierce: true, chg: 1 / 8,
     },
     sup: {
       name: 'Encore', text: 'A huge wave that heals Melody and every ally it passes.',
       t: 'shot', dmg: 0, heal: 2100, hself: true, range: 9.7, spd: 9, r: 1.0, grow: 0.1, pierce: true,
     },
-    gadgets: [{ name: 'Lullaby', text: 'Heals Melody and nearby allies for 1200.', cd: 7, t: 'pulse', r: 3.3, heal: 1200 }],
-    stars: [{ name: 'Harmony', text: 'Sonic Chord also heals allies it passes for 400.', patch: { atk: { heal: 400 } } }],
+    gadgets: [{ name: 'Lullaby', text: 'Heals Melody and nearby allies for 1050.', cd: 7, t: 'pulse', r: 3.3, heal: 1050 }],
+    stars: [{ name: 'Harmony', text: 'Sonic Chord also heals allies it passes for 340.', patch: { atk: { heal: 340 } } }],
   },
   sizzle: {
     name: 'Sizzle', rarity: 'super', role: 'thrower', color: '#ff5a1f',
@@ -640,10 +640,10 @@ const BRAWLERS = {
   gizmo: {
     name: 'Gizmo', rarity: 'super', role: 'support', color: '#3fc3b5',
     desc: 'A young inventor whose sparks bounce and whose turret never sleeps.',
-    hp: 3000, speed: 720, reload: 1.5,
+    hp: 3450, speed: 720, reload: 1.5,
     atk: {
       name: 'Spark Orb', text: 'An orb that bounces on to 2 more nearby enemies.',
-      t: 'shot', dmg: 1000, range: 9, spd: 8.3, r: 0.25, bounce: { n: 2, r: 4.7 }, chg: 1 / 4,
+      t: 'shot', dmg: 920, range: 9, spd: 8.3, r: 0.25, bounce: { n: 2, r: 4.7 }, chg: 1 / 4,
     },
     sup: {
       name: 'Turret', text: 'Builds a turret that shoots the nearest enemy.',
@@ -656,11 +656,11 @@ const BRAWLERS = {
   volt: {
     name: 'Volt', rarity: 'super', role: 'control', color: '#ffd23f',
     desc: 'A storm chaser who zaps through crowds in an instant.',
-    hp: 3200, speed: 720, reload: 1.8,
+    hp: 3200, speed: 720, reload: 2.05,
     atk: {
       // no travel time to dodge, so it hits for less than a projectile of the same reload would
       name: 'Arc Beam', text: 'An instant beam that pierces every enemy in a line.',
-      t: 'beam', dmg: 820, range: 8, w: 0.28, pierce: true, chg: 1 / 4,
+      t: 'beam', dmg: 790, range: 8, w: 0.28, pierce: true, chg: 1 / 4,
     },
     sup: {
       name: 'Thunderhead', text: 'Calls a storm cloud that shocks and slows enemies under it.',
@@ -672,10 +672,10 @@ const BRAWLERS = {
   hawk: {
     name: 'Hawk', rarity: 'epic', role: 'sharp', color: '#7b6cf6',
     desc: 'An elegant sharpshooter: the further the target, the harder it hits.',
-    hp: 2600, speed: 720, reload: 2.3,
+    hp: 2750, speed: 720, reload: 2.3,
     atk: {
       name: 'Long Shot', text: 'A single bullet that deals more damage the further it flies.',
-      t: 'shot', dmg: 1680, ramp: [0.35, 1], range: 10, spd: 15, r: 0.14, chg: 1 / 3,
+      t: 'shot', dmg: 1740, ramp: [0.35, 1], range: 10, spd: 15, r: 0.14, chg: 1 / 3,
     },
     sup: {
       name: 'Pop-Up', text: 'Leaps away, dropping 4 grenades where she took off.',
@@ -691,7 +691,7 @@ const BRAWLERS = {
     hp: 3800, speed: 720, reload: 1.4,
     atk: {
       name: 'Snow Flurry', text: 'Throws 6 snowballs in a wide fan.',
-      t: 'shot', n: 6, spread: 0.7, dmg: 380, range: 8, spd: 9.7, r: 0.17, chg: 1 / 14,
+      t: 'shot', n: 6, spread: 0.7, dmg: 330, range: 8, spd: 9.7, r: 0.17, chg: 1 / 14,
     },
     sup: {
       name: 'Gale Wall', text: 'A wide gust that pushes enemies back.',
@@ -703,10 +703,10 @@ const BRAWLERS = {
   shade: {
     name: 'Shade', rarity: 'mythic', role: 'assassin', color: '#6b3fa0',
     desc: 'A gloomy undertaker who dashes in for the finishing blow.',
-    hp: 4200, speed: 820, reload: 2.4,
+    hp: 4350, speed: 820, reload: 2.05,
     atk: {
       name: 'Night Lunge', text: 'Dashes forward, striking every enemy in the way.',
-      t: 'dash', dist: 3, spd: 12, dmg: 1000, w: 0.5, chg: 1 / 4,
+      t: 'dash', dist: 3.3, spd: 12, dmg: 1030, w: 0.5, chg: 1 / 3.6,
     },
     sup: {
       name: 'Soul Swarm', text: 'A swarm of bats that pierces enemies and steals their health.',
@@ -718,10 +718,10 @@ const BRAWLERS = {
   zip: {
     name: 'Zip', rarity: 'mythic', role: 'fighter', color: '#ffcc33',
     desc: 'A hyperactive speedster who never stops moving or shooting.',
-    hp: 3300, speed: 820, reload: 1.0,
+    hp: 3100, speed: 820, reload: 1.1,
     atk: {
       name: 'Rapid Fire', text: 'Fires 4 fast bullets in a quick burst.',
-      t: 'shot', n: 4, burst: 0.05, jit: 0.1, dmg: 300, range: 8.7, spd: 13.3, r: 0.13, chg: 1 / 14,
+      t: 'shot', n: 4, burst: 0.05, jit: 0.1, dmg: 275, range: 8.7, spd: 13.3, r: 0.13, chg: 1 / 14,
     },
     sup: {
       name: 'Rush Hour', text: 'Zip and nearby allies move 50% faster for 4 seconds.',
@@ -736,7 +736,7 @@ const BRAWLERS = {
     hp: 3200, speed: 820, reload: 1.9,
     atk: {
       name: 'Spectral Blades', text: '4 blades in a fan. They hit harder up close.',
-      t: 'shot', n: 4, spread: 0.36, dmg: 480, ramp: [1, 0.45], range: 9.7, spd: 11.7, r: 0.14, chg: 1 / 11,
+      t: 'shot', n: 4, spread: 0.36, dmg: 550, ramp: [1, 0.45], range: 9.7, spd: 11.7, r: 0.14, chg: 1 / 11,
     },
     sup: {
       name: 'Fade', text: 'Turns invisible to enemies for 6 seconds. Attacking ends it.',
@@ -748,11 +748,11 @@ const BRAWLERS = {
   thorn: {
     name: 'Thorn', rarity: 'legend', role: 'sharp', color: '#6fcf3f',
     desc: 'A silent cactus whose needle balls burst into spikes.',
-    hp: 2600, speed: 720, reload: 2.0,
+    hp: 2750, speed: 720, reload: 1.75,
     atk: {
       name: 'Needle Ball', text: 'A cactus ball that bursts into 6 spikes when it stops.',
-      t: 'shot', dmg: 770, range: 7.67, spd: 8.3, r: 0.3, chg: 1 / 5,
-      split: { n: 6, dmg: 570, range: 2.7, spd: 9.7, r: 0.12, chg: 1 / 12, pk: 'thorn.spike' },
+      t: 'shot', dmg: 800, range: 7.67, spd: 9.5, r: 0.3, chg: 1 / 5,
+      split: { n: 6, dmg: 595, range: 3.0, spd: 9.7, r: 0.12, chg: 1 / 12, pk: 'thorn.spike' },
     },
     sup: {
       name: 'Briar Patch', text: 'Lobs a spike field that damages and slows enemies.',
@@ -1466,6 +1466,7 @@ class Sim {
 
   newBrawler(slot, c) {
     const star = c.star == null ? -1 : c.star, gad = c.gadget == null ? -1 : c.gadget;
+    if (!Object.prototype.hasOwnProperty.call(BRAWLERS, c.bk)) c = Object.assign({}, c, { bk: 'nova' }); // a bad key (from the network) can't break the sim
     const kit = brawlerKit(c.bk, star, gad);
     const lvl = c.lvl || 1;
     const hp = Math.round(kit.hp * LEVEL_MULT(lvl));
@@ -1532,7 +1533,10 @@ class Sim {
       return;
     }
     this.playT += SIM_DT;
-    for (let i = 0; i < B.length; i++) this.applyInput(B[i]); // 1. inputs: move, then fire
+    // 1. inputs: move, then fire, in a per-tick shuffled order (tickOrder), so no slot wins every
+    // same-tick tie (two stuns pressed together, two players going down together)
+    const ord = this.tickOrder();
+    for (let j = 0; j < ord.length; j++) this.applyInput(B[ord[j]]);
     this.stepDeploys(); // 2
     this.stepShots(); // 3
     this.stepAreas(); // 4
@@ -1619,13 +1623,14 @@ class Sim {
       b.gadLeft--;
       b.gadT = s.cd || 5;
     }
+    // any action ends the spawn shield (before the action's own shield, so a gadget can't stretch it)
+    if (b.spawnSh) { b.shieldT = 0; b.shieldF = 0; b.spawnSh = false; }
     if (act !== ACT.GADGET) {
-      // attacking breaks cover: reveals, stops regen, ends invisibility and the spawn shield
+      // attacking breaks cover: reveals, stops regen, ends invisibility
       b.quietT = 0;
       b.regenAcc = 0;
       b.revealT = REVEAL_T;
       b.invisT = 0;
-      if (b.spawnSh) { b.shieldT = 0; b.shieldF = 0; b.spawnSh = false; }
     }
     b.face = ang; b.aimA = ang; b.faceT = 0.35; b.fireT = 0; b.lastAct = act;
     this.ev(EV.FIRE, b.slot, act, b.x, b.y, ang, b.lastSeq);
@@ -2176,7 +2181,7 @@ class Sim {
   addCube(b) {
     b.cubes++;
     b.maxHp += CUBE_HP;
-    if (b.alive) b.hp += CUBE_HP;
+    if (b.alive && b.hp > 0) b.hp += CUBE_HP; // not for someone already going down this tick
   }
 
   // ---- tiles ----
@@ -2510,22 +2515,24 @@ class Sim {
         // slows act every tick so walking out frees you at once
         for (let j = 0; j < B.length; j++) {
           const e = B[j];
-          if (this.hittable(e) && e.team !== a.team && dist2(a.x, a.y, e.x, e.y) <= a.r * a.r) {
+          if (this.hittable(e) && e.team !== a.team && dist2(a.x, a.y, e.x, e.y) <= (a.r + e.r) * (a.r + e.r)) {
             if (e.slowT < 0.2) this.slow(e, 0.3, a.slow, a.owner, a.act);
             else { e.slowT = Math.max(e.slowT, 0.3); e.slowF = Math.max(e.slowF, a.slow); }
           }
         }
       }
-      if (a.tickT <= 0) {
+      if (a.tickT <= 0 && a.t > 1e-6) { // ticks at 0, 0.5, ... < T; the last one covers only what's left
         a.tickT += Sim.AREA_TICK;
-        this.areaTick(a);
+        this.areaTick(a, Math.min(1, (a.t + dt) / Sim.AREA_TICK));
       }
       if (a.t <= 0) { a.dead = true; this.ev(EV.DESPAWN, a.id, K.AREA); }
     }
   }
 
-  areaTick(a) {
-    const B = this.brawlers, k = Sim.AREA_TICK, r2 = a.r * a.r;
+  // frac: share of a full tick (the last tick of an area whose duration isn't a multiple of AREA_TICK).
+  // Like blasts, an area reaches anyone whose body overlaps it, not only those whose centre is inside.
+  areaTick(a, frac) {
+    const B = this.brawlers, k = Sim.AREA_TICK * (frac == null ? 1 : frac), rb = a.r + BRAWLER_R, r2 = rb * rb;
     if (a.dmg > 0) {
       const chg = a.act === ACT.ATTACK ? a.chg : 0;
       for (let i = 0; i < B.length; i++) {
@@ -2610,7 +2617,7 @@ class Sim {
       // rotate who gets the first try so no slot wins every tie
       for (let j = 0; j < nb; j++) {
         const b = B[(j + this.tick) % nb];
-        if (!this.hittable(b) || dist2(b.x, b.y, p.x, p.y) > (b.r + p.r) * (b.r + p.r)) continue;
+        if (!this.hittable(b) || b.hp <= 0 || dist2(b.x, b.y, p.x, p.y) > (b.r + p.r) * (b.r + p.r)) continue;
         if (!this.mode.onPickup(this, b, p)) continue;
         p.dead = true;
         this.ev(EV.PICKUP, b.slot, p.pick, p.n, p.x, p.y);
@@ -2678,7 +2685,8 @@ class Sim {
     for (let i = 0; i < B.length; i++) {
       const b = B[i];
       if (!b.alive) continue;
-      if (b.x >= P.x0 && b.x <= P.x1 && b.y >= P.y0 && b.y <= P.y1) { b.poisAcc = 0.5; continue; }
+      // inside: the clock winds back up to 0.5 s (a one-tick dip doesn't reset it)
+      if (b.x >= P.x0 && b.x <= P.x1 && b.y >= P.y0 && b.y <= P.y1) { if (b.poisAcc < 0.5) b.poisAcc = Math.min(0.5, b.poisAcc + dt); continue; }
       b.poisAcc -= dt;
       if (b.poisAcc <= 0) {
         b.poisAcc += 1;
@@ -2689,11 +2697,28 @@ class Sim {
 
   // ---- 9. deaths ----
   stepDeaths() {
-    const B = this.brawlers;
-    for (let i = 0; i < B.length; i++) {
-      const b = B[i];
+    const B = this.brawlers, ord = this._ord;
+    for (let j = 0; j < ord.length; j++) {
+      const b = B[ord[j]];
       if (b.alive && b.hp <= 0) this.die(b);
     }
+  }
+
+  // The slots in an order that changes every tick (a hash of tick and slot; no RNG draws, no
+  // allocation). Fair to every pair of slots over time, unlike a plain rotation.
+  tickOrder() {
+    const n = this.brawlers.length;
+    const ord = this._ord || (this._ord = new Int8Array(n)), key = this._ordK || (this._ordK = new Uint32Array(n));
+    for (let i = 0; i < n; i++) {
+      let h = (Math.imul(i + 1, 0x9e3779b1) ^ Math.imul(this.tick, 0x85ebca6b)) >>> 0;
+      h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0;
+      h = (h ^ (h >>> 12)) >>> 0;
+      key[i] = h;
+      let j = i;
+      while (j > 0 && key[ord[j - 1]] > h) { ord[j] = ord[j - 1]; j--; }
+      ord[j] = i;
+    }
+    return ord;
   }
 
   die(b) {
@@ -2802,7 +2827,7 @@ class Sim {
   // Blast Ball: the ball entity and its physics. The mode calls stepBall() from its tick and
   // kickBall() from onAction; possession, goals and overtime are the mode's business.
   addBall(x, y) {
-    this.ball = { id: this.nextId++, kind: K.BALL, team: -1, x, y, px: x, py: y, r: 0.35, dead: false, holder: -1, vx: 0, vy: 0, z: 0, vz: 0, kicker: -1, kickT: 0 };
+    this.ball = { id: this.nextId++, kind: K.BALL, team: -1, x, y, px: x, py: y, r: 0.35, dead: false, holder: -1, vx: 0, vy: 0, z: 0, vz: 0, kicker: -1, kickT: 0, fx: x, fy: y };
     this.ev(EV.SPAWN, this.ball.id, K.BALL);
     return this.ball;
   }
@@ -2810,7 +2835,7 @@ class Sim {
   placeBall(x, y) {
     const o = this.ball;
     o.x = o.px = x; o.y = o.py = y;
-    o.holder = -1; o.vx = o.vy = o.z = o.vz = 0; o.kicker = -1; o.kickT = 0;
+    o.holder = -1; o.vx = o.vy = o.z = o.vz = 0; o.kicker = -1; o.kickT = 0; o.fx = x; o.fy = y;
   }
 
   // what: EV.BALL code (2 kick, 3 pass). vz lifts it (lobbed passes fly over brawlers).
@@ -2841,6 +2866,7 @@ class Sim {
       if (!h.alive || h.stunT > 0 || h.kbT > 0) this.dropBall();
       else {
         o.x = h.x + Math.cos(h.face) * 0.45; o.y = h.y + Math.sin(h.face) * 0.45; o.z = 0;
+        o.fx = h.x; o.fy = h.y;
         return;
       }
     }
@@ -2857,12 +2883,14 @@ class Sim {
     if (wall(o.x, ny + sign(o.vy) * o.r)) o.vy = -o.vy * 0.6; else o.y = ny;
     if (o.z === 0) {
       const f = Math.max(0, 1 - 2.2 * dt); o.vx *= f; o.vy *= f;
-      // landed on (or rolled to a stop on) something nobody can stand on: it pops out next to it
-      if ((flagsAt(m, o.x, o.y) & (TF_SHOT | TF_MOVE)) && ((flagsAt(m, o.x, o.y) & TF_SHOT) || o.vx * o.vx + o.vy * o.vy < 0.25)) {
-        this.freeSpot(o.x, o.y, o.r, this._o2);
-        o.x = this._o2.x; o.y = this._o2.y; o.vx *= 0.3; o.vy *= 0.3;
+      // landed on (or rolled to a stop on) something nobody can stand on: it goes back to the last
+      // open spot it crossed (never sideways through a goal frame into the goal)
+      const fl = flagsAt(m, o.x, o.y);
+      if ((fl & (TF_SHOT | TF_MOVE)) && ((fl & TF_SHOT) || o.vx * o.vx + o.vy * o.vy < 0.25)) {
+        o.x = o.fx; o.y = o.fy; o.vx = o.vy = 0;
       }
     }
+    if (!(flagsAt(m, o.x, o.y) & (TF_SHOT | TF_MOVE))) { o.fx = o.x; o.fy = o.y; }
     if (o.z > 0.8) return;
     const B = this.brawlers;
     for (let j = 0; j < B.length; j++) {
@@ -2870,6 +2898,7 @@ class Sim {
       if (!this.canAct(b) || (b.slot === o.kicker && o.kickT > 0)) continue;
       if (dist2(b.x, b.y, o.x, o.y) > (b.r + o.r) * (b.r + o.r)) continue;
       o.holder = b.slot; o.vx = o.vy = 0; o.kicker = -1;
+      b.bqN = 0; // no more shots from a burst started before the pickup
       this.ev(EV.BALL, 1, b.slot);
       break;
     }
@@ -3055,7 +3084,8 @@ const MODES = {
       for (const b of sim.brawlers) if (b.alive) alive++;
       if (alive > 1 && sim.t < this.cap) return null;
       const rank = this.rankNow(sim);
-      return sim.makeResult(sim.brawlers[rank[0]].team, alive === 1 ? 'last' : 'time', [0, 0], rank);
+      // the last ones going down together still end it 'last' (the tie is broken by tick order)
+      return sim.makeResult(sim.brawlers[rank[0]].team, alive <= 1 ? 'last' : 'time', [0, 0], rank);
     },
 
     hud(sim) {
@@ -3107,8 +3137,10 @@ const MODES = {
     tick(sim) {
       const ms = sim.ms, o = sim.ball;
       sim.stepBall();
+      // a carrier going down this very tick doesn't score (the ball drops with them)
+      const dying = o.holder >= 0 && sim.brawlers[o.holder].hp <= 0;
       for (const g of sim.map.goals) {
-        if (o.x < g.x0 || o.x > g.x1 || o.y < g.y0 || o.y > g.y1) continue;
+        if (dying || o.x < g.x0 || o.x > g.x1 || o.y < g.y0 || o.y > g.y1) continue;
         this.score(sim, 1 - g.team, o.holder >= 0 ? o.holder : o.kicker);
         break;
       }
@@ -3213,7 +3245,8 @@ const MODES = {
       if (k) {
         sim.ms.stars[k.team] += v.bounty;
         k.st.stars += v.bounty;
-        k.bounty = Math.min(this.max, k.bounty + 1);
+        // a killer who is down too (a same-tick trade, a turret or pet of the fallen) gets no star
+        if (k.alive && k.hp > 0) k.bounty = Math.min(this.max, k.bounty + 1);
       }
       v.bounty = this.base;
     },
@@ -3261,10 +3294,19 @@ const MODES = {
 // view would draw (cameraRect), the HUD, and their own brawler. Enemies count only if the team can see
 // them (bushes, invisibility) AND they are on this player's screen. No velocities: bots must estimate
 // motion from successive sightings, like people do. Sound cues for unseen shooters are blurred.
-// Bots get nothing else from the sim.
+// Bots get nothing else from the sim. What has left the screen (a teammate, the ball) is reported
+// where it was last seen, flagged seen: false; a lob's landing spot is only an estimate.
 
 const CUE_R = 7; // unseen enemy shots this close to you are heard
 const CUE_JIT = 1.5; // ... and placed this far off (tiles)
+const LOB_JUDGE = 0.35; // a bottle's landing spot is judged from its shadow to within ~this share of the way left
+
+// Stable noise in [-1, 1] per (shot, viewer, component): the same misjudgement every percept.
+function percNoise(id, slot, k) {
+  let h = Math.imul(id ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(slot * 31 + k + 1, 0xc2b2ae35);
+  h ^= h >>> 16; h = Math.imul(h, 0x7feb352d); h ^= h >>> 15;
+  return ((h >>> 0) / 4294967296) * 2 - 1;
+}
 
 function newPercept() {
   return {
@@ -3292,26 +3334,44 @@ function perceive(sim, slot, P, rng) {
   m.ammo = me.ammo; m.sup = me.sup; m.supReady = me.supReady; m.gadLeft = me.gadLeft; m.gadReady = me.gadLeft > 0 && me.gadT <= 0 && me.gadget >= 0;
   m.carry = me.carry; m.cubes = me.cubes; m.alive = me.alive; m.respawnT = me.respawnT; m.inBush = me.inBush;
   m.invis = me.invisT > 0; m.stunned = me.stunT > 0; m.face = me.face; m.lvl = me.lvl; m.shield = me.shieldT > 0; m.bounty = me.bounty;
+  P.frozen = sim.freezeT > 0; // the GOAL / ROUND banner is up: nothing moves
   P.allies.length = 0;
   P.enemies.length = 0;
   const seen = P._seen || (P._seen = new Uint8Array(16));
   seen.fill(0);
+  const AL = P._ally || (P._ally = {});
   for (const b of B) {
     if (b.slot === slot) continue;
     if (b.team === me.team) {
-      P.allies.push({ slot: b.slot, bk: b.bk, x: b.x, y: b.y, hp: b.hp, maxHp: b.maxHp, alive: b.alive, respawnT: b.respawnT, carry: b.carry, inBush: b.inBush, supReady: b.supReady, bounty: b.bounty });
+      // teammates: alive / respawning is on the HUD; where they are and how they're doing only while on
+      // screen (and right after a respawn: everyone knows where the spawn is)
+      let a = AL[b.slot];
+      const fresh = !a || (!a.alive && b.alive) || !b.alive || inRect(cam, b.x, b.y, 0.3);
+      if (!a) a = AL[b.slot] = { slot: b.slot, bk: b.bk, x: 0, y: 0, hp: 0, maxHp: 1, alive: true, respawnT: 0, carry: 0, inBush: false, supReady: false, bounty: 0, seen: false };
+      a.alive = b.alive; a.respawnT = b.respawnT; a.seen = fresh;
+      if (fresh) { a.x = b.x; a.y = b.y; a.hp = b.hp; a.maxHp = b.maxHp; a.carry = b.carry; a.inBush = b.inBush; a.supReady = b.supReady; a.bounty = b.bounty; }
+      P.allies.push(a);
     } else if (b.alive && sim.visibleTo(me.team, b) && inRect(cam, b.x, b.y, 0.3)) {
       seen[b.slot] = 1;
       P.enemies.push({ slot: b.slot, team: b.team, bk: b.bk, x: b.x, y: b.y, hp: b.hp, maxHp: b.maxHp, carry: b.carry, cubes: b.cubes, inBush: b.inBush, bounty: b.bounty, lvl: b.lvl, shield: b.shieldT > 0 });
     }
   }
-  // shots: enemy projectiles on screen (lobs show their landing spot); unseen shooters become cues
+  // shots: enemy projectiles on screen (a lob's bottle; where it lands is judged from its shadow, more
+  // closely as it comes down); unseen shooters become cues
   P.shots.length = 0;
   P.cues.length = 0;
   for (const s of sim.shots) {
     if (s.dead || s.team === me.team || s.beam > 0) continue;
-    if (!inRect(cam, s.x, s.y, 0.5) && !(s.lob && inRect(cam, s.lob.tx, s.lob.ty, 0.5))) continue;
-    P.shots.push({ id: s.id, x: s.x, y: s.y, ang: s.ang, spd: s.spd, r: s.r, team: s.team, owner: s.owner, lob: s.lob ? { tx: s.lob.tx, ty: s.lob.ty, tLeft: Math.max(0, s.lob.T - s.lob.t), r: s.s && s.s.blast ? s.s.blast : 1 } : null });
+    if (!inRect(cam, s.x, s.y, 0.5)) continue;
+    let lob = null;
+    if (s.lob) {
+      const rem = Math.hypot(s.lob.tx - s.x, s.lob.ty - s.y) * LOB_JUDGE;
+      lob = {
+        tx: s.lob.tx + (percNoise(s.id, slot, 1) + percNoise(s.id, slot, 2)) * rem, ty: s.lob.ty + (percNoise(s.id, slot, 3) + percNoise(s.id, slot, 4)) * rem,
+        tLeft: Math.max(0, s.lob.T - s.lob.t), r: s.s && s.s.blast ? s.s.blast : 1,
+      };
+    }
+    P.shots.push({ id: s.id, x: s.x, y: s.y, ang: s.ang, spd: s.spd, r: s.r, team: s.team, owner: s.owner, lob });
     if (!seen[s.owner] && rng && s.trav < 1.5 && dist2(s.x0, s.y0, me.x, me.y) < CUE_R * CUE_R) {
       P.cues.push({ x: s.x0 + rng.range(-CUE_JIT, CUE_JIT), y: s.y0 + rng.range(-CUE_JIT, CUE_JIT), owner: s.owner });
     }
@@ -3319,7 +3379,7 @@ function perceive(sim, slot, P, rng) {
   P.areas.length = 0;
   for (const a of sim.areas) {
     if (a.dead || !inRect(cam, a.x, a.y, a.r)) continue;
-    P.areas.push({ x: a.x, y: a.y, r: a.r, team: a.team, harm: a.team !== me.team && (a.dmg > 0 || a.slow > 0), heal: a.team === me.team && a.heal > 0 });
+    P.areas.push({ id: a.id, x: a.x, y: a.y, r: a.r, team: a.team, harm: a.team !== me.team && (a.dmg > 0 || a.slow > 0), heal: a.team === me.team && a.heal > 0 });
   }
   P.pickups.length = 0;
   for (const p of sim.pickups) {
@@ -3331,15 +3391,24 @@ function perceive(sim, slot, P, rng) {
     if (d.dead || !inRect(cam, d.x, d.y, 0.5)) continue;
     P.deploys.push({ id: d.id, team: d.team, owner: d.owner, dk: d.dk, x: d.x, y: d.y, hp: d.hp, maxHp: d.maxHp });
   }
+  // the ball: while on screen, as it is; off screen, where it was last seen (everyone knows it starts,
+  // and restarts after a goal, on its spot)
   const bl = sim.ball;
   if (bl && !bl.dead) {
-    const h = bl.holder >= 0 ? B[bl.holder] : null;
-    P.ball = P.ball || {};
-    P.ball.x = bl.x; P.ball.y = bl.y; P.ball.holderSlot = bl.holder; P.ball.holderTeam = h ? h.team : -1; P.ball.z = bl.z || 0;
+    const mb = P._ball || (P._ball = { x: 0, y: 0, holderSlot: -1, holderTeam: -1, z: 0, seen: false, init: false });
+    if (!mb.init || P.frozen) {
+      const o = map.obj || { x: map.w / 2, y: map.h / 2 };
+      mb.x = o.x; mb.y = o.y; mb.holderSlot = -1; mb.holderTeam = -1; mb.z = 0; mb.init = true;
+    }
+    mb.seen = inRect(cam, bl.x, bl.y, 0.3) || bl.holder === slot;
+    if (mb.seen) {
+      const h = bl.holder >= 0 ? B[bl.holder] : null;
+      mb.x = bl.x; mb.y = bl.y; mb.holderSlot = bl.holder; mb.holderTeam = h ? h.team : -1; mb.z = bl.z || 0;
+    }
+    P.ball = mb;
   } else P.ball = null;
   P.hud = sim.hud();
   P.poison = sim.poison;
-  P.frozen = sim.freezeT > 0; // the GOAL / ROUND banner is up: nothing moves
   // quick-chat pins from teammates (the last few seconds)
   P.pins.length = 0;
   if (sim.pins) for (const p of sim.pins) if (p.slot !== slot && B[p.slot].team === me.team) P.pins.push({ slot: p.slot, id: p.id, age: sim.t - p.t });
@@ -3372,14 +3441,14 @@ function botParams(profile) {
     flick: lerp(0.3, 0.16, s), fitts: lerp(0.11, 0.065, s), // aim movement time = flick + fitts*log2(1+D/W)
     autoAim: lerp(0.7, 0.12, s), // chance a shot is a plain auto-aim tap
     dodge: lerp(0.12, 0.7, s), // chance to sidestep a shot it noticed in time
-    discipline: lerp(0.15, 0.9, s), // holds fire out of range / keeps ammo
+    discipline: lerp(0.15, 0.55, s), // holds fire out of range / keeps ammo (good players still poke at max range)
     stickRate: lerp(5.5, 10, s), // how fast the thumb swings the move stick (rad/s)
-    juke: lerp(0.35, 1.15, s) * (0.6 + aggr * 0.8), // sideways juke bursts per second in a fight
+    juke: lerp(0.35, 0.75, s) * (0.6 + aggr * 0.8), // sideways juke bursts per second in a fight
     aimStop: lerp(0.4, 0.1, s), // chance to stop walking while lining up a manual shot
     supNotice: lerp(4, 2.2, s), // typical seconds before a charged super gets used at all
     aggr, patience: tv('patience', 0.5), greed: tv('greed', 0.5), teamwork: tv('teamwork', 0.6), tilt: tv('tilt', 0.3),
     retreatHP: lerp(0.45, 0.26, aggr) * lerp(1, 1.08, s),
-    lapse: lerp(2, 0.3, s) / 60 / lerp(4, 8, s), // explicit lapses: about 2 a minute for beginners, 0.3 for experts
+    lapse: lerp(3.5, 0.2, s) / 60 / lerp(4, 8, s), // explicit lapses: about 3.5 a minute for beginners, 0.2 for experts
   };
 }
 
@@ -3402,8 +3471,12 @@ class Mind {
     this.prof = profile || {};
     this.p = botParams(profile);
     this.rng = rng;
+    // personal style: some players dance a lot in fights, some hardly at all
+    this.p.juke *= rng.range(0.7, 1.35);
+    this.pinIn = []; // teammates' pins still being read: { at, id, slot }
     this.mem = {}; // enemy slot -> memory
     this.shotMem = new Map(); // shot id -> { noticeAt, dodge }
+    this.areaMem = new Map(); // harmful area id -> when it's noticed
     this.intent = { goal: 'hold', gx: 0, gy: 0, target: -1, stance: 1, wantSuper: false, wantGadget: false, superMode: 'target', gadMode: 'target', bushShot: null, boxShot: null, kick: null };
     this.goalT = 0; // when the current goal started
     this.nextThink = 0;
@@ -3474,20 +3547,30 @@ class Mind {
       if (!m.noticed && t >= m.noticeAt && t - m.t < 0.4) m.noticed = true;
       if (t - m.t > p.memT) delete this.mem[k];
     }
-    // incoming shots: noticed after a (slightly quicker: they're bright and moving) reaction
+    // incoming shots: noticed after a reaction, plus a moment to pick a side (never under ~0.16 s); the
+    // read of where it will pass is a little off (err, tiles), less so for good players
     for (const s of P.shots) {
-      if (!this.shotMem.has(s.id)) this.shotMem.set(s.id, { noticeAt: t + this.reaction() * 0.85, dodge: this.rng.chance(p.dodge), born: t });
+      if (!this.shotMem.has(s.id)) this.shotMem.set(s.id, { noticeAt: t + Math.max(0.16, this.reaction() + this.rng.range(0.03, 0.08)), dodge: this.rng.chance(p.dodge), born: t, err: this.rng.range(-1, 1) * lerp(0.55, 0.2, p.s) });
     }
     if (this.shotMem.size > 80) for (const [id, v] of this.shotMem) if (t - v.born > 3) this.shotMem.delete(id);
-    // teammates' pins (once each)
+    // a puddle or field that lands on you: noticed after a reaction too, not on the frame it appears
+    for (const a of P.areas) if (a.harm && !this.areaMem.has(a.id)) this.areaMem.set(a.id, t + this.reaction());
+    if (this.areaMem.size > 40) for (const [id, at] of this.areaMem) if (t - at > 8) this.areaMem.delete(id);
+    // teammates' pins (once each); reading one and acting on it takes a moment
     for (const pin of P.pins) {
       const key = pin.slot * 1000 + Math.round((t - pin.age) * 10);
       if (this.pinSeen.has(key)) continue;
       this.pinSeen.add(key);
       if (!this.rng.chance(p.teamwork)) continue; // not everyone reads the chat
-      if (pin.id === 0) this.bias.attack = t + 6;
-      else if (pin.id === 1) this.bias.defend = t + 6;
-      else if (pin.id === 2) { this.bias.help = pin.slot; this.bias.helpT = t + 5; } else if (pin.id === 6) this.bias.gems = t + 6;
+      this.pinIn.push({ at: t + this.reaction() + this.rng.range(0.3, 1), id: pin.id, slot: pin.slot });
+    }
+    for (let i = this.pinIn.length - 1; i >= 0; i--) {
+      const q = this.pinIn[i];
+      if (q.at > t) continue;
+      this.pinIn.splice(i, 1);
+      if (q.id === 0) this.bias.attack = t + 6;
+      else if (q.id === 1) this.bias.defend = t + 6;
+      else if (q.id === 2) { this.bias.help = q.slot; this.bias.helpT = t + 5; } else if (q.id === 6) this.bias.gems = t + 6;
     }
     if (this.pinSeen.size > 200) this.pinSeen.clear();
   }
@@ -3617,6 +3700,12 @@ class Mind {
     }
     let pick = opts[0], x = r.next() * tot;
     for (const o of opts) { x -= o.w; if (x <= 0) { pick = o; break; } }
+    // a person sticks to a plan for a moment: while committed, switch only for something clearly better
+    // (or urgent), instead of flipping back and forth
+    if (committed && pick.goal !== cur && pick.goal !== 'poison' && pick.goal !== 'retreat') {
+      const co = opts.find((o) => o.goal === cur);
+      if (co && pick.score < co.score + lerp(0.35, 0.12, p.s)) pick = co; // beginners are more stubborn
+    }
     // rare lapses: overextend into enemy territory or forget the objective for a while
     if (this.lapse && t > this.lapse.until) this.lapse = null;
     if (!this.lapse && r.chance(p.lapse) && !sd && pick.goal !== 'poison') {
@@ -3644,7 +3733,7 @@ class Mind {
       const cx = pz ? (pz.x0 + pz.x1) / 2 : m.w / 2, cy = pz ? (pz.y0 + pz.y1) / 2 : m.h / 2;
       // roam near where you are early on; drift inwards as the poison closes
       const k = pz ? pz.k : 0, pull = 0.12 + 0.6 * k;
-      if (!this._roam || P.t > this._roamT) { this._roam = { x: lerp(me.x, cx, pull) + this.rng.range(-4, 4), y: lerp(me.y, cy, pull) + this.rng.range(-4, 4) }; this._roamT = P.t + this.rng.range(4, 9); }
+      if (!this._roam || P.t > this._roamT) { this._roam = { x: lerp(me.x, cx, pull) + this.rng.range(-4, 4), y: lerp(me.y, cy, pull) + this.rng.range(-4, 4) }; this._roamT = P.t + this.rng.range(2.5, 6); }
       return this._roam;
     }
     const lane = [0.22, 0.5, 0.78][(this.slot % 3)];
@@ -3709,7 +3798,7 @@ class Mind {
       const eg = enemyGoal ? { x: (enemyGoal.x0 + enemyGoal.x1) / 2, y: (enemyGoal.y0 + enemyGoal.y1) / 2 } : { x: map.w / 2, y: me.team === 0 ? 0 : map.h };
       const og = ownGoal ? { x: (ownGoal.x0 + ownGoal.x1) / 2, y: (ownGoal.y0 + ownGoal.y1) / 2 } : this.base(P);
       const I = this.intent;
-      if (ball.holderSlot !== me.slot) I.passTo = null;
+      if (ball.holderSlot !== me.slot) { I.passTo = null; I.clearTo = null; }
       if (ball.holderSlot === me.slot) {
         add('dribble', 1.6, eg.x, eg.y, null, 1.2);
         // pressed by an enemy: pass to a teammate further up who is in the open (if I think of it)
@@ -3724,6 +3813,23 @@ class Mind {
             if (da > 2.5 && da < Bot.PASS_RANGE + 0.5 && open && gain > bs) { bs = gain; best = a; }
           }
           if (best) I.passTo = { x: best.x, y: best.y };
+        }
+        // swarmed, or pressed while hurt, with nobody to pass to: clear it up the field through an open
+        // lane rather than dribble into a knock-out
+        if (!I.passTo && !I.clearTo && (press >= 2 || (press && myHPf < 0.45) || (myHPf < 0.3 && danger > 0.5)) && dGoal > Bot.KICK_RANGE * 0.8 && r.chance(0.25 + p.s * 0.35)) {
+          const ga = Math.atan2(eg.y - me.y, eg.x - me.x), foes = this.known(true);
+          let best = null, bs = -1e9;
+          for (const da of [0, -0.45, 0.45, -0.9, 0.9]) {
+            const a = ga + da, tx = me.x + Math.cos(a) * 7, ty = me.y + Math.sin(a) * 7;
+            if (!shotClear(map, me.x, me.y, tx, ty)) continue;
+            let sc = -Math.abs(da) * 0.6;
+            for (const q of foes) {
+              const k = clamp(((q.x - me.x) * (tx - me.x) + (q.y - me.y) * (ty - me.y)) / 49, 0, 1);
+              sc += Math.min(2.5, Math.hypot(me.x + (tx - me.x) * k - q.x, me.y + (ty - me.y) * k - q.y));
+            }
+            if (sc > bs) { bs = sc; best = { x: tx, y: ty }; }
+          }
+          if (best) I.clearTo = best;
         }
       } else if (ball.holderSlot < 0) {
         const dMe = Math.hypot(ball.x - me.x, ball.y - me.y);
@@ -3857,10 +3963,13 @@ class Bot {
     // move stick
     this.mvA = 0; this.mvM = 0; this.jukeDir = this.rng.chance(0.5) ? 1 : -1; this.latV = 0; this.jukeT = 0;
     this.wiggleT = 0; this.wiggleA = 0;
+    this.fidgetUntil = 0; this.fidgetNext = this.rng.range(1, 4); this.fidgetA = 0; // idle thumb fidgets
     this.hist = []; // recent positions for stuck detection { t, x, y, push }
     // aim
     this.aimA = 0; this.from = 0; this.to = 0; this.over = 0; this.flickT0 = -9; this.flickDur = 0; this.aimKey = -2;
     this.tapAt = 0; this.aimStopUntil = 0;
+    this.aimGoal = 0; this.errOff = 0; this.depthErr = 0; this.corrAt = 0; // the aim's own error, kept until corrected
+    this.prevAmmo = MAX_AMMO; this.ammoAt = 0; // a bar that just refilled is noticed a moment later
     // paths
     this.flow = null; this.flowKey = -1; this.flowT = -9; this._fd = { x: 0, y: 0, d: 0 };
     this.outPin = null; this.outEmote = null;
@@ -3950,9 +4059,12 @@ class Bot {
           const e = P.enemies[0], ed = Math.hypot(e.x - me.x, e.y - me.y) || 1;
           dx = (-(e.y - me.y) / ed) * this.jukeDir + (I.gx - me.x) * 0.8; dy = ((e.x - me.x) / ed) * this.jukeDir + (I.gy - me.y) * 0.8;
           want = 0.5;
+        } else if (this.t < this.fidgetUntil) {
+          want = 0.5; dx = Math.cos(this.fidgetA); dy = Math.sin(this.fidgetA);
         } else {
-          want = r.chance(0.04) ? 0.6 : 0;
-          if (want > 0) { const a = r.range(0, TAU); dx = Math.cos(a); dy = Math.sin(a); }
+          // standing: now and then a short fidget walk, like a thumb resting on the stick
+          want = 0;
+          if (this.t >= this.fidgetNext) { this.fidgetUntil = this.t + r.range(0.2, 0.6); this.fidgetNext = this.fidgetUntil + r.range(2, 5); this.fidgetA = r.range(0, TAU); }
         }
       }
       // carrying gems or retreating: keep away from enemies on screen
@@ -3976,17 +4088,17 @@ class Bot {
       const rx = me.x - s.x, ry = me.y - s.y;
       const along = rx * vx + ry * vy;
       if (along < 0 || along / Math.max(1, s.spd) > 0.9) continue;
-      const side = rx * -vy + ry * vx;
+      const side = rx * -vy + ry * vx + sm.err; // judged by eye: a little off
       if (Math.abs(side) > s.r + BRAWLER_R + 0.35) continue;
       const sgn = side >= 0 ? 1 : -1;
       dx += -vy * sgn * 2.2; dy += vx * sgn * 2.2;
       this.tel.jukeAt = this.t;
     }
-    // step out of harmful zones
+    // step out of harmful zones (once noticed; they hurt as soon as your body touches them)
     for (const a of P.areas) {
-      if (!a.harm) continue;
+      if (!a.harm || !(this.t >= this.mind.areaMem.get(a.id))) continue;
       const ad = Math.hypot(me.x - a.x, me.y - a.y);
-      if (ad < a.r + 0.5) { dx += ((me.x - a.x) / (ad || 1)) * 1.5; dy += ((me.y - a.y) / (ad || 1)) * 1.5; }
+      if (ad < a.r + BRAWLER_R + 0.15) { dx += ((me.x - a.x) / (ad || 1)) * 1.5; dy += ((me.y - a.y) / (ad || 1)) * 1.5; }
     }
     // stuck against something: wiggle like a person would
     if (this.wiggleT > 0) { this.wiggleT -= dt; dx = Math.cos(this.wiggleA); dy = Math.sin(this.wiggleA); want = 1; }
@@ -4056,16 +4168,22 @@ class Bot {
     const me = P.me, I = this.mind.intent, p = this.p, r = this.rng, t = this.t;
     const out = this._shot || (this._shot = { ang: 0, d: 1, act: 0, auto: 0 });
     out.act = 0; out.auto = 0;
+    if (me.ammo >= 1 && this.prevAmmo < 1) this.ammoAt = t + r.range(0.06, 0.3) * lerp(1.4, 0.8, p.s);
+    this.prevAmmo = me.ammo;
     const holding = P.ball && P.ball.holderSlot === me.slot;
     const m = I.target >= 0 && !holding ? this.mind.mem[I.target] : null;
     let spec = this.kit.atkF, act = 0, tx = 0, ty = 0, key = -1, has = false, range = 0;
     // what to point at (with the ball: a teammate to pass to, or the goal; never a brawler)
     if (holding) {
       const eg = P.map.goals.find((g) => g.team !== me.team);
-      const ks = !I.passTo && eg ? this.kickSpot(P, eg) : null;
-      if (I.passTo) { has = true; key = 102; tx = I.passTo.x; ty = I.passTo.y; act = ACT.SUPER; range = Bot.PASS_RANGE; } else if (ks) { has = true; key = 101; tx = ks.x; ty = ks.y; range = Bot.KICK_RANGE; }
-    } else if (m && m.noticed && m.seen) { has = true; key = I.target; tx = m.x; ty = m.y; } else if (I.bushShot) { has = true; key = 100; tx = I.bushShot.x; ty = I.bushShot.y; }
-    if (holding) { if (I.wantGadget && me.gadReady && this.kit.gadF.t === 'buff') { act = ACT.GADGET; spec = this.kit.gadF; } } else if (I.wantGadget && me.gadReady && this.kit.gadF.t !== 'none') { act = ACT.GADGET; spec = this.kit.gadF; } else if (I.wantSuper && me.supReady) { act = ACT.SUPER; spec = this.kit.supF; }
+      const ks = !I.passTo && !I.clearTo && eg ? this.kickSpot(P, eg) : null;
+      if (I.passTo) { has = true; key = 102; tx = I.passTo.x; ty = I.passTo.y; act = ACT.SUPER; range = Bot.PASS_RANGE; } else if (I.clearTo) { has = true; key = 103; tx = I.clearTo.x; ty = I.clearTo.y; act = ACT.ATTACK; range = Bot.KICK_RANGE; } else if (ks) { has = true; key = 101; tx = ks.x; ty = ks.y; range = Bot.KICK_RANGE; }
+    } else {
+      const dp = this.deployTarget(P, m && m.noticed && m.seen ? Math.hypot(m.x - me.x, m.y - me.y) : Infinity);
+      if (dp) { has = true; key = 104; tx = dp.x; ty = dp.y; } else if (m && m.noticed && m.seen) { has = true; key = I.target; tx = m.x; ty = m.y; } else if (I.bushShot) { has = true; key = 100; tx = I.bushShot.x; ty = I.bushShot.y; }
+    }
+    // with the ball only a buff gadget; on a pet or turret only the main attack
+    if (holding) { if (I.wantGadget && me.gadReady && this.kit.gadF.t === 'buff') { act = ACT.GADGET; spec = this.kit.gadF; } } else if (key === 104) { /* main attack */ } else if (I.wantGadget && me.gadReady && this.kit.gadF.t !== 'none') { act = ACT.GADGET; spec = this.kit.gadF; } else if (I.wantSuper && me.supReady) { act = ACT.SUPER; spec = this.kit.supF; }
     if (!has) {
       // nothing to shoot: aim drifts where you walk
       this.aimA = wrapAng(this.aimA + angDiff(this.aimA, this.mvA) * 0.1);
@@ -4074,30 +4192,48 @@ class Bot {
       return out;
     }
     const d = Math.hypot(tx - me.x, ty - me.y) || 0.01;
-    // lead: aim where it will be, partly (people under-lead)
-    const tf = spec.lob ? spec.T : spec.spd === Infinity ? 0.05 : d / spec.spd;
+    // lead: aim where it will be, partly (people under-lead). A lob's flight time depends on how far
+    // it's thrown (short throws land sooner), and the throw goes to the led spot, not the target.
+    let tf = spec.lob ? spec.T : spec.spd === Infinity ? 0.05 : d / spec.spd;
     let px = tx, py = ty;
-    if (m && key === I.target) { px += m.vx * tf * p.lead; py += m.vy * tf * p.lead; }
+    if (m && key === I.target) {
+      px = tx + m.vx * tf * p.lead; py = ty + m.vy * tf * p.lead;
+      if (spec.lob && spec.range > 0) {
+        for (let i = 0; i < 2; i++) {
+          tf = spec.T * (0.6 + 0.4 * Math.min(1, Math.hypot(px - me.x, py - me.y) / spec.range));
+          px = tx + m.vx * tf * p.lead; py = ty + m.vy * tf * p.lead;
+        }
+      }
+    }
+    const dl = Math.hypot(px - me.x, py - me.y) || 0.01;
     let ang = Math.atan2(py - me.y, px - me.x);
     const mode = key >= 101 ? 'target' : act === ACT.GADGET ? I.gadMode : act === ACT.SUPER ? I.superMode : 'target';
     if (mode === 'away') ang = wrapAng(ang + Math.PI + r.range(-0.4, 0.4));
     // a new target or a big swing: flick there (with overshoot), else follow smoothly
     const goalAng = ang;
-    if (key !== this.aimKey || Math.abs(angDiff(this.to, goalAng)) > 0.45) {
+    if (key !== this.aimKey || Math.abs(angDiff(this.aimGoal, goalAng)) > 0.45) {
       const lateral = m && key === I.target ? Math.abs((m.vx * -(py - me.y) + m.vy * (px - me.x)) / d) : 0;
       const stress = me.hp / me.maxHp < 0.35 ? 0.5 : 0;
       const errTiles = p.aimErr * (0.1 + 0.045 * d + 0.12 * lateral) * (1 + stress);
-      const z = Math.sqrt(-2 * Math.log(1 - r.next() * 0.999999)) * Math.cos(TAU * r.next());
+      const g1 = Math.sqrt(-2 * Math.log(1 - r.next() * 0.999999)), g2 = TAU * r.next();
       this.from = this.aimA;
-      this.to = wrapAng(goalAng + (z * errTiles) / Math.max(1, d));
+      this.errOff = (g1 * Math.cos(g2) * errTiles) / Math.max(1, d); // sideways miss (angle)
+      this.depthErr = g1 * Math.sin(g2) * errTiles * 0.8; // and too short / too long (tiles: lobs, leaps)
+      this.aimGoal = goalAng;
+      this.to = wrapAng(goalAng + this.errOff);
       const D = Math.abs(angDiff(this.from, this.to)) * Math.max(1, d);
       this.flickDur = p.flick + p.fitts * Math.log2(1 + D / 0.6);
       this.over = angDiff(this.from, this.to) * r.range(0.1, 0.2);
       this.flickT0 = t;
+      this.corrAt = t + this.flickDur + r.range(0.15, 0.35); // noticing the aim is off takes a moment
       this.aimKey = key;
       if (key < 100 && r.chance(p.aimStop)) this.aimStopUntil = t + this.flickDur * r.range(0.4, 0.9);
     } else {
-      this.to = wrapAng(this.to + angDiff(this.to, goalAng) * 0.12); // smooth pursuit
+      // smooth pursuit of a moving target keeps the aim's own error; it's corrected only after a
+      // moment, and slowly by weaker players
+      this.aimGoal = goalAng;
+      if (t > this.corrAt) { const f = Math.exp(-lerp(0.8, 3, p.s) * SIM_DT); this.errOff *= f; this.depthErr *= f; }
+      this.to = wrapAng(goalAng + this.errOff);
     }
     const k = (t - this.flickT0) / Math.max(0.05, this.flickDur);
     if (k < 0.75) {
@@ -4109,15 +4245,15 @@ class Bot {
     const settled = k >= 1;
     out.ang = this.aimA;
     if (!range) range = spec.range || this.kit.atkF.range || 1;
-    out.d = clamp(d / range, 0.05, 1);
+    out.d = clamp((dl + (spec.lob ? this.depthErr : 0)) / range, 0.05, 1);
     if (t < this.tapAt) return out;
     // decide to shoot (a kick: in range, with a clear line to the goal mouth)
     if (act === 0 && key === 101) {
-      if (d > range * lerp(0.75, 1, p.discipline) || !shotClear(P.map, me.x, me.y, tx, ty)) return out;
+      if (d > range * lerp(0.85, 1, p.s) || !shotClear(P.map, me.x, me.y, tx, ty)) return out;
       act = ACT.ATTACK;
     } else if (act === 0) {
       const atk = this.kit.atkF;
-      if (me.ammo < 1) return out;
+      if (me.ammo < 1 || t < this.ammoAt) return out;
       const reach = atk.range * lerp(1.15, 0.98, p.discipline);
       if (d > reach) return out;
       if (!atk.lob && atk.t === 'shot' && !shotClear(P.map, me.x, me.y, tx, ty)) return out;
@@ -4130,6 +4266,19 @@ class Bot {
     out.auto = auto ? 1 : 0;
     this.fired(act, auto);
     return out;
+  }
+
+  // An enemy pet closing in on me, or a turret within reach, that's nearer than the brawler I'm after
+  // (md): people shoot those down first rather than let them chew on them.
+  deployTarget(P, md) {
+    const me = P.me, reach = this.kit.atkF.range * 0.9;
+    let best = null, bd = md;
+    for (const d of P.deploys) {
+      if (d.team === me.team) continue;
+      const dd = Math.hypot(d.x - me.x, d.y - me.y);
+      if (dd < bd && dd < (d.dk.includes('bear') ? 3.5 : reach)) { bd = dd; best = d; }
+    }
+    return best;
   }
 
   // A point in the goal mouth with an open lane: no wall, and no enemy I know of standing in the way
@@ -4164,6 +4313,7 @@ class Bot {
     if (act === ACT.SUPER) this.mind.intent.wantSuper = false;
     if (act === ACT.GADGET) this.mind.intent.wantGadget = false;
     if (act === ACT.SUPER) this.mind.intent.passTo = null;
+    if (act === ACT.ATTACK) this.mind.intent.clearTo = null;
   }
 
   // ---- telemetry (and getting unstuck) ----
@@ -5667,6 +5817,17 @@ function syncUnHud(h, poison) {
   return h;
 }
 
+// A key from the network that names an own entry of a data table (never 'constructor', '__proto__'...).
+const syncOwn = (o, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k);
+
+// A fingerprint of the game data both phones must share (brawlers and maps): different builds
+// don't play together.
+let syncDV = 0;
+function syncDataVer() {
+  if (!syncDV) syncDV = hashStr(JSON.stringify(BRAWLERS) + JSON.stringify(MAPS)) || 1;
+  return syncDV;
+}
+
 // Radius growth per tile of a shot kind ('bk.atk' / 'bk.sup' / 'bk.gad'), from the brawler data.
 function syncGrow(pk) {
   const p = String(pk).split('.'), D = BRAWLERS[p[0]];
@@ -5724,10 +5885,19 @@ class SyncHost {
         if (c instanceof RemoteCtrl) c.push(m.s | 0, m.w.slice(-SYNC_WORDS).map((w) => w >>> 0));
         break;
       }
-      case 'pin': if (!this.m.ended) this.m.pin(this.gs, clamp(m.i | 0, 0, PINS.length - 1)); break;
-      case 'emo': if (!this.m.ended) this.m.emote(this.gs, clamp(m.i | 0, 0, EMOTES.length - 1)); break;
-      case 'rs': this.send({ t: 'PL', P: this.sim.pickups.filter((p) => !p.dead).map((p) => { const r = this.pickRec(p, this.sim.tick); r[0] = 0; return r; }) }); break;
+      // chat and resend requests are rate-limited (a flooding friend can't bog the host down)
+      case 'pin': if (!this.m.ended && this.limit('pin', 400)) this.m.pin(this.gs, clamp(m.i | 0, 0, PINS.length - 1)); break;
+      case 'emo': if (!this.m.ended && this.limit('emo', 400)) this.m.emote(this.gs, clamp(m.i | 0, 0, EMOTES.length - 1)); break;
+      case 'rs': if (this.limit('rs', 1000)) this.send({ t: 'PL', P: this.sim.pickups.filter((p) => !p.dead).map((p) => { const r = this.pickRec(p, this.sim.tick); r[0] = 0; return r; }) }); break;
     }
+  }
+
+  // True at most once per `ms` for a kind of request.
+  limit(kind, ms) {
+    const now = performance.now(), L = this.lim || (this.lim = {});
+    if (L[kind] && now - L[kind] < ms) return false;
+    L[kind] = now;
+    return true;
   }
 
   onTick() {
@@ -5764,9 +5934,16 @@ class SyncHost {
 
   // Near the guest's screen? (Anywhere while they watch someone else after being knocked out.)
   near(x, y, pad) {
-    const g = this.sim.brawlers[this.gs];
+    const sim = this.sim, g = sim.brawlers[this.gs];
     if (!g.alive && g.respawnT < 0) return true;
-    return Math.abs(x - g.x) <= SYNC_FAR_X + pad && Math.abs(y - g.y) <= SYNC_FAR_Y + pad;
+    if (Math.abs(x - g.x) <= SYNC_FAR_X + pad && Math.abs(y - g.y) <= SYNC_FAR_Y + pad) return true;
+    // the view's camera stops at the map edges, so a player near an edge sees farther the other way
+    if (this.camK !== sim.tick) {
+      const sd = sim.modeKey === MODE.SHOWDOWN;
+      this.cam = cameraRect(sim.map, g.x, g.y, g.team === 1 && !sd, sd, this.cam || {});
+      this.camK = sim.tick;
+    }
+    return inRect(this.cam, x, y, pad + 3);
   }
 
   // Shot records for this tick's new shots (a volley shares one record). The friend's own shots are
@@ -5913,7 +6090,7 @@ class SyncHost {
     let pn = 0, ps = 0;
     for (const p of sim.pickups) if (!p.dead) { pn++; ps = (ps + p.id) & 0xffff; }
     msg.pc = [pn, ps];
-    const size = this.send(msg, true);
+    const size = this.send(msg, !this.sim.over); // the final one (the last events) must arrive
     const st = this.stats;
     st.n++; st.bytes += size; st.max = Math.max(st.max, size);
     st.sizes.push(size);
@@ -6679,7 +6856,10 @@ const Friend = {
 
   mine() {
     const s = SAVE, bk = BRAWLERS[s.sel] ? s.sel : 'nova', b = s.brawlers[bk] || { lvl: 1, tro: 0 };
-    return { t: 'hello', v: NET_PROTO, name: String(s.name || 'Player').slice(0, 16), bk, lvl: b.lvl | 0, tro: b.tro | 0 };
+    return {
+      t: 'hello', v: NET_PROTO, dv: syncDataVer(), name: String(s.name || 'Player').slice(0, 16), bk, lvl: b.lvl | 0, tro: b.tro | 0,
+      gad: b.lvl >= Meta.GADGET_LVL && b.gadget >= 0 ? 1 : 0, star: b.lvl >= Meta.STAR_LVL && b.star >= 0 ? 1 : 0, // equipped gear
+    };
   },
 
   // Forget the current room (sending a goodbye if a friend is connected).
@@ -6741,10 +6921,10 @@ const Friend = {
   onMsg(m) {
     switch (m.t) {
       case 'hello': {
-        if (m.v !== NET_PROTO) { UI.toast('Your friend has a different version of the game. Both of you should reload.'); this.leave(); UI.open('friends'); return; }
+        if (m.v !== NET_PROTO || m.dv !== syncDataVer()) { UI.toast('Your friend has a different version of the game. Both of you should reload.'); this.leave(); UI.open('friends'); return; }
         this.hello = m;
-        this.st.friend = { name: String(m.name || 'Friend').slice(0, 16), bk: BRAWLERS[m.bk] ? m.bk : 'nova' };
-        if (this.role === 'guest') { this.st.mode = m.mode; this.st.map = m.map; this.st.sameTeam = !!m.sameTeam; }
+        this.st.friend = { name: String(m.name || 'Friend').slice(0, 16), bk: BRAWLER_KEYS.includes(m.bk) ? m.bk : 'nova' };
+        if (this.role === 'guest') { this.st.mode = syncOwn(MODE_INFO, m.mode) ? m.mode : 'gem'; this.st.map = syncOwn(MAPS, m.map) ? m.map : ''; this.st.sameTeam = !!m.sameTeam; }
         else { this.st.canStart = true; this.st.status = 'Ready!'; }
         if (typeof Sound !== 'undefined') Sound.play('confirm');
         this.show();
@@ -6788,6 +6968,7 @@ const Friend = {
     const cfg = Meta.friendlyCfg({
       mode: o.mode, map: o.map, sameTeam: !!o.sameTeam, hostBk, hostLvl: (s.brawlers[hostBk] || { lvl: 1 }).lvl,
       guestBk: this.st.friend.bk, guestLvl: clamp(h.lvl | 0, 1, MAX_POWER), guestName: this.st.friend.name, guestTro: h.tro | 0,
+      guestGad: h.gad === 1, guestStar: h.star === 1,
     });
     this.link.send({ t: 'start', cfg });
     this.phase = 'vs';
@@ -6805,7 +6986,12 @@ const Friend = {
 
   // Guest: the host started.
   startGuest(cfg0) {
-    const cfg = Object.assign({}, cfg0, { localSlot: cfg0.guestSlot });
+    const ok = cfg0 && syncOwn(MODE_INFO, cfg0.mode) && syncOwn(MAPS, cfg0.map) && Array.isArray(cfg0.slots) &&
+      cfg0.slots.length === MODE_INFO[cfg0.mode].teams * MODE_INFO[cfg0.mode].size && (cfg0.guestSlot | 0) === cfg0.guestSlot &&
+      cfg0.guestSlot > 0 && cfg0.guestSlot < cfg0.slots.length && cfg0.slots.every((s) => s && BRAWLER_KEYS.includes(s.bk));
+    if (!ok) { UI.toast('Could not start the battle'); this.leave(); UI.open('friends'); return; }
+    // friendly no matter what the host's message says: a friend's phone can't change your trophies
+    const cfg = Object.assign({}, cfg0, { localSlot: cfg0.guestSlot, friendly: true });
     this.phase = 'vs';
     if (typeof Sound !== 'undefined') Sound.init();
     UI.showVs(cfg, () => {
@@ -6877,13 +7063,15 @@ class RemoteCtrl {
       this.q.push(words[i] >>> 0);
       this.qs.push(s);
     }
-    // a long backlog: drop movement-only words but keep every action
+    // a long backlog: drop movement-only words but keep actions; past 12 words (0.4 s) the oldest go
+    // too, so a flood can't build an endless queue
     while (this.q.length > 4) {
       const i = this.q.findIndex((w) => !inAct(w));
       if (i < 0) break;
       this.q.splice(i, 1);
       this.qs.splice(i, 1);
     }
+    if (this.q.length > 12) { this.q.splice(0, this.q.length - 12); this.qs.splice(0, this.qs.length - 12); }
   }
   word(sim) {
     if (this.bot) return this.bot.tick(sim); // the friend dropped out: an AI holds the brawler
@@ -6946,6 +7134,7 @@ class Match {
   pin(slot, id) {
     const sim = this.sim;
     sim.pins.push({ slot, id, t: sim.t });
+    if (sim.pins.length > 12) sim.pins.shift();
     sim.ev(EV.PIN, slot, id);
   }
   emote(slot, id) { this.sim.ev(EV.EMOTE, slot, id); }
@@ -7008,6 +7197,7 @@ class Match {
       this.ended = true;
       this.endT = 0;
       Input.enabled = false;
+      if (this.onResult) this.onResult(sim.result); // known now, shown in a moment
       setTimeout(() => { if (this.onEnd) this.onEnd(sim.result); }, 1800);
     } else if (!this.ended && this.net === 'offline' && this.cfg.mode === MODE.SHOWDOWN) this.sdOut(dt);
   }
@@ -7016,10 +7206,16 @@ class Match {
   // placed behind everyone still standing, as in the original.
   sdOut(dt) {
     const me = this.sim.brawlers[this.local];
-    if (this.outT == null) { if (me.alive) return; this.outT = 0; }
+    if (this.outT == null) {
+      if (me.alive) return;
+      // the placement is fixed the moment the player falls (everyone still up, or down later, is ahead)
+      this.outT = 0;
+      this.outResult = this.earlyResult();
+      if (this.onResult) this.onResult(this.outResult);
+    }
     this.outT += dt * this.speed;
     if (this.outT < 2.5) return;
-    const r = this.earlyResult();
+    const r = this.outResult;
     this.ended = true;
     this.endT = 0;
     Input.enabled = false;
@@ -11063,6 +11259,7 @@ function defaultSave() {
     stats: { played: 0, wins: 0, losses: 0, draws: 0, sdWins: 0, kills: 0, deaths: 0, mvps: 0, streak: 0, bestStreak: 0 },
     settings: { sound: true, music: true, vibrate: true, quality: 'auto', leftHanded: false, autoAimHint: true },
     seen: {}, // one-time tips and "new" badges
+    pending: null, // { cfg, local, result? } while a trophy match runs (closing the app mid-match is a loss)
   };
 }
 
@@ -11538,13 +11735,14 @@ const Meta = (() => {
     const rng = new RNG(seed ^ 0x2545f491);
     const guestSlot = mode === MODE.SHOWDOWN ? 1 : opts.sameTeam ? 1 : 3;
     const slots = [];
-    const taken = new Set([opts.hostBk, opts.guestBk]);
+    const guestBk = BRAWLER_KEYS.includes(opts.guestBk) ? opts.guestBk : 'nova'; // never trust a key from the network
+    const taken = new Set([opts.hostBk, guestBk]);
     for (let i = 0; i < size; i++) {
       const team = mode === MODE.SHOWDOWN ? i : (i < 3 ? 0 : 1);
       if (i === 0) slots.push(Object.assign(localSlot(team, owned(opts.hostBk) ? opts.hostBk : S().sel), { ctrl: 'local' }));
       else if (i === guestSlot) {
         const lvl = clamp(opts.guestLvl | 0 || 1, 1, MAX_POWER);
-        slots.push({ team, bk: opts.guestBk, lvl, gadget: lvl >= GADGET_LVL ? 0 : -1, star: lvl >= STAR_LVL ? 0 : -1, name: opts.guestName || 'Friend', icon: opts.guestBk, tro: opts.guestTro | 0, ctrl: 'remote', profile: null });
+        slots.push({ team, bk: guestBk, lvl, gadget: lvl >= GADGET_LVL && opts.guestGad ? 0 : -1, star: lvl >= STAR_LVL && opts.guestStar ? 0 : -1, name: String(opts.guestName || 'Friend').slice(0, 16), icon: guestBk, tro: opts.guestTro | 0, ctrl: 'remote', profile: null });
       } else slots.push(botSlot(rng, team, mode, opts.map, 300, Math.max(1, Math.round(((opts.hostLvl || 1) + (opts.guestLvl || 1)) / 2)), taken));
     }
     return { mode, map: opts.map, seed, slots, localSlot: 0, guestSlot, friendly: true };
@@ -11568,8 +11766,11 @@ const Meta = (() => {
     return xp;
   }
   // Pays out a finished match and returns a summary for the result screen.
-  function applyResult(cfg, result, slot, now) {
+  // opts.abandoned: the player left (or closed the app) mid-match: a loss with no pass XP, quest
+  // progress or daily win, as in the original.
+  function applyResult(cfg, result, slot, now, opts) {
     if (slot === undefined) slot = cfg.localSlot || 0;
+    const abandoned = !!(opts && opts.abandoned);
     const s = S(), me = cfg.slots[slot];
     const mode = cfg.mode;
     let outcome, rank = 0;
@@ -11599,14 +11800,14 @@ const Meta = (() => {
     if (mvp) ss.mvps++;
     // pass XP
     const passBefore = passState().tier;
-    let xp = passXpFor(mode, outcome, rank, mvp);
+    let xp = abandoned ? 0 : passXpFor(mode, outcome, rank, mvp);
     // daily win drops
     let dropEarned = false;
-    if (outcome === 'win' && d.wins < DAILY_WIN_DROPS) { d.wins++; s.drops.push(''); dropEarned = true; }
+    if (!abandoned && outcome === 'win' && d.wins < DAILY_WIN_DROPS) { d.wins++; s.drops.push(''); dropEarned = true; }
     // quests
     const questsDone = [];
     for (const q of d.quests) {
-      if (q.done) continue;
+      if (q.done || abandoned) continue;
       let add = 0;
       switch (q.k) {
         case 'play': add = 1; break;
@@ -13075,6 +13276,8 @@ const Game = {
     this.canvas = $('game');
     this.ctx = this.canvas.getContext('2d', { alpha: false });
     loadGame();
+    const pend = SAVE.pending; // a trophy match that never finished (the app was closed): settle it
+    if (pend) { SAVE.pending = null; this.settle(pend); }
     Input.init(this.canvas);
     Input.setScreenToWorld((sx, sy) => View.screenToWorld(sx, sy)); // mouse aiming
     UI.onPlay = (ev, bk) => this.play(ev, bk);
@@ -13103,6 +13306,7 @@ const Game = {
     const pb = $('pausebtn');
     if (pb) pb.addEventListener('click', () => this.pause());
     UI.showLobby();
+    if (pend) setTimeout(() => UI.toast(pend.result ? 'Your last match was recorded.' : 'You left your last match: it counted as a loss.'), 600);
     if (typeof Music !== 'undefined') Music.play('menu');
     this.frame = this.frame.bind(this);
     requestAnimationFrame(this.frame);
@@ -13180,6 +13384,13 @@ const Game = {
     // a friendly battle's guest mirrors the host's match (GuestMatch in 13-sync.js)
     this.match = opts && opts.net === 'guest' ? new GuestMatch(cfg, opts) : new Match(cfg, opts);
     this.match.onEnd = (result) => this.endMatch(result);
+    // a trophy match is on record from the start: closing the app counts as leaving, and a result is
+    // kept as soon as it is known (before its screen shows)
+    if (!cfg.friendly) {
+      SAVE.pending = { cfg, local: this.match.local };
+      saveGame();
+      this.match.onResult = (r) => { if (SAVE.pending) { SAVE.pending.result = r; saveGame(); } };
+    }
     this.last = 0;
     this.slowFrames = 0;
     this.frames = 0;
@@ -13195,6 +13406,7 @@ const Game = {
     const cfg = m.cfg;
     this.showPauseBtn(false);
     this.keepAwake(false);
+    if (!cfg.friendly) SAVE.pending = null; // applyResult saves
     const summary = cfg.friendly ? { friendly: true, outcome: outcomeOf(cfg, result, m.local), rank: rankOf(cfg, result, m.local) } : Meta.applyResult(cfg, result, m.local, Date.now());
     if (typeof Music !== 'undefined') Music.play('menu');
     if (m.onFinished) m.onFinished(result);
@@ -13218,14 +13430,26 @@ const Game = {
     this.showPauseBtn(false);
     this.keepAwake(false);
     if (typeof Music !== 'undefined') Music.play('menu');
-    // leaving an offline match early counts as a loss (as in the original)
-    if (!m.cfg.friendly && !m.sim.over) {
-      let r = { winner: m.cfg.mode === MODE.SHOWDOWN ? -1 : 1 - m.cfg.slots[m.local].team, rank: [], mvp: -1, stats: m.sim.brawlers.map((b) => Object.assign({}, b.st)) };
-      if (m.cfg.mode === MODE.SHOWDOWN) { r.rank = m.cfg.slots.map((s, i) => i).filter((i) => i !== m.local); r.rank.push(m.local); }
-      if (m.outT != null && m.earlyResult) r = m.earlyResult(); // already knocked out in Showdown: keep the placement
-      Meta.applyResult(m.cfg, r, m.local, Date.now());
+    // leaving a trophy match early counts as a loss (as in the original); a result already known (the
+    // match just ended, or a Showdown placement) counts as it is
+    const pend = SAVE.pending;
+    if (pend && !m.cfg.friendly) {
+      SAVE.pending = null;
+      if (!pend.result) pend.stats = m.sim.brawlers.map((b) => Object.assign({}, b.st));
+      this.settle(pend);
     }
     UI.showLobby();
+  },
+
+  // Applies a match that ended without its result screen: its known result, or an abandoned loss.
+  settle(p) {
+    try {
+      const cfg = p.cfg, local = p.local | 0;
+      if (p.result) { Meta.applyResult(cfg, p.result, local, Date.now()); return; }
+      const r = { winner: cfg.mode === MODE.SHOWDOWN ? -1 : 1 - cfg.slots[local].team, rank: [], mvp: -1, stats: p.stats || [] };
+      if (cfg.mode === MODE.SHOWDOWN) { r.rank = cfg.slots.map((s, i) => i).filter((i) => i !== local); r.rank.push(local); }
+      Meta.applyResult(cfg, r, local, Date.now(), { abandoned: true });
+    } catch (e) { saveGame(); }
   },
 
   showPauseBtn(on) { const b = $('pausebtn'); if (b) b.style.display = on ? 'block' : 'none'; },

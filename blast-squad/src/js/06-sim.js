@@ -70,6 +70,7 @@ class Sim {
 
   newBrawler(slot, c) {
     const star = c.star == null ? -1 : c.star, gad = c.gadget == null ? -1 : c.gadget;
+    if (!Object.prototype.hasOwnProperty.call(BRAWLERS, c.bk)) c = Object.assign({}, c, { bk: 'nova' }); // a bad key (from the network) can't break the sim
     const kit = brawlerKit(c.bk, star, gad);
     const lvl = c.lvl || 1;
     const hp = Math.round(kit.hp * LEVEL_MULT(lvl));
@@ -136,7 +137,10 @@ class Sim {
       return;
     }
     this.playT += SIM_DT;
-    for (let i = 0; i < B.length; i++) this.applyInput(B[i]); // 1. inputs: move, then fire
+    // 1. inputs: move, then fire, in a per-tick shuffled order (tickOrder), so no slot wins every
+    // same-tick tie (two stuns pressed together, two players going down together)
+    const ord = this.tickOrder();
+    for (let j = 0; j < ord.length; j++) this.applyInput(B[ord[j]]);
     this.stepDeploys(); // 2
     this.stepShots(); // 3
     this.stepAreas(); // 4
@@ -223,13 +227,14 @@ class Sim {
       b.gadLeft--;
       b.gadT = s.cd || 5;
     }
+    // any action ends the spawn shield (before the action's own shield, so a gadget can't stretch it)
+    if (b.spawnSh) { b.shieldT = 0; b.shieldF = 0; b.spawnSh = false; }
     if (act !== ACT.GADGET) {
-      // attacking breaks cover: reveals, stops regen, ends invisibility and the spawn shield
+      // attacking breaks cover: reveals, stops regen, ends invisibility
       b.quietT = 0;
       b.regenAcc = 0;
       b.revealT = REVEAL_T;
       b.invisT = 0;
-      if (b.spawnSh) { b.shieldT = 0; b.shieldF = 0; b.spawnSh = false; }
     }
     b.face = ang; b.aimA = ang; b.faceT = 0.35; b.fireT = 0; b.lastAct = act;
     this.ev(EV.FIRE, b.slot, act, b.x, b.y, ang, b.lastSeq);
@@ -780,7 +785,7 @@ class Sim {
   addCube(b) {
     b.cubes++;
     b.maxHp += CUBE_HP;
-    if (b.alive) b.hp += CUBE_HP;
+    if (b.alive && b.hp > 0) b.hp += CUBE_HP; // not for someone already going down this tick
   }
 
   // ---- tiles ----
@@ -1114,22 +1119,24 @@ class Sim {
         // slows act every tick so walking out frees you at once
         for (let j = 0; j < B.length; j++) {
           const e = B[j];
-          if (this.hittable(e) && e.team !== a.team && dist2(a.x, a.y, e.x, e.y) <= a.r * a.r) {
+          if (this.hittable(e) && e.team !== a.team && dist2(a.x, a.y, e.x, e.y) <= (a.r + e.r) * (a.r + e.r)) {
             if (e.slowT < 0.2) this.slow(e, 0.3, a.slow, a.owner, a.act);
             else { e.slowT = Math.max(e.slowT, 0.3); e.slowF = Math.max(e.slowF, a.slow); }
           }
         }
       }
-      if (a.tickT <= 0) {
+      if (a.tickT <= 0 && a.t > 1e-6) { // ticks at 0, 0.5, ... < T; the last one covers only what's left
         a.tickT += Sim.AREA_TICK;
-        this.areaTick(a);
+        this.areaTick(a, Math.min(1, (a.t + dt) / Sim.AREA_TICK));
       }
       if (a.t <= 0) { a.dead = true; this.ev(EV.DESPAWN, a.id, K.AREA); }
     }
   }
 
-  areaTick(a) {
-    const B = this.brawlers, k = Sim.AREA_TICK, r2 = a.r * a.r;
+  // frac: share of a full tick (the last tick of an area whose duration isn't a multiple of AREA_TICK).
+  // Like blasts, an area reaches anyone whose body overlaps it, not only those whose centre is inside.
+  areaTick(a, frac) {
+    const B = this.brawlers, k = Sim.AREA_TICK * (frac == null ? 1 : frac), rb = a.r + BRAWLER_R, r2 = rb * rb;
     if (a.dmg > 0) {
       const chg = a.act === ACT.ATTACK ? a.chg : 0;
       for (let i = 0; i < B.length; i++) {
@@ -1214,7 +1221,7 @@ class Sim {
       // rotate who gets the first try so no slot wins every tie
       for (let j = 0; j < nb; j++) {
         const b = B[(j + this.tick) % nb];
-        if (!this.hittable(b) || dist2(b.x, b.y, p.x, p.y) > (b.r + p.r) * (b.r + p.r)) continue;
+        if (!this.hittable(b) || b.hp <= 0 || dist2(b.x, b.y, p.x, p.y) > (b.r + p.r) * (b.r + p.r)) continue;
         if (!this.mode.onPickup(this, b, p)) continue;
         p.dead = true;
         this.ev(EV.PICKUP, b.slot, p.pick, p.n, p.x, p.y);
@@ -1282,7 +1289,8 @@ class Sim {
     for (let i = 0; i < B.length; i++) {
       const b = B[i];
       if (!b.alive) continue;
-      if (b.x >= P.x0 && b.x <= P.x1 && b.y >= P.y0 && b.y <= P.y1) { b.poisAcc = 0.5; continue; }
+      // inside: the clock winds back up to 0.5 s (a one-tick dip doesn't reset it)
+      if (b.x >= P.x0 && b.x <= P.x1 && b.y >= P.y0 && b.y <= P.y1) { if (b.poisAcc < 0.5) b.poisAcc = Math.min(0.5, b.poisAcc + dt); continue; }
       b.poisAcc -= dt;
       if (b.poisAcc <= 0) {
         b.poisAcc += 1;
@@ -1293,11 +1301,28 @@ class Sim {
 
   // ---- 9. deaths ----
   stepDeaths() {
-    const B = this.brawlers;
-    for (let i = 0; i < B.length; i++) {
-      const b = B[i];
+    const B = this.brawlers, ord = this._ord;
+    for (let j = 0; j < ord.length; j++) {
+      const b = B[ord[j]];
       if (b.alive && b.hp <= 0) this.die(b);
     }
+  }
+
+  // The slots in an order that changes every tick (a hash of tick and slot; no RNG draws, no
+  // allocation). Fair to every pair of slots over time, unlike a plain rotation.
+  tickOrder() {
+    const n = this.brawlers.length;
+    const ord = this._ord || (this._ord = new Int8Array(n)), key = this._ordK || (this._ordK = new Uint32Array(n));
+    for (let i = 0; i < n; i++) {
+      let h = (Math.imul(i + 1, 0x9e3779b1) ^ Math.imul(this.tick, 0x85ebca6b)) >>> 0;
+      h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0;
+      h = (h ^ (h >>> 12)) >>> 0;
+      key[i] = h;
+      let j = i;
+      while (j > 0 && key[ord[j - 1]] > h) { ord[j] = ord[j - 1]; j--; }
+      ord[j] = i;
+    }
+    return ord;
   }
 
   die(b) {
@@ -1406,7 +1431,7 @@ class Sim {
   // Blast Ball: the ball entity and its physics. The mode calls stepBall() from its tick and
   // kickBall() from onAction; possession, goals and overtime are the mode's business.
   addBall(x, y) {
-    this.ball = { id: this.nextId++, kind: K.BALL, team: -1, x, y, px: x, py: y, r: 0.35, dead: false, holder: -1, vx: 0, vy: 0, z: 0, vz: 0, kicker: -1, kickT: 0 };
+    this.ball = { id: this.nextId++, kind: K.BALL, team: -1, x, y, px: x, py: y, r: 0.35, dead: false, holder: -1, vx: 0, vy: 0, z: 0, vz: 0, kicker: -1, kickT: 0, fx: x, fy: y };
     this.ev(EV.SPAWN, this.ball.id, K.BALL);
     return this.ball;
   }
@@ -1414,7 +1439,7 @@ class Sim {
   placeBall(x, y) {
     const o = this.ball;
     o.x = o.px = x; o.y = o.py = y;
-    o.holder = -1; o.vx = o.vy = o.z = o.vz = 0; o.kicker = -1; o.kickT = 0;
+    o.holder = -1; o.vx = o.vy = o.z = o.vz = 0; o.kicker = -1; o.kickT = 0; o.fx = x; o.fy = y;
   }
 
   // what: EV.BALL code (2 kick, 3 pass). vz lifts it (lobbed passes fly over brawlers).
@@ -1445,6 +1470,7 @@ class Sim {
       if (!h.alive || h.stunT > 0 || h.kbT > 0) this.dropBall();
       else {
         o.x = h.x + Math.cos(h.face) * 0.45; o.y = h.y + Math.sin(h.face) * 0.45; o.z = 0;
+        o.fx = h.x; o.fy = h.y;
         return;
       }
     }
@@ -1461,12 +1487,14 @@ class Sim {
     if (wall(o.x, ny + sign(o.vy) * o.r)) o.vy = -o.vy * 0.6; else o.y = ny;
     if (o.z === 0) {
       const f = Math.max(0, 1 - 2.2 * dt); o.vx *= f; o.vy *= f;
-      // landed on (or rolled to a stop on) something nobody can stand on: it pops out next to it
-      if ((flagsAt(m, o.x, o.y) & (TF_SHOT | TF_MOVE)) && ((flagsAt(m, o.x, o.y) & TF_SHOT) || o.vx * o.vx + o.vy * o.vy < 0.25)) {
-        this.freeSpot(o.x, o.y, o.r, this._o2);
-        o.x = this._o2.x; o.y = this._o2.y; o.vx *= 0.3; o.vy *= 0.3;
+      // landed on (or rolled to a stop on) something nobody can stand on: it goes back to the last
+      // open spot it crossed (never sideways through a goal frame into the goal)
+      const fl = flagsAt(m, o.x, o.y);
+      if ((fl & (TF_SHOT | TF_MOVE)) && ((fl & TF_SHOT) || o.vx * o.vx + o.vy * o.vy < 0.25)) {
+        o.x = o.fx; o.y = o.fy; o.vx = o.vy = 0;
       }
     }
+    if (!(flagsAt(m, o.x, o.y) & (TF_SHOT | TF_MOVE))) { o.fx = o.x; o.fy = o.y; }
     if (o.z > 0.8) return;
     const B = this.brawlers;
     for (let j = 0; j < B.length; j++) {
@@ -1474,6 +1502,7 @@ class Sim {
       if (!this.canAct(b) || (b.slot === o.kicker && o.kickT > 0)) continue;
       if (dist2(b.x, b.y, o.x, o.y) > (b.r + o.r) * (b.r + o.r)) continue;
       o.holder = b.slot; o.vx = o.vy = 0; o.kicker = -1;
+      b.bqN = 0; // no more shots from a burst started before the pickup
       this.ev(EV.BALL, 1, b.slot);
       break;
     }

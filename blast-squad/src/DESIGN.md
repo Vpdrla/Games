@@ -138,7 +138,8 @@ sim.rng                        // RNG for gameplay randomness
   - `dmg, r, pierce, hitMask` (bits of slots already hit), `sup` (from a super), `breaks`
   - `lob`: `{ tx, ty, T, t }` for lobs, else null. They fly over everything and only act on landing.
 - **Area (`K.AREA`):** `owner, ak` (visual key), `r, t, T` (time left / total), `dmg` (per second
-  vs enemies), `heal` (per second for allies), `slow`.
+  vs enemies), `heal` (per second for allies), `slow`. Like a blast, it reaches every body that overlaps
+  it (`r + BRAWLER_R` from the centre), not only those whose centre is inside.
 - **Pickup (`K.PICKUP`):** `pick` (`PICK.GEM` / `PICK.CUBE` / `PICK.STAR`), `n` (count), `vx, vy`
   (pop-out motion), `t`.
 - **Deploy (`K.DEPLOY`):** `owner, dk` (visual key, e.g. `'gizmo.turret'`), `hp, maxHp`, `face`, `t`.
@@ -217,13 +218,15 @@ rectangle (`cameraRect`, which also drives the view) plus the HUD. Bots never to
 { tick, t, mode, map /* read-only */, cam: {x0,y0,x1,y1},
   me: { slot, team, bk, x, y, hp, maxHp, ammo, sup, supReady, gadLeft, gadReady, carry, cubes, alive,
         respawnT, inBush, invis, stunned, face },
-  allies:  [{ slot, bk, x, y, hp, maxHp, alive, carry, inBush, supReady }],           // always known
+  allies:  [{ slot, bk, x, y, hp, maxHp, alive, carry, inBush, supReady, seen }], // alive/respawn from the HUD;
+           //   position and health as last seen on screen (seen: false while off screen)
   enemies: [{ slot, bk, x, y, hp, maxHp, carry, cubes, inBush }], // visible to my team AND on my screen
-  shots:   [{ x, y, ang, spd, r, team, lob: {tx, ty, tLeft}|null }],      // enemy shots on my screen
-  areas:   [{ x, y, r, team, harm: bool }],
+  shots:   [{ x, y, ang, spd, r, team, lob: {tx, ty, tLeft}|null }],      // enemy shots on my screen; a lob's
+           //   landing spot is an estimate (judged from the shadow, closer as it comes down)
+  areas:   [{ id, x, y, r, team, harm: bool }],  // a bot steps out of a harmful one only after a reaction
   pickups: [{ pick, x, y, n }],
   deploys: [{ team, dk, x, y, hp }],
-  ball:    { x, y, holderSlot, holderTeam } | null,
+  ball:    { x, y, holderSlot, holderTeam, seen } | null,  // as last seen; its spot at kickoff and after goals
   cues:    [{ x, y }],         // unseen enemy shots fired within 7 tiles, position jittered +-1.5 tiles
   hud:     sim.hud() copy, poison rect when there is poison,
   frozen:  bool,               // a goal / round banner is up and nothing moves (players see it too)
@@ -320,7 +323,7 @@ m.onEnd = (result) => {}
 | Friend matches | `friendlyCfg(opts) -> cfg` (no trophies) |
 
 Currencies: coins, power points (per brawler), gems, credits. Progression follows the original. Below
-1,000 total trophies, wins pay double trophies and there is no trophy loss under 100 brawler trophies.
+1,000 total trophies, trophy gains are tripled and there is no trophy loss under 100 brawler trophies.
 
 ## Roster (03-brawlers.js keys; original names, archetypes like the original)
 

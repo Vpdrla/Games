@@ -430,13 +430,14 @@ const Meta = (() => {
     const rng = new RNG(seed ^ 0x2545f491);
     const guestSlot = mode === MODE.SHOWDOWN ? 1 : opts.sameTeam ? 1 : 3;
     const slots = [];
-    const taken = new Set([opts.hostBk, opts.guestBk]);
+    const guestBk = BRAWLER_KEYS.includes(opts.guestBk) ? opts.guestBk : 'nova'; // never trust a key from the network
+    const taken = new Set([opts.hostBk, guestBk]);
     for (let i = 0; i < size; i++) {
       const team = mode === MODE.SHOWDOWN ? i : (i < 3 ? 0 : 1);
       if (i === 0) slots.push(Object.assign(localSlot(team, owned(opts.hostBk) ? opts.hostBk : S().sel), { ctrl: 'local' }));
       else if (i === guestSlot) {
         const lvl = clamp(opts.guestLvl | 0 || 1, 1, MAX_POWER);
-        slots.push({ team, bk: opts.guestBk, lvl, gadget: lvl >= GADGET_LVL ? 0 : -1, star: lvl >= STAR_LVL ? 0 : -1, name: opts.guestName || 'Friend', icon: opts.guestBk, tro: opts.guestTro | 0, ctrl: 'remote', profile: null });
+        slots.push({ team, bk: guestBk, lvl, gadget: lvl >= GADGET_LVL && opts.guestGad ? 0 : -1, star: lvl >= STAR_LVL && opts.guestStar ? 0 : -1, name: String(opts.guestName || 'Friend').slice(0, 16), icon: guestBk, tro: opts.guestTro | 0, ctrl: 'remote', profile: null });
       } else slots.push(botSlot(rng, team, mode, opts.map, 300, Math.max(1, Math.round(((opts.hostLvl || 1) + (opts.guestLvl || 1)) / 2)), taken));
     }
     return { mode, map: opts.map, seed, slots, localSlot: 0, guestSlot, friendly: true };
@@ -460,8 +461,11 @@ const Meta = (() => {
     return xp;
   }
   // Pays out a finished match and returns a summary for the result screen.
-  function applyResult(cfg, result, slot, now) {
+  // opts.abandoned: the player left (or closed the app) mid-match: a loss with no pass XP, quest
+  // progress or daily win, as in the original.
+  function applyResult(cfg, result, slot, now, opts) {
     if (slot === undefined) slot = cfg.localSlot || 0;
+    const abandoned = !!(opts && opts.abandoned);
     const s = S(), me = cfg.slots[slot];
     const mode = cfg.mode;
     let outcome, rank = 0;
@@ -491,14 +495,14 @@ const Meta = (() => {
     if (mvp) ss.mvps++;
     // pass XP
     const passBefore = passState().tier;
-    let xp = passXpFor(mode, outcome, rank, mvp);
+    let xp = abandoned ? 0 : passXpFor(mode, outcome, rank, mvp);
     // daily win drops
     let dropEarned = false;
-    if (outcome === 'win' && d.wins < DAILY_WIN_DROPS) { d.wins++; s.drops.push(''); dropEarned = true; }
+    if (!abandoned && outcome === 'win' && d.wins < DAILY_WIN_DROPS) { d.wins++; s.drops.push(''); dropEarned = true; }
     // quests
     const questsDone = [];
     for (const q of d.quests) {
-      if (q.done) continue;
+      if (q.done || abandoned) continue;
       let add = 0;
       switch (q.k) {
         case 'play': add = 1; break;
