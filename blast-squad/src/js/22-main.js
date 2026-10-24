@@ -79,6 +79,7 @@ const Game = {
       if (Sound.setMusic) Sound.setMusic(st.music);
     }
     Input.leftHanded = !!st.leftHanded;
+    Input.size = clamp(+st.btnSize || 1, 0.6, 1.6);
     this.autoLow = false;
     if (typeof FX !== 'undefined') FX.low = st.quality === 'low';
     this.resize();

@@ -28,7 +28,7 @@ function defaultSave() {
     drops: [], // pending drops (rarity floors, '' = random)
     daily: { day: '', wins: 0, quests: [], gift: false, bought: [] },
     stats: { played: 0, wins: 0, losses: 0, draws: 0, sdWins: 0, kills: 0, deaths: 0, mvps: 0, streak: 0, bestStreak: 0 },
-    settings: { sound: true, music: true, vibrate: true, quality: 'auto', leftHanded: false, autoAimHint: true },
+    settings: { sound: true, music: true, vibrate: true, quality: 'auto', leftHanded: false, autoAimHint: true, btnSize: 1 },
     seen: {}, // one-time tips and "new" badges
     pending: null, // { cfg, local, result? } while a trophy match runs (closing the app mid-match is a loss)
   };

@@ -847,6 +847,20 @@ const View = (() => {
             ctx.fill();
           }
         }
+        // the lunge's charge (Night Lunge): fills while not attacking; full means the long lunge
+        const L = b.kit && b.kit.atk && b.kit.atk.long;
+        if (L && b.atkT != null && state.t != null) {
+          const f = clamp((state.t - b.atkT) / (L.T - (b.kit.pass.dashCharge || 0)), 0, 1);
+          const dy = ay + ah + Math.max(1.5, T * 0.03), dh = Math.max(2, T * 0.06);
+          roundRect(ctx, d.sx - w / 2, dy, w, dh, dh * 0.4);
+          ctx.fillStyle = 'rgba(20,10,30,0.8)';
+          ctx.fill();
+          if (f > 0) {
+            roundRect(ctx, d.sx - w / 2, dy, w * f, dh, dh * 0.4);
+            ctx.fillStyle = f >= 1 ? '#ffe23a' : '#a08a2a';
+            ctx.fill();
+          }
+        }
       }
       // carried gems / bounty stars / power cubes
       const tag = (icon, n, col2) => {

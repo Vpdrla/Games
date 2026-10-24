@@ -4,9 +4,11 @@
 //
 // What the sim offers modes:
 //   - spawns: ModeKit.spawnPoint picks map.spawns by team (3v3) or by slot / sim.ms.order (Showdown).
-//   - poison: `poison: { start, shrink, minHalf, dmg }`. The sim keeps sim.poison (the safe rect),
-//     deals `dmg` per second outside it, emits EV.POISON, and measures time from sim.roundT0
+//   - poison: `poison: { start, shrink, minHalf, pct }`. The sim keeps sim.poison (the safe rect),
+//     deals `pct` (default 20%) of max health per second outside it, 5% more each second after
+//     the first 5, halves healing there, emits EV.POISON, and measures time from sim.roundT0
 //     (restarted by sim.resetRound()).
+//   - respawn: seconds before the fallen come back (RESPAWN_T if not set).
 //   - freeze: setting sim.freezeT stops the world (goal celebrations, between rounds); when it runs
 //     out the sim calls thaw(sim). Mode clocks use sim.playT, which doesn't run while frozen.
 //   - boxes: map BOX tiles have sim.boxHp and drop PICK.CUBE pickups (ModeKit.cube takes them).
@@ -68,13 +70,16 @@ const ModeKit = {
 };
 
 const MODES = {
-  // Gem Rush (Gem Grab): the mine spits a gem every 7 s; a team holding 10+ gems and more than the
-  // other starts a 15 s countdown that resets as soon as that stops being true.
+  // Gem Rush (Gem Grab): the mine spits a gem every 7 s (not while 15 lie around); a team holding
+  // 10+ gems and more than the other starts a 15 s countdown that resets as soon as that stops being
+  // true. The fallen come back after 5 s.
   gem: ModeKit.make(MODE.GEM, {
     first: 2, // s until the first gem
     every: 7,
     goal: 10,
     count: 15,
+    loose: 15, // the mine waits while this many gems lie on the ground
+    respawn: 5,
     cap: 300, // hidden safety cap: no visible clock, but a match can't run forever
 
     init(sim) {
@@ -86,7 +91,9 @@ const MODES = {
       ms.mineT -= SIM_DT;
       if (ms.mineT <= 0) {
         ms.mineT += this.every;
-        if (mine) { sim.popPickup(PICK.GEM, 1, mine.x, mine.y, 1.1, 2.1); ms.spawned++; }
+        let loose = 0;
+        for (const p of sim.pickups) if (!p.dead && p.pick === PICK.GEM) loose += p.n;
+        if (mine && loose < this.loose) { sim.popPickup(PICK.GEM, 1, mine.x, mine.y, 1.1, 2.1); ms.spawned++; }
       }
       if (!this.recount(sim) && ms.countTeam >= 0) ms.count -= SIM_DT;
     },
@@ -141,7 +148,7 @@ const MODES = {
   // Showdown (solo): 10 players, no respawns, power cubes from boxes and from the fallen, poison
   // closing in from every side. Placement: the survivors first, then the fallen, last one down first.
   sd: ModeKit.make(MODE.SHOWDOWN, {
-    poison: { start: 30, shrink: 100, minHalf: 0.5, dmg: 1000 },
+    poison: { start: 30, shrink: 100, minHalf: 0.5, pct: 0.2 },
     cap: 300, // the poison covers everything long before this; a safety net
 
     init(sim) {
@@ -154,8 +161,9 @@ const MODES = {
 
     canRespawn() { return false; },
 
+    // the fallen drop 1 power cube plus a third of theirs, 5 at most (the original's rule)
     onKill(sim, v) {
-      if (v.cubes > 0) sim.dropPickups(PICK.CUBE, v.cubes, v.x, v.y);
+      sim.dropPickups(PICK.CUBE, Math.min(5, 1 + Math.floor(v.cubes / 3)), v.x, v.y);
     },
 
     // Placement right now: the living by health (most first), then the fallen in reverse order.
@@ -187,6 +195,7 @@ const MODES = {
   // celebration, then everyone and the ball go back to the start. Tied at the end of the clock:
   // sudden-death overtime with every breakable wall gone; still tied, a draw.
   ball: ModeKit.make(MODE.BALL, {
+    respawn: 5,
     len: 150,
     otLen: 60,
     goal: 2,
@@ -270,7 +279,7 @@ const MODES = {
   // Knockout: best of 3 rounds, no respawns. A round goes to the team that knocks out the other;
   // poison closes in after 45 s. Between rounds the world freezes, then the map and everyone reset.
   ko: ModeKit.make(MODE.KNOCKOUT, {
-    poison: { start: 45, shrink: 40, minHalf: 1, dmg: 1000 },
+    poison: { start: 45, shrink: 40, minHalf: 1, pct: 0.2 },
     roundCap: 120, // the poison has won by then; a safety net decided by who is still standing
     need: 2,
     maxRounds: 5, // drawn rounds don't count
@@ -314,12 +323,14 @@ const MODES = {
   }),
 
   // Bounty: everyone wears 2 stars, +1 per takedown (up to 7). Taking someone down scores their
-  // stars for your team and puts them back to 2. The centre star is worth 1. Most stars after
-  // 2 minutes wins.
+  // stars for your team and puts them back to 2. The centre star is worth 1. The first team to 20
+  // stars wins, else the most stars after 2 minutes. Respawns take only 3 s here.
   bounty: ModeKit.make(MODE.BOUNTY, {
     len: 120,
     base: 2,
     max: 7,
+    win: 20,
+    respawn: 3,
 
     init(sim) {
       sim.ms = { stars: [0, 0] };
@@ -346,8 +357,9 @@ const MODES = {
     },
 
     checkEnd(sim) {
-      if (sim.playT < this.len) return null;
       const s = sim.ms.stars;
+      if (s[0] >= this.win || s[1] >= this.win) return sim.makeResult(ModeKit.leader(s), 'stars', s.slice());
+      if (sim.playT < this.len) return null;
       return sim.makeResult(ModeKit.leader(s), 'stars', s.slice());
     },
 

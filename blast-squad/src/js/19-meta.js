@@ -388,9 +388,11 @@ const Meta = (() => {
     const prof = botProfile(rng, btro, mode);
     const bk = botBrawler(rng, prof, mode, mapKey, taken);
     taken.add(bk);
-    const blvl = clamp(lvl + rng.int(-1, 1), 1, MAX_POWER);
+    const blvl = clamp(lvl + rng.int(-1, 1), 1, MAX_POWER), D = BRAWLERS[bk];
     return {
-      team, bk, lvl: blvl, gadget: blvl >= GADGET_LVL && rng.chance(0.8) ? 0 : -1, star: blvl >= STAR_LVL && rng.chance(0.7) ? 0 : -1,
+      team, bk, lvl: blvl,
+      gadget: blvl >= GADGET_LVL && rng.chance(0.8) ? rng.int(0, D.gadgets.length - 1) : -1,
+      star: blvl >= STAR_LVL && rng.chance(0.7) ? rng.int(0, D.stars.length - 1) : -1,
       name: prof.name, icon: prof.icon, tro: btro, ctrl: 'bot', profile: prof,
     };
   }
@@ -437,7 +439,10 @@ const Meta = (() => {
       if (i === 0) slots.push(Object.assign(localSlot(team, owned(opts.hostBk) ? opts.hostBk : S().sel), { ctrl: 'local' }));
       else if (i === guestSlot) {
         const lvl = clamp(opts.guestLvl | 0 || 1, 1, MAX_POWER);
-        slots.push({ team, bk: guestBk, lvl, gadget: lvl >= GADGET_LVL && opts.guestGad ? 0 : -1, star: lvl >= STAR_LVL && opts.guestStar ? 0 : -1, name: String(opts.guestName || 'Friend').slice(0, 16), icon: guestBk, tro: opts.guestTro | 0, ctrl: 'remote', profile: null });
+        // gear index from the network: an index this brawler has, else none (true: an older build's "the first")
+        const gi = (v, list) => (v === true ? 0 : Number.isInteger(v) && v >= 0 && v < list.length ? v : -1);
+        const GD = BRAWLERS[guestBk];
+        slots.push({ team, bk: guestBk, lvl, gadget: lvl >= GADGET_LVL ? gi(opts.guestGad, GD.gadgets) : -1, star: lvl >= STAR_LVL ? gi(opts.guestStar, GD.stars) : -1, name: String(opts.guestName || 'Friend').slice(0, 16), icon: guestBk, tro: opts.guestTro | 0, ctrl: 'remote', profile: null });
       } else slots.push(botSlot(rng, team, mode, opts.map, 300, Math.max(1, Math.round(((opts.hostLvl || 1) + (opts.guestLvl || 1)) / 2)), taken));
     }
     return { mode, map: opts.map, seed, slots, localSlot: 0, guestSlot, friendly: true };

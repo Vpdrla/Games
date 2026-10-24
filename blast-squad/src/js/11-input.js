@@ -37,13 +37,13 @@ const Input = {
   _en: false, touchMode: false, device: 'mouse', tick: 0, anim: 0,
   // controls (centres and radii in CSS px, filled by layout)
   btn: {
-    atk: { x: 0, y: 0, r: 46, hit: 1.45 },
-    sup: { x: 0, y: 0, r: 36, hit: 1.35 },
-    gad: { x: 0, y: 0, r: 24, hit: 1.5 },
-    chat: { x: 0, y: 0, r: 19, hit: 1.6 },
+    atk: { x: 0, y: 0, r: 62, hit: 1.4 },
+    sup: { x: 0, y: 0, r: 48, hit: 1.3 },
+    gad: { x: 0, y: 0, r: 32, hit: 1.45 },
+    chat: { x: 0, y: 0, r: 24, hit: 1.5 },
   },
-  home: { x: 120, y: 290 }, // resting place of the move joystick
-  R: 58, // joystick radius (move and aim drags)
+  home: { x: 140, y: 278 }, // resting place of the move joystick
+  R: 74, // joystick radius (move and aim drags)
   ptr: new Map(), // pointerId -> 'move' | 'atk' | 'sup' | 'gad' | 'chat' | 'none'
   mv: { id: null, ox: 0, oy: 0, x: 0, y: 0 },
   st: {
@@ -121,14 +121,16 @@ const Input = {
     const L = lh ? sf.r : sf.l, R = lh ? sf.l : sf.r, B = Math.max(sf.b, 0);
     const mx = (x) => (lh ? w - x : x);
     const set = (b, x, y, r) => { b.x = mx(x); b.y = y; b.r = r; };
-    const ax = w - R - 104 * s, ay = h - B - 92 * s;
-    set(this.btn.atk, ax, ay, 46 * s);
-    set(this.btn.sup, ax - 102 * s, ay - 34 * s, 36 * s);
-    set(this.btn.gad, ax - 18 * s, ay - 96 * s, 24 * s);
-    set(this.btn.chat, w - R - 30 * s, ay - 166 * s, 19 * s);
-    this.R = 58 * s;
-    this.home.x = mx(L + 128 * s);
-    this.home.y = h - B - 104 * s;
+    // sizes as on the original's phone layout: a big attack stick, a slightly smaller super to its
+    // left, the gadget above them
+    const ax = w - R - 118 * s, ay = h - B - 100 * s;
+    set(this.btn.atk, ax, ay, 62 * s);
+    set(this.btn.sup, ax - 138 * s, ay - 22 * s, 48 * s);
+    set(this.btn.gad, ax - 44 * s, ay - 118 * s, 32 * s);
+    set(this.btn.chat, w - R - 34 * s, Math.max((sf.t || 0) + 32 * s, ay - 190 * s), 24 * s);
+    this.R = 74 * s;
+    this.home.x = mx(L + 140 * s);
+    this.home.y = h - B - 112 * s;
     const wh = this.wheel;
     // upper right, clear of the player (the camera keeps the brawler at the middle of the screen)
     wh.R = Math.min(h * 0.34, 128 * s);
@@ -745,8 +747,8 @@ const Input = {
     // uses left: small pips under the button
     ctx.globalAlpha = op;
     for (let i = 0; i < 3; i++) {
-      const px = b.x + (i - 1) * 8 * s, py = b.y + b.r + 7 * s;
-      circle(ctx, px, py, 3 * s);
+      const px = b.x + (i - 1) * 10 * s, py = b.y + b.r + 8 * s;
+      circle(ctx, px, py, 3.5 * s);
       ctx.fillStyle = i < left ? '#7dff6a' : 'rgba(30,30,30,0.7)';
       ctx.fill();
       ctx.lineWidth = 1;

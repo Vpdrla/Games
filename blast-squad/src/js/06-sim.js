@@ -86,12 +86,16 @@ class Sim {
       mvx: 0, mvy: 0, lastSeq: 0,
       st: { kills: 0, deaths: 0, dmg: 0, heal: 0, gems: 0, goals: 0, stars: 0 },
       // sim-private (the view may read jumpT/jumpTT for the jump arc, aimA/fireT/lastAct for poses)
-      kit, pk: [c.bk, c.bk + '.atk', c.bk + '.sup', c.bk + '.gad'], speed: kit.speed,
+      kit, pk: [c.bk, c.bk + '.atk', c.bk + '.sup', c.bk + '.gad'], speed: kit.speed * (1 + (kit.pass.speedMul || 0)),
       shieldF: 0, spawnSh: false, fireT: 9, faceT: 0, atkCd: 0, lastAct: 0, aimA: 0,
       bqN: 0, bqI: 0, bqT: 0, bqS: null, bqA: 0, bqAct: 0, bqMul: 1, bqStun: 0,
       dvx: 0, dvy: 0, dashS: null, dashAct: 0, dashHit: 0, dashHitD: 0, dashMul: 1,
       jumpT: 0, jumpTT: 0, jx0: 0, jy0: 0, jx1: 0, jy1: 0, jumpS: null, jumpAct: 0, jumpMul: 1,
       nxStun: 0, nxSlow: 0, regenAcc: 0, passAcc: 0, poisAcc: 0, killer: -1, dying: false,
+      // later additions: next-attack patch uses, last main attack (dash charge), burn, projectile
+      // block, crowd-control immunity, knockback into a wall stuns, low-health heal recharge
+      nxN: 0, atkT: -99, dashLong: false, burnT: 0, burnDps: 0, burnSrc: -1, burnAcc: 0, blockT: 0, ccT: 0,
+      kbStun: 0, kbSrc: -1, kbAct: 0, bandT: 0, speedSrc: -1, poisN: 0, inPois: false,
     };
   }
 
@@ -122,6 +126,8 @@ class Sim {
     b.bqN = 0; b.bqS = null; b.dashS = null; b.jumpT = 0; b.jumpS = null;
     b.mvx = b.mvy = 0; b.nxStun = b.nxSlow = 0; b.atkCd = 0; b.faceT = 0;
     b.poisAcc = 0.5; b.regenAcc = 0; b.passAcc = 0; b.killer = -1; b.dying = false;
+    b.nxN = 0; b.atkT = -99; b.burnT = 0; b.burnAcc = 0; b.blockT = 0; b.ccT = 0; b.kbStun = 0; b.speedSrc = -1;
+    b.poisN = 0; b.inPois = false;
   }
 
   // ================= step =================
@@ -174,13 +180,24 @@ class Sim {
     else if (b.kbT > 0) {
       const k = Math.min(dt, b.kbT);
       moveCircle(m, b.x, b.y, b.r, b.kbx * k, b.kby * k, o);
+      // knocked into a wall: some knockbacks stun then (Blustery Blow)
+      const want = Math.hypot(b.kbx, b.kby) * k;
+      if (b.kbStun > 0 && Math.hypot(o.x - b.x, o.y - b.y) < want * 0.5) {
+        b.kbT = 0;
+        this.stun(b, b.kbStun, b.kbSrc, b.kbAct);
+        b.kbStun = 0;
+      }
       b.x = o.x; b.y = o.y;
       b.kbT = Math.max(0, b.kbT - dt);
+      if (b.kbT <= 0) b.kbStun = 0;
     } else if (b.dashT > 0) this.stepDash(b);
     else if (b.stunT <= 0 && I.mvM > 0) {
       let k = b.speed * dt;
+      const pass = b.kit.pass;
       if (b.slowT > 0) k *= 1 - b.slowF;
       if (b.speedT > 0) k *= 1 + b.speedF;
+      if (pass.lowSpeed && b.hp < b.maxHp * pass.lowSpeed.at) k *= 1 + pass.lowSpeed.f;
+      if (pass.invisSpeed && b.invisT > 0) k *= 1 + pass.invisSpeed;
       moveCircle(m, b.x, b.y, b.r, I.mx * k, I.my * k, o);
       b.x = o.x; b.y = o.y;
       if (b.faceT <= 0) b.face = I.mvA;
@@ -197,7 +214,7 @@ class Sim {
     let s;
     if (act === ACT.ATTACK) {
       if (b.ammo < 1 || b.atkCd > 0 || b.bqN > 0) return false;
-      s = kit.atk;
+      s = b.nxN > 0 && kit.nxAtk ? kit.nxAtk : kit.atk;
     } else if (act === ACT.SUPER) {
       if (!b.supReady || b.bqN > 0) return false;
       s = kit.sup;
@@ -208,7 +225,7 @@ class Sim {
     }
     const range = s.range || s.dist || 0;
     let ang, d;
-    if (I.auto) {
+    if (I.auto || s.seek) { // seek: fires at the nearest enemy whatever the aim (Auto Aimer)
       const tg = range > 0 ? this.autoTarget(b, range) : null;
       if (tg && s.away) { ang = Math.atan2(b.y - tg.y, b.x - tg.x); d = range; } // escapes jump away
       else if (tg) { ang = Math.atan2(tg.y - b.y, tg.x - b.x); d = Math.min(range, Math.hypot(tg.x - b.x, tg.y - b.y)); }
@@ -220,6 +237,10 @@ class Sim {
     if (act === ACT.ATTACK) {
       b.ammo -= 1;
       b.atkCd = s.cd || (s.burst ? (s.n - 1) * s.burst + 0.15 : 0.3);
+      if (s === kit.nxAtk) b.nxN--;
+      // a dash attack goes further after a while without attacking (the charge bar)
+      b.dashLong = !!s.long && this.t - b.atkT >= s.long.T - (kit.pass.dashCharge || 0);
+      b.atkT = this.t;
     } else if (act === ACT.SUPER) {
       b.sup = 0;
       b.supReady = false;
@@ -340,6 +361,7 @@ class Sim {
       dmg: (s.dmg || 0) * mul, pierce: !!s.pierce, hitMask: 0, sup: act === ACT.SUPER, breaks: !!s.breaks, lob: null,
       act, s, vx: c, vy: sn, r0: r, hitD: 0, bnc: s.bounce ? s.bounce.n : 0,
       heal: (s.heal || 0) * LEVEL_MULT(ob.lvl), stun: Math.max(s.stun || 0, xstun || 0), xslow: 0, beam: 0, ttl: 0, mul,
+      wallBnc: 0, amb: s.ambush && ob.inBush ? s.ambush * mul : 0, // ricochets so far; Ambush bonus (fired from a bush)
     };
     this.shots.push(e);
     this.ev(EV.SPAWN, e.id, K.SHOT);
@@ -460,7 +482,8 @@ class Sim {
   }
 
   doDash(b, s, act, ang, mul) {
-    b.dashT = s.dist / s.spd;
+    const dist = act === ACT.ATTACK && b.dashLong ? s.long.dist : s.dist;
+    b.dashT = dist / s.spd;
     b.dvx = Math.cos(ang) * s.spd;
     b.dvy = Math.sin(ang) * s.spd;
     b.dashS = s; b.dashAct = act; b.dashHit = 0; b.dashHitD = 0; b.dashMul = mul;
@@ -480,14 +503,14 @@ class Sim {
     b.x = o.x; b.y = o.y;
     b.dashT -= SIM_DT;
     const s = b.dashS;
-    if (s && s.dmg) {
+    if (s && (s.dmg || s.throwBack)) {
       const B = this.brawlers, w = s.w || 0.4, chg = b.dashAct === ACT.ATTACK ? s.chg || 0 : 0;
       for (let i = 0; i < B.length; i++) {
         const e = B[i];
         if (!this.hittable(e) || e.team === b.team || ((b.dashHit >> e.slot) & 1)) continue;
         if (segCircle(x0, y0, b.x, b.y, e.x, e.y, e.r + w) < 0) continue;
         b.dashHit |= 1 << e.slot;
-        this.hurt(e, s.dmg * b.dashMul, b.slot, b.dashAct, 0, chg);
+        if (s.dmg) this.hurt(e, s.dmg * b.dashMul, b.slot, b.dashAct, 0, chg);
         this.applyMods(e, s, b.slot, b.dashAct, b.dvx / s.spd, b.dvy / s.spd, 0);
       }
       for (let i = 0; i < this.deploys.length; i++) {
@@ -495,7 +518,7 @@ class Sim {
         if (e.dead || e.team === b.team || ((b.dashHitD >> e.owner) & 1)) continue;
         if (segCircle(x0, y0, b.x, b.y, e.x, e.y, e.r + w) < 0) continue;
         b.dashHitD |= 1 << e.owner;
-        this.hurt(e, s.dmg * b.dashMul, b.slot, b.dashAct, 0, 0);
+        if (s.dmg) this.hurt(e, s.dmg * b.dashMul, b.slot, b.dashAct, 0, 0);
       }
     }
     // stopped by a wall
@@ -536,6 +559,7 @@ class Sim {
     if (s.breaks) this.breakCircle(b.x, b.y, s.r || 1, b.slot, b.jumpAct);
     if (s.dmg) this.blast(b.slot, b.team, b.jumpAct, b.x, b.y, s.r || 1, s.dmg * b.jumpMul, s, 0, 0);
     if (s.heal) this.heal(b, s.heal * LEVEL_MULT(b.lvl), b.slot, b.jumpAct);
+    if (s.onLand) this.exec(b, s.onLand, b.jumpAct, b.face, 0, b.jumpMul);
   }
 
   padJump(b) {
@@ -562,7 +586,7 @@ class Sim {
     const e = {
       id: this.nextId++, kind: K.DEPLOY, team: b.team, x: o.x, y: o.y, px: o.x, py: o.y, r, dead: false,
       owner: b.slot, dk: s.dk, hp, maxHp: hp, face: ang, t: 0,
-      s, act, mul, cd: 0.5, tgt: null, mvx: 0, mvy: 0, rateT: 0, rateF: 1, stunNext: 0,
+      s, act, mul, cd: 0.5, tgt: null, mvx: 0, mvy: 0, rateT: 0, rateF: 1, stunNext: 0, shieldT: 0, shieldF: 0,
     };
     this.deploys.push(e);
     this.ev(EV.SPAWN, e.id, K.DEPLOY);
@@ -575,6 +599,21 @@ class Sim {
     e.dead = true;
     e.hp = 0;
     this.ev(EV.DESPAWN, e.id, K.DEPLOY);
+  }
+
+  // A unit that bursts when destroyed or when its time runs out: heals the owner's team around it
+  // (Life Plant) and/or fires a ring of shots (Multiball Launcher).
+  unitBurst(e) {
+    const bu = e.s.burst, ob = this.brawlers[e.owner];
+    if (!bu) return;
+    if (bu.heal) {
+      const B = this.brawlers, h = bu.heal * LEVEL_MULT(ob.lvl);
+      for (let i = 0; i < B.length; i++) {
+        const a = B[i];
+        if (a.alive && a.team === e.team && dist2(e.x, e.y, a.x, a.y) <= (bu.r + a.r) * (bu.r + a.r)) this.heal(a, h, e.owner, e.act);
+      }
+    }
+    if (bu.shot) for (let i = 0; i < bu.n; i++) this.spawnShot(e.owner, e.team, bu.shot, e.act, e.face + (i / bu.n) * TAU, e.x, e.y, e.mul, 0);
   }
 
   doArea(b, s, act, ang, d, mul) {
@@ -592,24 +631,30 @@ class Sim {
     const e = {
       id: this.nextId++, kind: K.AREA, team, x, y, px: x, py: y, r: a.r, dead: false,
       owner, ak: a.ak || ob.pk[act], t: a.T, T: a.T, dmg: (a.dps || 0) * mul, heal: (a.hps || 0) * LEVEL_MULT(ob.lvl),
-      slow: Math.max(a.slow || 0, xslow || 0), act, tickT: 0, chg: chg || 0,
+      slow: Math.max(a.slow || 0, xslow || 0), act, tickT: 0, chg: chg || 0, push: a.push || 0, pushed: 0,
     };
     this.areas.push(e);
     this.ev(EV.SPAWN, e.id, K.AREA);
     return e;
   }
 
-  // Instant ring around the user: damage/knockback/stun/slow enemies, heal allies (and self).
+  // Instant ring around the user (or, at:'unit', around the user's pet or turret): damage/knockback/
+  // stun/slow enemies, heal allies (and self), cleanse: clears stuns and slows from allies and makes
+  // them immune to them for that many seconds.
   doPulse(b, s, act, mul) {
     const B = this.brawlers;
+    let x = b.x, y = b.y;
+    if (s.at === 'unit') { const d = this.deployOf(b.slot); if (!d) return; x = d.x; y = d.y; }
     if (s.dmg || s.kb || s.stun || s.slow) {
-      this.blast(b.slot, b.team, act, b.x, b.y, s.r, (s.dmg || 0) * mul, s, s.stun || 0, 0);
+      this.blast(b.slot, b.team, act, x, y, s.r, (s.dmg || 0) * mul, s, s.stun || 0, 0);
     }
-    if (s.heal) {
-      const h = s.heal * LEVEL_MULT(b.lvl);
+    if (s.heal || s.cleanse) {
+      const h = (s.heal || 0) * LEVEL_MULT(b.lvl);
       for (let i = 0; i < B.length; i++) {
         const e = B[i];
-        if (e.alive && e.team === b.team && dist2(b.x, b.y, e.x, e.y) <= (s.r + e.r) * (s.r + e.r)) this.heal(e, h, b.slot, act);
+        if (!e.alive || e.team !== b.team || dist2(x, y, e.x, e.y) > (s.r + e.r) * (s.r + e.r)) continue;
+        if (h) this.heal(e, h, b.slot, act);
+        if (s.cleanse) { e.stunT = 0; e.slowT = 0; e.slowF = 0; e.ccT = Math.max(e.ccT, s.cleanse); this.ev(EV.STATUS, e.slot, 5, s.cleanse); }
       }
     }
   }
@@ -628,7 +673,7 @@ class Sim {
           const e = B[i];
           if (!e.alive || e.team !== b.team) continue;
           if (e !== b && (!s.r || dist2(b.x, b.y, e.x, e.y) > s.r * s.r)) continue;
-          e.speedT = s.T; e.speedF = s.f;
+          e.speedT = s.T; e.speedF = s.f; e.speedSrc = b.slot;
           this.ev(EV.STATUS, e.slot, 6, s.T);
         }
         break;
@@ -641,6 +686,9 @@ class Sim {
       case 'nextSlow': b.nxSlow = s.v; break;
       case 'petStun': { const d = this.deployOf(b.slot); if (d) d.stunNext = s.v; break; }
       case 'deployRate': { const d = this.deployOf(b.slot); if (d) { d.rateT = s.T; d.rateF = s.v; } break; }
+      case 'unitShield': { const d = this.deployOf(b.slot); if (d) { d.shieldT = s.T; d.shieldF = s.f; } break; }
+      case 'block': b.blockT = s.T; this.ev(EV.STATUS, b.slot, 5, s.T); break; // enemy projectiles that reach it are destroyed
+      case 'nextAtk': b.nxN = s.n || 1; break; // the next n main attacks use the kit's nxAtk spec
       default: throw new Error('Unknown buff ' + s.what);
     }
     this.fxn[b.slot * 4 + act]++;
@@ -671,7 +719,9 @@ class Sim {
   // Knockback along (dx, dy), stun and slow from a spec onto a brawler.
   applyMods(e, s, src, act, dx, dy, xstun) {
     if (!s) return;
-    if (s.kb) this.knock(e, dx, dy, s.kb, src, act);
+    if (s.kb) this.knock(e, dx, dy, s.kb, src, act, s.wallStun);
+    if (s.throwBack) this.knock(e, -dx, -dy, s.throwBack, src, act, 0); // thrown behind the attacker (Suplex)
+    if (s.burn && src >= 0) this.burn(e, s.burn, src);
     const st = Math.max(s.stun || 0, xstun || 0);
     if (st) this.stun(e, st, src, act);
     if (s.slow && s.slow.T) this.slow(e, s.slow.T, s.slow.f, src, act);
@@ -709,13 +759,14 @@ class Sim {
     }
     if (e.kind === K.DEPLOY) {
       if (e.dead) return 0;
+      if (e.shieldT > 0) amt *= 1 - e.shieldF;
       amt = Math.round(amt);
       if (amt <= 0) return 0;
       const dealt = Math.min(amt, e.hp);
       e.hp -= amt;
       this.ev(EV.HIT, e.id, amt, e.x, e.y, src, crit || 0);
       if (src >= 0) this.fxn[src * 4 + act]++;
-      if (e.hp <= 0) this.killDeploy(e);
+      if (e.hp <= 0) { this.killDeploy(e); this.unitBurst(e); }
       return dealt;
     }
     return 0;
@@ -725,6 +776,7 @@ class Sim {
   onAtkHit(b) {
     const p = b.kit.pass;
     if (p.ammoOnHit) b.ammo = Math.min(MAX_AMMO, b.ammo + p.ammoOnHit);
+    if (p.supExtend && b.speedT > 0 && b.speedSrc === b.slot) b.speedT += p.supExtend; // hits stretch your own super
     if (p.deployHeal) {
       const d = this.deployOf(b.slot);
       if (d) d.hp = Math.min(d.maxHp, d.hp + Math.round(p.deployHeal * LEVEL_MULT(b.lvl)));
@@ -743,6 +795,7 @@ class Sim {
 
   heal(b, amt, src, act) {
     if (!b.alive || b.hp <= 0 || amt <= 0) return 0; // at 0 HP it goes down this tick, whatever heals it
+    if (b.inPois) amt *= 0.5; // the poison gas halves all healing
     const real = Math.min(Math.round(amt), b.maxHp - b.hp);
     if (real <= 0) return 0;
     b.hp += real;
@@ -753,19 +806,20 @@ class Sim {
 
   immune(b) { return b.shieldT > 0 && b.shieldF >= 1; }
 
-  knock(b, dx, dy, dist, src, act) {
-    if (!b.alive || this.immune(b) || b.jumpT > 0) return;
+  knock(b, dx, dy, dist, src, act, wallStun) {
+    if (!b.alive || this.immune(b) || b.ccT > 0 || b.jumpT > 0) return;
     const T = 0.12 + dist * 0.05;
     b.kbT = T;
     b.kbx = dx * dist / T;
     b.kby = dy * dist / T;
+    b.kbStun = wallStun || 0; b.kbSrc = src; b.kbAct = act;
     b.dashT = 0; b.dashS = null; b.bqN = 0;
     this.ev(EV.STATUS, b.slot, 3, T);
     if (src >= 0) this.fxn[src * 4 + act]++;
   }
 
   stun(b, t, src, act) {
-    if (!b.alive || this.immune(b)) return;
+    if (!b.alive || this.immune(b) || b.ccT > 0) return;
     b.stunT = Math.max(b.stunT, t);
     b.dashT = 0; b.dashS = null; b.bqN = 0;
     this.ev(EV.STATUS, b.slot, 1, t);
@@ -773,12 +827,22 @@ class Sim {
   }
 
   slow(b, T, f, src, act) {
-    if (!b.alive || this.immune(b)) return;
+    if (!b.alive || this.immune(b) || b.ccT > 0) return;
     const was = b.slowT > 0;
     b.slowT = Math.max(b.slowT, T);
     b.slowF = was ? Math.max(b.slowF, f) : f;
     if (!was) this.ev(EV.STATUS, b.slot, 2, T);
     if (src >= 0) this.fxn[src * 4 + act]++;
+  }
+
+  // Damage over time from a spec's burn {dmg, T} (El Fuego): dmg in total over T s, in 0.5 s ticks.
+  burn(b, o, src) {
+    if (!b.alive || this.immune(b)) return;
+    b.burnT = o.T;
+    b.burnDps = (o.dmg / o.T) * LEVEL_MULT(this.brawlers[src].lvl);
+    b.burnSrc = src;
+    b.burnAcc = 0.5;
+    this.fxn[src * 4 + ACT.SUPER]++;
   }
 
   // Showdown power-cube boxes
@@ -893,8 +957,11 @@ class Sim {
       d.t += dt;
       d.cd -= dt;
       if (d.rateT > 0) d.rateT -= dt;
+      if (d.shieldT > 0) d.shieldT -= dt;
+      if (d.s.life && d.t >= d.s.life) { this.killDeploy(d); this.unitBurst(d); continue; }
       if (d.s.unit === 'turret') this.stepTurret(d);
-      else this.stepPet(d);
+      else if (d.s.unit === 'pet') this.stepPet(d);
+      // 'plant': just stands there (cover that bursts)
       d.mvx = (d.x - d.px) / dt;
       d.mvy = (d.y - d.py) / dt;
     }
@@ -1005,6 +1072,7 @@ class Sim {
         if (!this.hittable(e) || e.team === s.team || ((s.hitMask >> e.slot) & 1)) continue;
         const t = segCircle(x0, y0, x1, y1, e.x, e.y, e.r + s.r);
         if (t < 0 || t > tEnd) continue;
+        if (e.blockT > 0) { if (t < bt) { bt = t; best = e; } continue; } // destroyed on reaching it, even piercing ones
         if (s.pierce) { s.hitMask |= 1 << e.slot; this.shotHit(s, e); } else if (t < bt) { bt = t; best = e; }
       }
       for (let i = 0; i < D.length; i++) {
@@ -1018,6 +1086,7 @@ class Sim {
         s.x = x0 + (x1 - x0) * bt;
         s.y = y0 + (y1 - y0) * bt;
         s.trav += step * bt;
+        if (best.kind === K.BRAWLER && best.blockT > 0) { s.dead = true; this.ev(EV.SHOT_END, s.id, s.x, s.y, 1); return; }
         if (best.kind === K.BRAWLER) s.hitMask |= 1 << best.slot; else s.hitD |= 1 << best.owner;
         this.shotHit(s, best);
         if (s.bnc > 0 && this.bounce(s)) return;
@@ -1040,20 +1109,44 @@ class Sim {
     s.trav += step * tEnd;
     if (tw >= 0) {
       if (s.dmg > 0 && tileAtT(m, wtx, wty) === TILE.BOX) this.hurtBox(wty * m.w + wtx, s.dmg, s.owner, s.act);
+      if (sp.ricochet && s.trav < s.range - 0.1 && this.ricochet(s, wtx, wty)) return;
       this.endShot(s, 1);
     } else if (s.trav >= s.range - 1e-6) this.endShot(s, 0);
   }
 
+  // A ricocheting shot (Rico) that reached a wall bounces off it like light off a mirror and flies on
+  // for what is left of its range. The new leg starts a new path (x0, y0) like a target bounce, so
+  // the online host resends it. False if it can't (stuck in a corner).
+  ricochet(s, wtx, wty) {
+    const m = this.map, e = 1e-3;
+    const ptx = Math.floor(s.x - s.vx * e), pty = Math.floor(s.y - s.vy * e);
+    let vx = s.vx, vy = s.vy;
+    if (ptx !== wtx) vx = -vx;
+    if (pty !== wty) vy = -vy;
+    if (ptx === wtx && pty === wty) { vx = -vx; vy = -vy; }
+    const x = s.x - s.vx * 0.02, y = s.y - s.vy * 0.02;
+    if (flagsAt(m, x, y) & TF_SHOT) return false;
+    s.x = s.px = s.x0 = x; s.y = s.py = s.y0 = y;
+    s.range = s.range - s.trav; s.trav = 0;
+    s.vx = vx; s.vy = vy; s.ang = Math.atan2(vy, vx);
+    s.wallBnc++;
+    return true;
+  }
+
   shotHit(s, e) {
     const sp = s.s;
-    let dmg = s.dmg, crit = s.sup ? 1 : 0;
+    let dmg = s.dmg, crit = s.sup ? 1 : 0, chg = sp.chg || 0;
+    const k = clamp(s.trav / (sp.range || s.range || 1), 0, 1);
     if (sp.ramp) {
-      const k = clamp(s.trav / (sp.range || s.range || 1), 0, 1);
-      dmg *= sp.ramp[0] + (sp.ramp[1] - sp.ramp[0]) * k;
+      const rk = sp.ramp[0] + (sp.ramp[1] - sp.ramp[0]) * k;
+      dmg *= rk;
+      chg *= rk / Math.max(sp.ramp[0], sp.ramp[1]); // charge follows the damage (chg is at full damage)
       if ((sp.ramp[1] > sp.ramp[0] && k > 0.85) || (sp.ramp[1] < sp.ramp[0] && k < 0.15)) crit = 1;
     }
+    if (s.amb) dmg += s.amb * k; // Ambush: more the further it flew
+    if (s.wallBnc > 0 && sp.bounceDmg) dmg += sp.bounceDmg * s.mul; // Super Bouncy
     const isB = e.kind === K.BRAWLER;
-    const dealt = this.hurt(e, dmg, s.owner, s.act, crit, isB && s.act === ACT.ATTACK ? sp.chg || 0 : 0);
+    const dealt = this.hurt(e, dmg, s.owner, s.act, crit, isB && s.act === ACT.ATTACK ? chg : 0);
     if (isB) this.applyMods(e, sp, s.owner, s.act, s.vx, s.vy, s.stun);
     if (sp.steal && dealt > 0) this.heal(this.brawlers[s.owner], dealt * sp.steal, s.owner, s.act);
   }
@@ -1070,6 +1163,7 @@ class Sim {
     }
     if (!best) return false;
     s.bnc--;
+    if (s.s.bounce.mul) s.dmg *= s.s.bounce.mul; // each bounce hits a little softer
     s.x0 = s.x; s.y0 = s.y;
     s.ang = Math.atan2(best.y - s.y, best.x - s.x);
     s.vx = Math.cos(s.ang); s.vy = Math.sin(s.ang);
@@ -1083,11 +1177,13 @@ class Sim {
     this.ev(EV.SHOT_END, s.id, s.x, s.y, wall);
     const sp = s.s.split;
     if (!sp) return;
-    // spikes start just in front of a wall, not inside it
+    // spikes start just in front of a wall, not inside it. fixed: a pattern that doesn't turn with
+    // the throw (Needle Ball), and spikes may hit the one the ball hit (it bursts at their edge, so
+    // the one or two spikes pointing at them do); else around the shot's heading, sparing its targets.
     const x = wall ? s.x - s.vx * 0.15 : s.x, y = wall ? s.y - s.vy * 0.15 : s.y;
     for (let i = 0; i < sp.n; i++) {
-      const e = this.spawnShot(s.owner, s.team, sp, s.act, s.ang + ((i + 0.5) / sp.n) * TAU, x, y, s.mul, 0);
-      e.hitMask = s.hitMask;
+      const e = this.spawnShot(s.owner, s.team, sp, s.act, (sp.fixed ? 0 : s.ang) + ((i + 0.5) / sp.n) * TAU, x, y, s.mul, 0);
+      if (!sp.fixed) e.hitMask = s.hitMask;
       e.hitD = s.hitD;
     }
   }
@@ -1104,6 +1200,12 @@ class Sim {
     if (sp.breaks) this.breakCircle(s.x, s.y, sp.blast || 1, s.owner, s.act);
     if (sp.blast && (s.dmg > 0 || sp.kb || s.stun)) this.blast(s.owner, s.team, s.act, s.x, s.y, sp.blast, s.dmg, sp, s.stun, chg);
     if (sp.area) this.spawnArea(s.owner, s.team, sp.area, s.act, s.x, s.y, s.mul, s.xslow, chg);
+    // Dyna-Jump: a thrower caught in his own blast is flung forwards
+    const ob = this.brawlers[s.owner], dj = ob.kit.pass.dynaJump;
+    if (dj && sp.blast && ob.alive && this.canAct(ob) && dist2(s.x, s.y, ob.x, ob.y) <= (sp.blast + ob.r) * (sp.blast + ob.r)) {
+      const o = this.freeSpot(ob.x + Math.cos(ob.face) * dj, ob.y + Math.sin(ob.face) * dj, ob.r, this._o2);
+      this.startJump(ob, o.x, o.y, 0.45, null, 0, 1);
+    }
     this.endShot(s, 0);
   }
 
@@ -1123,6 +1225,20 @@ class Sim {
             if (e.slowT < 0.2) this.slow(e, 0.3, a.slow, a.owner, a.act);
             else { e.slowT = Math.max(e.slowT, 0.3); e.slowF = Math.max(e.slowF, a.slow); }
           }
+        }
+      }
+      if (a.push > 0) {
+        // a twister: shoves enemies out of it
+        const o = this._o;
+        for (let j = 0; j < B.length; j++) {
+          const e = B[j];
+          if (!this.hittable(e) || e.team === a.team || this.immune(e) || e.ccT > 0) continue;
+          const d2 = dist2(a.x, a.y, e.x, e.y), rr = a.r + e.r;
+          if (d2 > rr * rr) continue;
+          const d = Math.sqrt(d2) || 1, k = a.push * dt;
+          if (!((a.pushed >> e.slot) & 1)) { a.pushed |= 1 << e.slot; this.fxn[a.owner * 4 + a.act]++; }
+          moveCircle(this.map, e.x, e.y, e.r, d2 > 1e-6 ? ((e.x - a.x) / d) * k : k, d2 > 1e-6 ? ((e.y - a.y) / d) * k : 0, o);
+          e.x = o.x; e.y = o.y;
         }
       }
       if (a.tickT <= 0 && a.t > 1e-6) { // ticks at 0, 0.5, ... < T; the last one covers only what's left
@@ -1257,7 +1373,20 @@ class Sim {
       if (b.faceT > 0) b.faceT = Math.max(0, b.faceT - dt);
       if (b.atkCd > 0) b.atkCd = Math.max(0, b.atkCd - dt);
       if (b.gadT > 0) b.gadT = Math.max(0, b.gadT - dt);
+      if (b.blockT > 0) b.blockT = Math.max(0, b.blockT - dt);
+      if (b.ccT > 0) b.ccT = Math.max(0, b.ccT - dt);
+      if (b.burnT > 0) {
+        b.burnT -= dt;
+        b.burnAcc -= dt;
+        if (b.burnAcc <= 0) { b.burnAcc += 0.5; this.hurt(b, b.burnDps * 0.5, b.burnSrc, ACT.SUPER, 0, 0); }
+        if (b.burnT <= 0) b.burnT = 0;
+      }
       const pass = b.kit.pass;
+      if (pass.lowHeal) {
+        // Band-Aid: dropping low heals a share of max health, then it recharges
+        if (b.bandT > 0) b.bandT -= dt;
+        else if (b.hp > 0 && b.hp < b.maxHp * pass.lowHeal.at) { this.heal(b, b.maxHp * pass.lowHeal.f, b.slot, 0); b.bandT = pass.lowHeal.cd; }
+      }
       if (b.ammo < MAX_AMMO) {
         let rate = 1 / b.reload;
         if (pass.moveReload && (b.mvx !== 0 || b.mvy !== 0)) rate *= 1 + pass.moveReload;
@@ -1285,16 +1414,20 @@ class Sim {
     if (pt < sch.start) return;
     if (this.poisonStage === 0) { this.poisonStage = 1; this.ev(EV.POISON, 1); }
     if (this.poisonStage === 1 && pt >= sch.start + sch.shrink) { this.poisonStage = 2; this.ev(EV.POISON, 2); }
+    // as in the original: 20% of max health a second, 5% more every second after the first 5 in it,
+    // and healing halved while in it
     const B = this.brawlers;
     for (let i = 0; i < B.length; i++) {
       const b = B[i];
       if (!b.alive) continue;
       // inside: the clock winds back up to 0.5 s (a one-tick dip doesn't reset it)
-      if (b.x >= P.x0 && b.x <= P.x1 && b.y >= P.y0 && b.y <= P.y1) { if (b.poisAcc < 0.5) b.poisAcc = Math.min(0.5, b.poisAcc + dt); continue; }
+      if (b.x >= P.x0 && b.x <= P.x1 && b.y >= P.y0 && b.y <= P.y1) { b.inPois = false; b.poisN = 0; if (b.poisAcc < 0.5) b.poisAcc = Math.min(0.5, b.poisAcc + dt); continue; }
+      b.inPois = true;
       b.poisAcc -= dt;
       if (b.poisAcc <= 0) {
         b.poisAcc += 1;
-        this.hurt(b, sch.dmg || 1000, -1, 0, 0, 0);
+        b.poisN++;
+        this.hurt(b, b.maxHp * ((sch.pct || 0.2) + 0.05 * Math.max(0, b.poisN - 5)), -1, 0, 0, 0);
       }
     }
   }
@@ -1337,7 +1470,8 @@ class Sim {
     if (this.ball && this.ball.holder === b.slot) this.dropBall();
     this.mode.onKill(this, b, killer);
     if (killer && killer.alive && killer.kit.pass.killHeal) this.heal(killer, killer.kit.pass.killHeal * LEVEL_MULT(killer.lvl), killer.slot, 0);
-    b.respawnT = this.mode.canRespawn(this, b) ? RESPAWN_T : -1;
+    if (killer && killer.alive && killer.kit.pass.killHealF) this.heal(killer, killer.maxHp * killer.kit.pass.killHealF, killer.slot, 0);
+    b.respawnT = this.mode.canRespawn(this, b) ? this.mode.respawn || RESPAWN_T : -1;
   }
 
   // ---- 10. vision ----

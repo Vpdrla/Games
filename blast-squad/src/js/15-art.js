@@ -1763,7 +1763,7 @@ const Art = (() => {
     'sizzle.atk': ['bottle', '#3ad06a', '#7aff6a'], 'sizzle.sup': ['bottle', '#ff8a2a', '#ffd23f'], 'sizzle.gad': ['bottle', '#5a6aff', '#9ab0ff'],
     'gizmo.atk': ['orb', '#e8feff', '#1fc8ff'], 'gizmo.sup': ['crate', '#ff9a2e', '#ffd23f'], 'gizmo.gad': ['orb', '#e8feff', '#1fc8ff'],
     'gizmo.tshot': ['bolt', '#e8feff', '#1fc8ff'], 'gizmo.turret': ['bolt', '#e8feff', '#1fc8ff'], 'hawk.nade': ['grenade', '#4a6a3a', '#ff8a1a'],
-    'volt.atk': ['zap', '#f0feff', '#3ad8ff'], 'volt.sup': ['storm', '#c0f0ff', '#3a7aff'], 'volt.gad': ['zap', '#f0feff', '#3ad8ff'],
+    'volt.atk': ['bolt', '#f0feff', '#3ad8ff'], 'volt.sup': ['bullet2', '#f0feff', '#3a7aff'], 'volt.gad': ['bullet2', '#f0feff', '#3ad8ff'],
     'hawk.atk': ['tracer', '#ffffff', '#c86aff'], 'hawk.sup': ['grenade', '#4a6a3a', '#ff8a1a'], 'hawk.gad': ['wave', '#ffffff', '#c86aff'],
     'frost.atk': ['snow', '#ffffff', '#8ad8ff'], 'frost.sup': ['wind', '#ffffff', '#8ad8ff'], 'frost.gad': ['snow', '#ffffff', '#8ad8ff'],
     'shade.atk': ['slash', '#e0c8ff', '#7a3ad8'], 'shade.sup': ['bats', '#ff5a8a', '#8a1a4a'], 'shade.gad': ['slash', '#e0c8ff', '#7a3ad8'],
@@ -1998,10 +1998,10 @@ const Art = (() => {
   // ---- areas ----
   const AREA = {
     'sizzle.atk': 'fire', 'sizzle.sup': 'fire', 'sizzle.gad': 'tar',
-    'volt.sup': 'storm', 'volt.gad': 'pulse',
+    'volt.gad': 'pulse',
     'thorn.sup': 'spikes', 'thorn.atk': 'spikes', 'thorn.gad': 'heal',
     'melody.gad': 'heal', 'melody.sup': 'heal', 'melody.atk': 'heal',
-    'frost.gad': 'frost', 'frost.sup': 'frost', 'frost.atk': 'frost',
+    'frost.gad': 'storm', 'frost.sup': 'frost', 'frost.atk': 'frost',
     'brick.sup': 'slam', 'brick.gad': 'shield', 'hawk.gad': 'pulse', 'hawk.sup': 'boom',
     'pip.sup': 'boom', 'pip.atk': 'boom', 'pip.gad': 'boom',
     'zip.sup': 'speed', 'specter.sup': 'smoke', 'specter.gad': 'speed', 'gizmo.gad': 'heal', 'shade.sup': 'drain',
