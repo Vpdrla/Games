@@ -30,7 +30,7 @@ function botParams(profile) {
     supNotice: lerp(4, 2.2, s), // typical seconds before a charged super gets used at all
     aggr, patience: tv('patience', 0.5), greed: tv('greed', 0.5), teamwork: tv('teamwork', 0.6), tilt: tv('tilt', 0.3),
     retreatHP: lerp(0.45, 0.26, aggr) * lerp(1, 1.08, s),
-    lapse: lerp(2, 0.3, s) / 60 / lerp(4, 8, s), // explicit lapses: about 2 a minute for beginners, 0.3 for experts
+    lapse: lerp(3.5, 0.2, s) / 60 / lerp(4, 8, s), // explicit lapses: about 3.5 a minute for beginners, 0.2 for experts
   };
 }
 
@@ -53,6 +53,9 @@ class Mind {
     this.prof = profile || {};
     this.p = botParams(profile);
     this.rng = rng;
+    // personal style: some players dance a lot in fights, some hardly at all
+    this.p.juke *= rng.range(0.7, 1.35);
+    this.pinIn = []; // teammates' pins still being read: { at, id, slot }
     this.mem = {}; // enemy slot -> memory
     this.shotMem = new Map(); // shot id -> { noticeAt, dodge }
     this.intent = { goal: 'hold', gx: 0, gy: 0, target: -1, stance: 1, wantSuper: false, wantGadget: false, superMode: 'target', gadMode: 'target', bushShot: null, boxShot: null, kick: null };
@@ -125,20 +128,27 @@ class Mind {
       if (!m.noticed && t >= m.noticeAt && t - m.t < 0.4) m.noticed = true;
       if (t - m.t > p.memT) delete this.mem[k];
     }
-    // incoming shots: noticed after a (slightly quicker: they're bright and moving) reaction
+    // incoming shots: noticed after a reaction, plus a moment to pick a side (never under ~0.16 s); the
+    // read of where it will pass is a little off (err, tiles), less so for good players
     for (const s of P.shots) {
-      if (!this.shotMem.has(s.id)) this.shotMem.set(s.id, { noticeAt: t + this.reaction() * 0.85, dodge: this.rng.chance(p.dodge), born: t });
+      if (!this.shotMem.has(s.id)) this.shotMem.set(s.id, { noticeAt: t + Math.max(0.16, this.reaction() + this.rng.range(0.03, 0.08)), dodge: this.rng.chance(p.dodge), born: t, err: this.rng.range(-1, 1) * lerp(0.55, 0.2, p.s) });
     }
     if (this.shotMem.size > 80) for (const [id, v] of this.shotMem) if (t - v.born > 3) this.shotMem.delete(id);
-    // teammates' pins (once each)
+    // teammates' pins (once each); reading one and acting on it takes a moment
     for (const pin of P.pins) {
       const key = pin.slot * 1000 + Math.round((t - pin.age) * 10);
       if (this.pinSeen.has(key)) continue;
       this.pinSeen.add(key);
       if (!this.rng.chance(p.teamwork)) continue; // not everyone reads the chat
-      if (pin.id === 0) this.bias.attack = t + 6;
-      else if (pin.id === 1) this.bias.defend = t + 6;
-      else if (pin.id === 2) { this.bias.help = pin.slot; this.bias.helpT = t + 5; } else if (pin.id === 6) this.bias.gems = t + 6;
+      this.pinIn.push({ at: t + this.reaction() + this.rng.range(0.3, 1), id: pin.id, slot: pin.slot });
+    }
+    for (let i = this.pinIn.length - 1; i >= 0; i--) {
+      const q = this.pinIn[i];
+      if (q.at > t) continue;
+      this.pinIn.splice(i, 1);
+      if (q.id === 0) this.bias.attack = t + 6;
+      else if (q.id === 1) this.bias.defend = t + 6;
+      else if (q.id === 2) { this.bias.help = q.slot; this.bias.helpT = t + 5; } else if (q.id === 6) this.bias.gems = t + 6;
     }
     if (this.pinSeen.size > 200) this.pinSeen.clear();
   }
@@ -268,6 +278,12 @@ class Mind {
     }
     let pick = opts[0], x = r.next() * tot;
     for (const o of opts) { x -= o.w; if (x <= 0) { pick = o; break; } }
+    // a person sticks to a plan for a moment: while committed, switch only for something clearly better
+    // (or urgent), instead of flipping back and forth
+    if (committed && pick.goal !== cur && pick.goal !== 'poison' && pick.goal !== 'retreat') {
+      const co = opts.find((o) => o.goal === cur);
+      if (co && pick.score < co.score + lerp(0.35, 0.12, p.s)) pick = co; // beginners are more stubborn
+    }
     // rare lapses: overextend into enemy territory or forget the objective for a while
     if (this.lapse && t > this.lapse.until) this.lapse = null;
     if (!this.lapse && r.chance(p.lapse) && !sd && pick.goal !== 'poison') {
@@ -360,7 +376,7 @@ class Mind {
       const eg = enemyGoal ? { x: (enemyGoal.x0 + enemyGoal.x1) / 2, y: (enemyGoal.y0 + enemyGoal.y1) / 2 } : { x: map.w / 2, y: me.team === 0 ? 0 : map.h };
       const og = ownGoal ? { x: (ownGoal.x0 + ownGoal.x1) / 2, y: (ownGoal.y0 + ownGoal.y1) / 2 } : this.base(P);
       const I = this.intent;
-      if (ball.holderSlot !== me.slot) I.passTo = null;
+      if (ball.holderSlot !== me.slot) { I.passTo = null; I.clearTo = null; }
       if (ball.holderSlot === me.slot) {
         add('dribble', 1.6, eg.x, eg.y, null, 1.2);
         // pressed by an enemy: pass to a teammate further up who is in the open (if I think of it)
@@ -375,6 +391,23 @@ class Mind {
             if (da > 2.5 && da < Bot.PASS_RANGE + 0.5 && open && gain > bs) { bs = gain; best = a; }
           }
           if (best) I.passTo = { x: best.x, y: best.y };
+        }
+        // swarmed, or pressed while hurt, with nobody to pass to: clear it up the field through an open
+        // lane rather than dribble into a knock-out
+        if (!I.passTo && !I.clearTo && (press >= 2 || (press && myHPf < 0.45) || (myHPf < 0.3 && danger > 0.5)) && dGoal > Bot.KICK_RANGE * 0.8 && r.chance(0.25 + p.s * 0.35)) {
+          const ga = Math.atan2(eg.y - me.y, eg.x - me.x), foes = this.known(true);
+          let best = null, bs = -1e9;
+          for (const da of [0, -0.45, 0.45, -0.9, 0.9]) {
+            const a = ga + da, tx = me.x + Math.cos(a) * 7, ty = me.y + Math.sin(a) * 7;
+            if (!shotClear(map, me.x, me.y, tx, ty)) continue;
+            let sc = -Math.abs(da) * 0.6;
+            for (const q of foes) {
+              const k = clamp(((q.x - me.x) * (tx - me.x) + (q.y - me.y) * (ty - me.y)) / 49, 0, 1);
+              sc += Math.min(2.5, Math.hypot(me.x + (tx - me.x) * k - q.x, me.y + (ty - me.y) * k - q.y));
+            }
+            if (sc > bs) { bs = sc; best = { x: tx, y: ty }; }
+          }
+          if (best) I.clearTo = best;
         }
       } else if (ball.holderSlot < 0) {
         const dMe = Math.hypot(ball.x - me.x, ball.y - me.y);

@@ -151,10 +151,13 @@ for (const tier of TIERS) {
 
 // ---- 4. better players win more ----
 console.log('== Skill matters');
-for (const [hi, lo, want] of [[0.88, 0.15, [0.65, 0.9]], [0.5, 0.15, [0.55, 0.85]], [0.88, 0.5, [0.55, 0.85]]]) {
+// 30 mirror-lineup matches per pair: fewer would mostly measure luck (12 games give +-14%). Adjacent
+// tiers are close in skill, so their gate is lower.
+const SKILL_N = +((argv.find((a) => a.startsWith('--skill-n=')) || '--skill-n=30').slice(10));
+for (const [hi, lo, want] of [[0.88, 0.15, [0.65, 0.92]], [0.5, 0.15, [0.52, 0.85]], [0.88, 0.5, [0.52, 0.85]]]) {
   let wins = 0, games = 0;
   const maps = mapFor(MODE_ARG);
-  for (let g = 0; g < N; g++) {
+  for (let g = 0; g < SKILL_N; g++) {
     const keys = [];
     for (let i = 0; i < 3; i++) keys.push(A.BRAWLER_KEYS[(g * 5 + i * 4) % A.BRAWLER_KEYS.length]);
     const lineup = keys.concat(keys); // mirror lineups: only skill differs
