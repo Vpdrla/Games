@@ -23,9 +23,9 @@ function botParams(profile) {
     flick: lerp(0.3, 0.16, s), fitts: lerp(0.11, 0.065, s), // aim movement time = flick + fitts*log2(1+D/W)
     autoAim: lerp(0.7, 0.12, s), // chance a shot is a plain auto-aim tap
     dodge: lerp(0.12, 0.7, s), // chance to sidestep a shot it noticed in time
-    discipline: lerp(0.15, 0.9, s), // holds fire out of range / keeps ammo
+    discipline: lerp(0.15, 0.55, s), // holds fire out of range / keeps ammo (good players still poke at max range)
     stickRate: lerp(5.5, 10, s), // how fast the thumb swings the move stick (rad/s)
-    juke: lerp(0.35, 1.15, s) * (0.6 + aggr * 0.8), // sideways juke bursts per second in a fight
+    juke: lerp(0.35, 0.75, s) * (0.6 + aggr * 0.8), // sideways juke bursts per second in a fight
     aimStop: lerp(0.4, 0.1, s), // chance to stop walking while lining up a manual shot
     supNotice: lerp(4, 2.2, s), // typical seconds before a charged super gets used at all
     aggr, patience: tv('patience', 0.5), greed: tv('greed', 0.5), teamwork: tv('teamwork', 0.6), tilt: tv('tilt', 0.3),
@@ -311,7 +311,7 @@ class Mind {
       const cx = pz ? (pz.x0 + pz.x1) / 2 : m.w / 2, cy = pz ? (pz.y0 + pz.y1) / 2 : m.h / 2;
       // roam near where you are early on; drift inwards as the poison closes
       const k = pz ? pz.k : 0, pull = 0.12 + 0.6 * k;
-      if (!this._roam || P.t > this._roamT) { this._roam = { x: lerp(me.x, cx, pull) + this.rng.range(-4, 4), y: lerp(me.y, cy, pull) + this.rng.range(-4, 4) }; this._roamT = P.t + this.rng.range(4, 9); }
+      if (!this._roam || P.t > this._roamT) { this._roam = { x: lerp(me.x, cx, pull) + this.rng.range(-4, 4), y: lerp(me.y, cy, pull) + this.rng.range(-4, 4) }; this._roamT = P.t + this.rng.range(2.5, 6); }
       return this._roam;
     }
     const lane = [0.22, 0.5, 0.78][(this.slot % 3)];

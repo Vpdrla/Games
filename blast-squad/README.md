@@ -88,18 +88,24 @@ rather than a script with perfect information:
 
 - **Perception.** An AI only knows what its own phone screen would show:
   - bushes hide enemies
-  - nothing outside the screen is known
-  - unseen shots are heard only roughly
+  - nothing outside the screen is known: teammates and the ball that leave the screen are
+    remembered where they were last seen
+  - unseen shots are heard only roughly, and where a lobbed bomb will land is judged from its
+    shadow, roughly at first
   - it guesses movement from what it saw, without reading speeds from the game
 - **Reactions** follow a human distribution. Beginners take about 0.37 s and experts about
   0.23 s, never under 0.13 s.
-- **Thumbs.** The move stick turns at a limited speed and jukes sideways in fights. Aiming is a
-  quick flick that overshoots a little and corrects, and misses more at long range or under
-  pressure. Beginners mostly tap auto-aim.
+- **Thumbs.** The move stick turns at a limited speed and jukes sideways in fights; how much each
+  AI jukes is personal. Aiming is a quick flick that overshoots a little; the aim's own error is
+  corrected only after a moment, so it misses more at long range or under pressure. A dodge
+  starts after a reaction and a moment to pick a side, and sometimes misjudges the shot. A bar of
+  ammo that just refilled is noticed a beat later, not on the exact frame. Beginners mostly tap
+  auto-aim.
 - **Decisions.** Each AI weighs options such as hold the lane, fight, retreat to heal, grab
-  gems, carry the ball, farm power cubes, ambush from a bush or dodge the poison. It keeps a
-  plan for a moment instead of flickering between them. Each AI has its own aggression,
-  patience, greed, teamwork and tilt, and makes the occasional human mistake.
+  gems, carry or clear the ball, farm power cubes, ambush from a bush or dodge the poison. It
+  sticks to a plan unless something clearly better comes up, instead of flickering between them.
+  Each AI has its own aggression, patience, greed, teamwork and tilt, and makes human mistakes
+  (beginners more often: overextending, chasing, forgetting the objective).
 - **Teamwork** happens through the same quick-chat pins you use. They arrive a little late and
   are followed according to each AI's teamwork.
 - **Skill follows trophies.** Low trophies meet beginner-like players and high trophies meet
