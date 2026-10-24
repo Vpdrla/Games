@@ -37,10 +37,10 @@ class Bot {
     return { reacts: m.reacts.slice(), retreatHPs: m.retreatHPs.slice(), dirChanges: T.dirCh, fastReversals: T.fastRev, idle: T.idle, alive: T.alive, bush: T.bush, ticks: T.ticks, stuck: T.stuck, superDelays: T.supDelay.slice(), fires: T.fires, supers: T.supers, gadgets: T.gadgets, autoTaps: T.autoTaps };
   }
 
-  initKit(bk) {
+  initKit(bk, gadget) {
     const D = BRAWLERS[bk];
     const sp = U(D.speed);
-    this.kit = { bk, D, atkF: atkFacts(D.atk, sp), supF: atkFacts(D.sup, sp), gadF: atkFacts(D.gadgets && D.gadgets[0], sp), speed: sp };
+    this.kit = { bk, D, atkF: atkFacts(D.atk, sp), supF: atkFacts(D.sup, sp), gadF: atkFacts(D.gadgets && gadget >= 0 ? D.gadgets[gadget] : null, sp), speed: sp };
   }
 
   // One tick: called by the match right before sim.step(), returns this player's input word.
@@ -54,7 +54,7 @@ class Bot {
 
   act(P, fresh) {
     const mind = this.mind, me = P.me;
-    if (!this.kit) this.initKit(me.bk);
+    if (!this.kit) this.initKit(me.bk, me.gadget);
     if (fresh) mind.observe(P);
     if (this.t >= mind.nextThink) {
       mind.decide(P, this.kit);
@@ -456,7 +456,10 @@ class Telemetry {
           for (const e of sim.brawlers) if (e.team !== b.team && e.alive && sim.visibleTo(b.team, e)) nd = Math.min(nd, Math.hypot(e.x - b.x, e.y - b.y));
           const D = BRAWLERS[b.bk].atk;
           const flight = D.t === 'lob' ? D.T || 0.8 : D.t === 'shot' ? nd / (D.spd || 12) : 0.1;
-          this.fires.push({ t, d: nd, flight, hit: false, multi: (D.n || 1) > 1 || D.t === 'beam' || D.t === 'dash' });
+          // "multi": anything but one narrow projectile (spreads, bursts, beams, dashes, wide or widening
+          // waves, puddles): hitting with those says little about aim
+          const wide = (D.r || 0) >= 0.5 || !!D.grow || !!D.area;
+          this.fires.push({ t, d: nd, flight, hit: false, multi: (D.n || 1) > 1 || D.t === 'beam' || D.t === 'dash' || wide });
           for (const [slot, at] of this.appear) { if (at >= 0) { this.responses.push(t - at); this.appear.set(slot, -1); } }
         } else if (ev[2] === ACT.SUPER && this.supReadyT >= 0) { this.supDelays.push(t - this.supReadyT); this.supReadyT = -1; }
       } else if (ev[0] === EV.HIT && ev[5] === this.slot && ev[7] === ACT.ATTACK) {

@@ -228,8 +228,8 @@ const UI = (() => {
         const eq = kind === 'gadget' ? st.gadget === i : st.star === i;
         const cost = Meta.gearCost(bk, kind, i);
         let act = '';
-        if (o && ownedG) act = `<button class="btn ${eq ? 'g' : 'dark'} o" data-eq="${kind}">${eq ? 'Equipped' : 'Equip'}</button>`;
-        else if (o && lv >= need && cost) act = `<button class="btn y o" data-buy="${kind}" ${S().coins >= cost.coins ? '' : 'disabled'}><i class="coin"></i>${fmtNum(cost.coins)}</button>`;
+        if (o && ownedG) act = `<button class="btn ${eq ? 'g' : 'dark'} o" data-eq="${kind}:${i}">${eq ? 'Equipped' : 'Equip'}</button>`;
+        else if (o && lv >= need && cost) act = `<button class="btn y o" data-buy="${kind}:${i}" ${S().coins >= cost.coins ? '' : 'disabled'}><i class="coin"></i>${fmtNum(cost.coins)}</button>`;
         else act = `<span class="muted" style="font-size:.7em">Power ${need}</span>`;
         return `<div class="abil"><span class="tag o" style="background:${kind === 'gadget' ? '#2fa83d' : '#e0a000'}">${kind === 'gadget' ? 'GADGET' : 'STAR'}</span><div class="tx"><b>${esc(g.name)}</b> ${esc(g.text)}</div>${act}</div>`;
       };
@@ -262,10 +262,11 @@ const UI = (() => {
       bind(P, '[data-up]', () => { if (Meta.upgrade(bk)) { snd('levelUp'); U.toast(`${D.name} is now power ${Meta.bState(bk).lvl}!`); } PANELS.brawler(bk); });
       bind(P, '[data-sel]', () => { Meta.select(bk); U.showLobby(); });
       bind(P, '[data-unlock]', () => { if (Meta.buyBrawler(bk)) { snd('unlock'); U.toast(`${D.name} unlocked!`); } PANELS.brawler(bk); });
-      bind(P, '[data-buy]', (b) => { if (Meta.buyGear(bk, b.dataset.buy, 0)) { snd('buy'); } PANELS.brawler(bk); });
+      // data-buy / data-eq: "gadget:1", "star:0" (one of each can be equipped; tapping the equipped one takes it off)
+      bind(P, '[data-buy]', (b) => { const [k, i] = b.dataset.buy.split(':'); if (Meta.buyGear(bk, k, +i)) { snd('buy'); } PANELS.brawler(bk); });
       bind(P, '[data-eq]', (b) => {
-        const s2 = Meta.bState(bk);
-        if (b.dataset.eq === 'gadget') Meta.setGear(bk, s2.gadget === 0 ? -1 : 0, s2.star); else Meta.setGear(bk, s2.gadget, s2.star === 0 ? -1 : 0);
+        const s2 = Meta.bState(bk), [k, i] = b.dataset.eq.split(':'), n = +i;
+        if (k === 'gadget') Meta.setGear(bk, s2.gadget === n ? -1 : n, s2.star); else Meta.setGear(bk, s2.gadget, s2.star === n ? -1 : n);
         PANELS.brawler(bk);
       });
     },
@@ -350,13 +351,15 @@ const UI = (() => {
       const body = `<div class="rows">
         <div class="card set"><span>Name</span><input class="nm" id="pname" maxlength="16" value="${esc(S().name)}"></div>
         <div class="card rows">${tog('sound', 'Sound effects')}${tog('music', 'Music')}${tog('vibrate', 'Vibration')}${tog('leftHanded', 'Left-handed controls')}
-          <div class="set"><span>Graphics</span><span>${['auto', 'high', 'low'].map((q) => `<button class="btn ${st.quality === q ? 'g' : 'dark'} o" data-q="${q}">${q.toUpperCase()}</button>`).join(' ')}</span></div></div>
+          <div class="set"><span>Graphics</span><span>${['auto', 'high', 'low'].map((q) => `<button class="btn ${st.quality === q ? 'g' : 'dark'} o" data-q="${q}">${q.toUpperCase()}</button>`).join(' ')}</span></div>
+          <div class="set"><span>Button size</span><span>${[['S', 0.85], ['M', 1], ['L', 1.2], ['XL', 1.4]].map(([n, v]) => `<button class="btn ${(+st.btnSize || 1) === v ? 'g' : 'dark'} o" data-bs="${v}">${n}</button>`).join(' ')}</span></div></div>
         <div class="card muted" style="font-size:.72em;font-family:system-ui,sans-serif;font-weight:700">Controls: drag on the left to move. Tap the red button to auto-aim, or drag it to aim and release to fire. The yellow button fires your super once it's charged; the green one uses your gadget. Keyboard: WASD, mouse aim, click to attack, Space for super, Q for gadget.</div>
       </div>`;
       const P = panel('Settings', body);
       const apply = () => { saveGame(); if (U.onSettings) U.onSettings(S().settings); };
       bind(P, '[data-tog]', (b) => { st[b.dataset.tog] = !st[b.dataset.tog]; apply(); PANELS.settings(); });
       bind(P, '[data-q]', (b) => { st.quality = b.dataset.q; apply(); PANELS.settings(); });
+      bind(P, '[data-bs]', (b) => { st.btnSize = +b.dataset.bs; apply(); PANELS.settings(); });
       const nm = $('pname');
       nm.addEventListener('change', () => { const v = nm.value.trim().slice(0, 16); if (v) { S().name = v; saveGame(); } });
     },

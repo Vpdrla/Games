@@ -44,7 +44,12 @@ function atkFacts(spec, kitSpeed) {
   const spread = spec.spread || 0;
   // effective range: shotguns want to be close, everything else near max range
   const eff = range * (t === 'shot' && spec.n >= 4 && spread > 0.3 ? 0.68 : t === 'dash' ? 0.9 : 0.93);
-  return { t, range, spd, lob, T: spec.T || (lob ? 0.75 : 0), melee: t === 'dash' || t === 'arc' || range < 3.5, spread, n: spec.n || 1, eff, dmg: spec.dmg || 0, heal: spec.heal || spec.hps || 0, away: !!spec.away, what: spec.what, unit: spec.unit, sp: kitSpeed };
+  return {
+    t, range, spd, lob, T: spec.T || (lob ? 0.75 : 0), melee: t === 'dash' || t === 'arc' || range < 3.5, spread, n: spec.n || 1, eff, dmg: spec.dmg || 0,
+    heal: spec.heal || spec.hps || 0, away: !!spec.away, what: spec.what, unit: spec.unit, sp: kitSpeed,
+    at: spec.at || '', r: spec.r || 0, cleanse: !!spec.cleanse, burstShot: !!(spec.burst && spec.burst.shot), seek: !!spec.seek, inv: !!spec.inv,
+    patchRange: spec.patch && spec.patch.range || 0,
+  };
 }
 
 class Mind {
@@ -472,12 +477,25 @@ class Mind {
       }
     }
     if (me.gadReady && gad.t !== 'none') {
-      if (gad.t === 'heal' || (gad.t === 'pulse' && gad.heal > 0)) I.wantGadget = myHPf < 0.5;
+      // my pet or turret, and how close the nearest enemy I know of is to it
+      const unit = P.deploys.find((d) => d.owner === me.slot);
+      const foeNearUnit = unit ? Math.min(99, ...this.known(true).map((m) => Math.hypot(m.x - unit.x, m.y - unit.y))) : 99;
+      const allyHurt = P.allies.some((a) => a.alive && a.hp / a.maxHp < 0.5 && Math.hypot(a.x - me.x, a.y - me.y) < 3.5);
+      if (gad.t === 'heal' || (gad.t === 'pulse' && gad.heal > 0) || (gad.t === 'area' && gad.heal > 0)) I.wantGadget = myHPf < 0.5 || allyHurt;
+      else if (gad.t === 'pulse' && gad.cleanse) I.wantGadget = me.stunned || (danger > 0.8 && myHPf < 0.6);
+      else if (gad.t === 'pulse' && gad.at === 'unit') I.wantGadget = unit && foeNearUnit < gad.r;
+      else if (gad.t === 'buff' && (gad.what === 'unitShield' || gad.what === 'deployRate' || gad.what === 'petStun')) I.wantGadget = unit && foeNearUnit < 5;
       else if (gad.t === 'buff' && gad.what === 'ammo') I.wantGadget = me.ammo < 0.8 && target && td < kit.atkF.range;
-      else if (gad.t === 'buff' && gad.what === 'shield') I.wantGadget = danger > 0.8 && myHPf < 0.7;
+      else if (gad.t === 'buff' && (gad.what === 'shield' || gad.what === 'block')) I.wantGadget = danger > 0.8 && myHPf < 0.7;
+      else if (gad.t === 'buff' && gad.what === 'nextAtk') I.wantGadget = target && me.ammo >= 1 && td < (gad.patchRange || kit.atkF.range) && td > kit.atkF.range * 0.6;
+      else if (gad.t === 'buff' && gad.what === 'speed') I.wantGadget = target && td < 4;
       else if (gad.t === 'buff') I.wantGadget = target && td < 8 && r.chance(0.5);
-      else if (gad.t === 'dash') { I.wantGadget = (myHPf < 0.35 && danger > 0.5) || (target && target.hp / target.maxHp < 0.3 && td < 6); I.gadMode = myHPf < 0.35 ? 'away' : 'target'; } else if (gad.t === 'pulse') I.wantGadget = target && td < (gad.range || 2.5);
+      else if (gad.t === 'dash') { I.wantGadget = (myHPf < 0.35 && danger > 0.5) || (target && target.hp / target.maxHp < 0.3 && td < 6) || (gad.dmg === 0 && !gad.inv && target && td < 3); I.gadMode = myHPf < 0.35 ? 'away' : 'target'; } else if (gad.t === 'pulse') I.wantGadget = target && td < (gad.r || gad.range || 2.5);
+      else if (gad.t === 'area' && gad.at === 'self') I.wantGadget = target && td < (gad.r || 2) + 1;
+      else if (gad.t === 'deploy' && gad.unit === 'plant' && gad.burstShot) I.wantGadget = target && td < 6; // a box that bursts into shots
+      else if (gad.t === 'deploy' && gad.unit === 'plant') I.wantGadget = (myHPf < 0.6 && danger > 0.5) || allyHurt; // cover that heals when it breaks
       else if (gad.t === 'deploy') I.wantGadget = target && td < 9;
+      else if (gad.t === 'shot' && gad.seek) I.wantGadget = target && td < 3 && danger > 0.5;
       else I.wantGadget = target && td < (gad.range || 6) && r.chance(0.4);
       I.wantGadget = !!I.wantGadget;
     }

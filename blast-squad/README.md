@@ -40,17 +40,18 @@ file. Download it and open it in a mobile browser. Progress is saved in the brow
 | Speech bubble | T, then 1-8 / Shift+1-5 | Y | Quick chat and emotes |
 
 Holding the ball in Blast Ball, the attack button **kicks** (a tap kicks at the goal) and the
-super button **passes**, lobbing the ball over walls. A left-handed layout is in Settings.
+super button **passes**, lobbing the ball over walls. The buttons are big, as on the original's
+phone layout; Settings has a left-handed layout and the button size (S to XL).
 
 ## Modes
 
 | Mode | Players | How to win |
 | --- | --- | --- |
-| **Gem Rush** | 3v3 | A mine spawns a gem every 7 s. Hold 10+ gems as a team, and more than the enemy, for a 15 s countdown. Dying drops your gems. |
-| **Showdown** | 10, every player for themselves | Break boxes for power cubes (+health and damage each), take others' cubes when they fall, and stay out of the closing poison. Last one standing wins; placement decides the trophies. |
-| **Blast Ball** | 3v3 | First to 2 goals. Pick the ball up by touching it, kick it or pass it. Tied after 2:30, sudden-death overtime with the walls removed. |
+| **Gem Rush** | 3v3 | A mine spawns a gem every 7 s (not while 15 lie around). Hold 10+ gems as a team, and more than the enemy, for a 15 s countdown. Dying drops your gems; respawn in 5 s. |
+| **Showdown** | 10, every player for themselves | Break boxes for power cubes (+400 health and +10% damage each). A fallen player drops 1 cube plus a third of theirs (at most 5). The poison gas takes 20% of max health a second (more the longer you stay) and halves healing. Last one standing wins; placement decides the trophies. |
+| **Blast Ball** | 3v3 | First to 2 goals. Pick the ball up by touching it, kick it or pass it. Tied after 2:30, sudden-death overtime with the walls removed. Respawn in 5 s. |
 | **Knockout** | 3v3 | Best of 3 rounds with no respawns. Poison closes in if a round drags on. |
-| **Bounty** | 3v3 | Everyone wears stars (2, up to 7 for a hot streak). Take someone down to score their stars. Most stars after 2 minutes wins. |
+| **Bounty** | 3v3 | Everyone wears stars (2, up to 7 for a hot streak). Take someone down to score their stars. First to 20 stars, or the most after 2 minutes, wins. Respawn in 3 s. |
 
 There are 11 maps, at least 2 per mode. The event list shows 4 slots on a timer, like the
 original: Gem Rush, Showdown and Blast Ball, plus a slot that alternates between Knockout and
@@ -58,28 +59,34 @@ Bounty every 4 hours.
 
 ## Brawlers
 
-15 brawlers from Starting to Legendary rarity, covering the classic archetypes:
+15 brawlers from Starting to Legendary rarity. Each one copies a brawler of the original game
+under our own name and look: health, movement speed, damage, range, reload, super charge per
+hit, gadgets with their cooldowns and star powers use the original's numbers at power 1, as of
+its September 2026 balance update (when every brawler got faster: 750 normal, 800 fast, 855 very
+fast). Power levels add 10% health and damage each, as in the original.
 
-| Brawler | Rarity | Plays like |
-| --- | --- | --- |
-| Nova | Starting | Shotgun brawler; super knocks back and breaks walls |
-| Dax | Rare | Gunslinger with long bursts |
-| Brick | Rare | Tank who punches and leaps in |
-| Bramble | Rare | Shockwave plus a pet bear |
-| Pip | Rare | Bomb thrower that lobs over walls |
-| Melody | Rare | Healer with a piercing sound wave |
-| Sizzle | Super Rare | Burning puddles |
-| Gizmo | Super Rare | Bouncing orbs and a turret |
-| Volt | Super Rare | Instant beam and a slowing storm |
-| Hawk | Epic | Sniper who escapes by leaping |
-| Frost | Epic | Snowball fan and a push-back wind |
-| Shade | Mythic | Dashing assassin with life steal |
-| Zip | Mythic | Fast skirmisher with a team speed boost |
-| Specter | Legendary | Close-range blades and invisibility |
-| Thorn | Legendary | Splitting cactus balls and a spike field |
+| Brawler | Rarity | Copies | Plays like |
+| --- | --- | --- | --- |
+| Nova | Starting | Shelly | Shotgun; super knocks back and breaks walls |
+| Dax | Rare | Colt | Gunslinger with long bursts |
+| Brick | Rare | El Primo | Tank who punches and leaps in |
+| Bramble | Rare | Nita | Shockwave plus a pet bear |
+| Melody | Rare | Poco | Healer with a very wide sound wave |
+| Sizzle | Rare | Barley | Burning puddles over walls |
+| Pip | Super Rare | Dynamike | Dynamite thrower that lobs over walls |
+| Gizmo | Super Rare | Jessie | Bouncing orbs and a rapid-fire turret |
+| Volt | Super Rare | Rico | Bolts that ricochet off walls |
+| Hawk | Epic | Piper | Sniper (harder hits from further away) who escapes by leaping |
+| Frost | Epic | Gale | Snowball fan and a push-back wind |
+| Shade | Mythic | Mortis | Dashing assassin; the lunge grows after a rest; life-stealing bats |
+| Zip | Mythic | Max | Fast skirmisher with a team speed boost |
+| Specter | Legendary | Leon | Blades that hit harder up close, and invisibility |
+| Thorn | Legendary | Spike | Cactus balls that burst into spikes, and a spike field |
 
-Each has 3 ammo bars, a super charged by hitting enemies, a gadget from power 7 and a star
-power from power 9. Health regenerates after a few seconds out of combat.
+Each has 3 ammo bars, a super charged by hitting enemies, a choice of gadgets from power 7 and
+star powers from power 9 (two of each for most brawlers, as in the original; a few that need
+systems this game doesn't have are left out, and so are hypercharges). Health regenerates 13% a
+second after 3 seconds out of combat.
 
 ## AI players that play like people
 
@@ -101,7 +108,8 @@ rather than a script with perfect information:
   starts after a reaction and a moment to pick a side, and sometimes misjudges the shot. A bar of
   ammo that just refilled is noticed a beat later, not on the exact frame. A burning puddle that
   lands on it is also noticed only after a reaction. It shoots down a pet chasing it or a turret in
-  reach before the brawler behind it. Beginners mostly tap auto-aim.
+  reach before the brawler behind it, and uses whichever gadget it brought when it fits.
+  Beginners mostly tap auto-aim.
 - **Decisions.** Each AI weighs options such as hold the lane, fight, retreat to heal, grab
   gems, carry or clear the ball, farm power cubes, ambush from a bush or dodge the poison. It
   sticks to a plan unless something clearly better comes up, instead of flickering between them.
@@ -205,7 +213,7 @@ follow the genre's best-known game.
 
 **조작**
 
-- 왼쪽을 끌면 이동합니다.
+- 왼쪽을 끌면 이동합니다. 버튼은 원작 휴대폰 화면처럼 크게 배치했습니다(설정에서 크기 조절).
 - 빨간 버튼을 톡 치면 자동 조준 공격, 끌었다 놓으면 조준 공격입니다(가운데로 되돌리면 취소).
 - 노란 버튼은 슈퍼, 작은 버튼은 가젯입니다(파워 7부터 한 판에 3번).
 - 말풍선 버튼은 빠른 채팅과 이모트입니다.
@@ -215,11 +223,39 @@ follow the genre's best-known game.
 
 | 모드 | 설명 |
 | --- | --- |
-| 젬 러시 (젬 그랩) | 3대3. 젬 10개 이상을 들고 15초 버티면 승리합니다. |
-| 쇼다운 | 10명 개인전. 상자를 부숴 파워 큐브를 모으고, 좁혀 오는 독가스를 피해 마지막까지 살아남으세요. 순위에 따라 트로피가 정해집니다. |
-| 블래스트 볼 (브롤 볼) | 3대3. 먼저 2골을 넣으면 승리합니다. 2분 30초가 지나도 동점이면 벽이 사라진 연장전(골든 골)을 합니다. |
+| 젬 러시 (젬 그랩) | 3대3. 젬 10개 이상을 들고 15초 버티면 승리합니다. 바닥에 젬이 15개 깔려 있으면 광산이 멈춥니다. 부활 5초. |
+| 쇼다운 | 10명 개인전. 상자를 부숴 파워 큐브(체력 +400, 피해 +10%)를 모으세요. 쓰러진 브롤러는 큐브 1개 + 가진 큐브의 1/3(최대 5개)을 떨어뜨립니다. 독가스는 초당 최대 체력의 20%를 깎고(오래 머물수록 더 아픔) 회복을 절반으로 줄입니다. |
+| 블래스트 볼 (브롤 볼) | 3대3. 먼저 2골을 넣으면 승리합니다. 2분 30초가 지나도 동점이면 벽이 사라진 연장전(골든 골)을 합니다. 부활 5초. |
 | 녹아웃 | 3대3. 부활 없는 3판 2선승제입니다. |
-| 바운티 | 3대3. 머리 위의 별(2~7개)을 쓰러뜨려 빼앗고, 2분 뒤 별이 많은 팀이 이깁니다. |
+| 바운티 | 3대3. 머리 위의 별(2~7개)을 쓰러뜨려 빼앗습니다. 먼저 20개, 또는 2분 뒤 별이 많은 팀이 이깁니다. 부활 3초. |
+
+**브롤러**
+
+15명이 모두 원작 브롤러 한 명씩을 이름과 외형만 바꿔 그대로 옮겼습니다. 체력, 이동 속도, 피해, 사거리,
+재장전, 적중당 슈퍼 충전, 가젯(쿨타임 포함)과 스타 파워 수치는 원작의 2026년 9월 밸런스 기준
+파워 1 값입니다(모든 브롤러가 빨라진 업데이트: 보통 750, 빠름 800, 매우 빠름 855). 파워 레벨마다 체력과
+피해가 10%씩 오르는 것도 원작과 같습니다.
+
+| 브롤러 | 원작 | 희귀도 |
+| --- | --- | --- |
+| Nova | 쉘리 | 기본 |
+| Dax | 콜트 | 희귀 |
+| Brick | 엘 프리모 | 희귀 |
+| Bramble | 니타 | 희귀 |
+| Melody | 포코 | 희귀 |
+| Sizzle | 발리 | 희귀 |
+| Pip | 다이너마이크 | 초희귀 |
+| Gizmo | 제시 | 초희귀 |
+| Volt | 리코 | 초희귀 |
+| Hawk | 파이퍼 | 영웅 |
+| Frost | 게일 | 영웅 |
+| Shade | 모티스 | 신화 |
+| Zip | 맥스 | 신화 |
+| Specter | 레온 | 전설 |
+| Thorn | 스파이크 | 전설 |
+
+가젯과 스타 파워는 대부분 원작처럼 2개씩 중에서 골라 장착합니다. 이 게임에 없는 시스템이 필요한 몇 개
+(스프링 이젝터, 스니키 스니커즈, 롤리팝 드롭, 커브볼)와 하이퍼차지는 빠져 있습니다.
 
 **사람 같은 AI**
 

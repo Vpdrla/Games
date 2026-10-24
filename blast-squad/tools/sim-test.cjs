@@ -34,7 +34,7 @@ const KEYS = A.BRAWLER_KEYS;
 
 let failN = 0;
 const fail = (msg) => { failN++; if (failN <= 60) console.log('  FAIL ' + msg); };
-const check = (c, msg) => { if (!c) fail(msg); return !!c; };
+const check = (c, msg) => { if (!c) fail(msg); else if (VERBOSE) console.log("  ok   " + msg); return !!c; };
 const section = (s) => console.log('\n== ' + s);
 const fmt = (v, d) => (typeof v === 'number' ? v.toFixed(d == null ? 0 : d) : String(v));
 const pad = (s, n) => String(s).padStart(n);
@@ -670,7 +670,7 @@ function unitTests() {
   // -- data sanity: every brawler builds a kit, every primitive and buff is known
   {
     const prims = new Set(['shot', 'lob', 'beam', 'arc', 'dash', 'leap', 'deploy', 'area', 'pulse', 'heal', 'buff']);
-    const buffs = new Set(['shield', 'speed', 'invis', 'ammo', 'nextStun', 'nextSlow', 'petStun', 'deployRate']);
+    const buffs = new Set(['shield', 'speed', 'invis', 'ammo', 'nextStun', 'nextSlow', 'petStun', 'deployRate', 'unitShield', 'block', 'nextAtk']);
     const walk = (s, where) => {
       check(prims.has(s.t), `${where}: primitive ${s.t}`);
       if (s.t === 'buff') check(buffs.has(s.what), `${where}: buff ${s.what}`);
@@ -680,7 +680,8 @@ function unitTests() {
     for (const k of KEYS) {
       const D = A.BRAWLERS[k];
       for (const f of ['name', 'rarity', 'role', 'desc', 'hp', 'speed', 'reload']) check(D[f] != null, `${k}.${f}`);
-      check([720, 770, 820].includes(D.speed) && D.hp >= 2400 && D.hp <= 6000 && D.reload >= 0.9 && D.reload <= 2.4, `${k}: stats in range`);
+      // the original's speeds since September 2026 (normal, fast, very fast) and its health / reload spans
+      check([750, 800, 855].includes(D.speed) && D.hp >= 2400 && D.hp <= 7000 && D.reload >= 0.7 && D.reload <= 2.5, `${k}: stats in range`);
       check(D.atk.text && D.sup.text && D.gadgets[0].text && D.stars[0].text, `${k}: UI texts`);
       check(D.atk.chg > 0 || (D.atk.split && D.atk.split.chg > 0), `${k}: main attack charges the super`);
       walk(D.atk, k + '.atk'); walk(D.sup, k + '.sup'); walk(D.gadgets[0], k + '.gad');
@@ -719,9 +720,9 @@ function account(cfg, res) {
 }
 
 function lineup(i, offs) { return offs.map((o) => KEYS[(i + o) % KEYS.length]); }
-function cfg3v3(mode, i, seed, offs, star) {
+function cfg3v3(mode, i, seed, offs, star, gadget) {
   const bks = lineup(i, offs);
-  return { mode, map: 'crystal_cove', seed, slots: bks.map((bk, j) => ({ team: j < 3 ? 0 : 1, bk, lvl: 9 + (j % 3), gadget: 0, star, name: bk })) };
+  return { mode, map: 'crystal_cove', seed, slots: bks.map((bk, j) => ({ team: j < 3 ? 0 : 1, bk, lvl: 9 + (j % 3), gadget: gadget || 0, star, name: bk })) };
 }
 
 function matches() {
@@ -735,7 +736,9 @@ function matches() {
     if (VERBOSE) console.log(`  gem #${c.seed} ${c.slots.map((s) => s.bk).join(',')}: ${res.sim.result.reason} winner ${res.sim.result.winner} at ${res.sim.t.toFixed(0)}s gems ${res.sim.ms.gems}`);
   }
   for (let i = 0; i < N; i++) {
-    const c = cfg3v3('test', QUICK ? i * 3 : i, 2000 + i, [0, 4, 8, 1, 6, 11], i & 1 ? -1 : 0);
+    // the test matches also play everyone's second gadget and star power (where they have one)
+    const c = cfg3v3('test', QUICK ? i * 3 : i, 2000 + i, [0, 4, 8, 1, 6, 11], i % 3 === 2 ? -1 : 1, 1);
+    for (const sl of c.slots) { if (sl.gadget >= A.BRAWLERS[sl.bk].gadgets.length) sl.gadget = 0; if (sl.star >= A.BRAWLERS[sl.bk].stars.length) sl.star = 0; }
     const res = runMatch(c);
     account(c, res);
     if (VERBOSE) console.log(`  test #${c.seed}: winner ${res.sim.result.winner} kills ${res.sim.ms.kills}`);
@@ -859,11 +862,12 @@ function modeRules() {
     const B = sim.brawlers;
     check(new Set(B.map((b) => `${b.x},${b.y}`)).size === 10, 'ten different spawn points');
     check(sim.hud().mode === 'sd' && sim.hud().alive === 10 && sim.poison, 'HUD: 10 alive, poison rect');
-    sim.addCube(B[3]); sim.addCube(B[3]);
+    sim.addCube(B[3]); sim.addCube(B[3]); sim.addCube(B[3]);
     drain(sim);
     kill(sim, B[3], B[4]);
     let ev = stepN(sim, 1);
-    check(!B[3].alive && B[3].respawnT < 0 && sim.pickups.filter((p) => p.pick === PICK.CUBE).length === 2, 'no respawn; a fallen brawler drops their cubes');
+    // the original's rule: 1 cube plus a third of theirs (3 -> 2), at most 5
+    check(!B[3].alive && B[3].respawnT < 0 && sim.pickups.filter((p) => p.pick === PICK.CUBE).length === 2, 'no respawn; a fallen brawler drops 1 + a third of their cubes');
     check(B[4].st.kills === 1 && evs(ev, EV.KILL).length === 1, 'the takedown is credited');
     const order = [];
     for (const b of B) if (b.slot !== 3 && b.slot !== 7) { kill(sim, b, null); stepN(sim, 1); order.push(b.slot); }
@@ -954,12 +958,12 @@ function modeRules() {
 
   section('Review fixes (edge cases)');
   {
-    // a gadget shield used under spawn protection replaces it (no 3 s of immunity)
-    const s1 = mkSim('test', 'crystal_cove', ['brick', 'dax']);
+    // a gadget shield used under spawn protection replaces it (no extra immunity)
+    const s1 = mkSim('test', 'crystal_cove', ['zip', 'dax']);
     const br = s1.brawlers[0];
     check(br.spawnSh && br.shieldF === 1, 'spawn protection is up at the start');
     stepN(s1, 1, (i) => (i === 0 ? A.packIn(0, 0, 0, 1, ACT.GADGET, 1) : 0));
-    check(!br.spawnSh && br.shieldF === 0.5, `Iron Hide ends the spawn shield instead of stretching it (shieldF ${br.shieldF})`);
+    check(!br.spawnSh && br.shieldT < 0.4, `Blink ends the spawn shield instead of stretching it (shieldT ${br.shieldT.toFixed(2)})`);
     // a cube on the tick a brawler goes down doesn't save them
     const s2 = mkSim('sd', 'skull_creek', KEYS.slice(0, 10), { teams: KEYS.slice(0, 10).map((_, i) => i) });
     const v = s2.brawlers[2];
@@ -1045,6 +1049,238 @@ function modeRules() {
     };
     const inEdge = edge(A.BRAWLER_R - 0.1), outEdge = edge(A.BRAWLER_R + 0.1);
     check(inEdge > 0 && outEdge === 0, `an area hits a body overlapping its edge (${inEdge}) and not one just clear of it (${outEdge})`);
+  }
+
+  section('Original kits and rules');
+  {
+    const free = (m, x, y) => !(A.flagsAt(m, x, y) & (A.TF_MOVE | A.TF_SHOT));
+    // a straight open run of L tiles (with the rows above and below open too when wide)
+    const openRow = (m, L, wide) => {
+      for (let y = 2; y < m.h - 2; y++) {
+        for (let x = 2; x < m.w - L - 2; x++) {
+          let ok = true;
+          for (let i = 0; i <= L && ok; i++) for (const dy of wide ? [-1, 0, 1] : [0]) if (!free(m, x + i + 0.5, y + dy + 0.5)) ok = false;
+          if (ok) return { x: x + 0.5, y: y + 0.5 };
+        }
+      }
+      return null;
+    };
+    // 4 open tiles with a wall right after them, going +x
+    const wallAhead = (m) => {
+      for (let y = 1; y < m.h - 1; y++) {
+        for (let x = 1; x < m.w - 6; x++) {
+          let ok = true;
+          for (let i = 0; i < 4 && ok; i++) if (!free(m, x + i + 0.5, y + 0.5)) ok = false;
+          if (ok && (A.flagsAt(m, x + 4.5, y + 0.5) & A.TF_SHOT)) return { x: x + 0.5, y: y + 0.5 };
+        }
+      }
+      return null;
+    };
+    const off = (b) => { b.alive = false; b.hp = 0; b.respawnT = 0; }; // out of the way for good
+    const fire = (sim, slot, act, ang, d) => stepN(sim, 1, (i) => (i === slot ? A.packIn(0, 0, ang, d, act, 0) : 0));
+    const LM = A.LEVEL_MULT(9);
+
+    { // Rico-style bolts bounce off walls and fly on
+      const sim = mkSim('test', 'crystal_cove', ['volt', 'dax']);
+      const v = sim.brawlers[0]; off(sim.brawlers[1]);
+      const p = wallAhead(sim.map);
+      place(sim, v, p.x, p.y); ready(v);
+      fire(sim, 0, ACT.ATTACK, 0, 1);
+      let back = false;
+      for (let k = 0; k < 40; k++) { stepN(sim, 1); for (const e of sim.shots) if (e.owner === 0 && !e.dead && e.wallBnc > 0 && e.vx < 0) back = true; }
+      check(back, 'a ricochet bolt fired at a wall bounces back off it and flies on');
+    }
+    { // Mortis-style lunge: long after a rest, short right after another
+      const sim = mkSim('test', 'crystal_cove', ['shade', 'dax']);
+      const b = sim.brawlers[0]; off(sim.brawlers[1]);
+      const p = openRow(sim.map, 10, false);
+      place(sim, b, p.x, p.y); ready(b);
+      const lunge = () => { const x0 = b.x; fire(sim, 0, ACT.ATTACK, 0, 1); stepN(sim, 30); ready(b); return b.x - x0; };
+      const d1 = lunge(), d2 = lunge();
+      check(Math.abs(d1 - 4.67) < 0.35 && Math.abs(d2 - 2.67) < 0.35, `a lunge after a rest reaches 4.67 tiles, one right after only 2.67 (${d1.toFixed(2)}, ${d2.toFixed(2)})`);
+    }
+    { // Hot Landing (star 0): Big Drop's landing burns for 900 over 4 s
+      const sim = mkSim('test', 'crystal_cove', ['brick', 'dax'], { star: 0 });
+      const [b, e] = sim.brawlers;
+      const p = openRow(sim.map, 6, true);
+      place(sim, b, p.x, p.y); place(sim, e, p.x + 4, p.y); unshield(e);
+      e.hp = e.maxHp = 1e6;
+      b.sup = 1; b.supReady = true;
+      fire(sim, 0, ACT.SUPER, 0, 4 / 9);
+      stepN(sim, 30 * 5);
+      const dealt = 1e6 - e.hp, want = (960 + 900) * LM;
+      check(Math.abs(dealt - want) < want * 0.06, `Big Drop + Hot Landing deal ${Math.round(want)} (dealt ${dealt})`);
+    }
+    { // Iron Hide (gadget 1): bullets that reach Brick for a second are destroyed
+      const sim = mkSim('test', 'crystal_cove', ['brick', 'dax'], { gadget: 1 });
+      const [b, e] = sim.brawlers;
+      unshield(b); unshield(e);
+      const p = openRow(sim.map, 6, true);
+      place(sim, b, p.x + 5, p.y); place(sim, e, p.x, p.y); ready(e);
+      const h0 = b.hp;
+      stepN(sim, 1, (i) => A.packIn(0, 0, i === 0 ? Math.PI : 0, 1, i === 0 ? ACT.GADGET : ACT.ATTACK, 0));
+      stepN(sim, 24);
+      const blocked = b.hp === h0;
+      ready(e);
+      fire(sim, 1, ACT.ATTACK, 0, 1);
+      stepN(sim, 24);
+      check(blocked && b.hp < h0, `Iron Hide destroys bullets for 1 s, then they hit again (${h0} -> ${b.hp})`);
+    }
+    { // Choke (gadget 1): the next 3 attacks reach 10 tiles, the 4th is back to 7.67
+      const sim = mkSim('test', 'crystal_cove', ['nova', 'dax'], { gadget: 1 });
+      const b = sim.brawlers[0]; off(sim.brawlers[1]);
+      const p = openRow(sim.map, 3, false);
+      place(sim, b, p.x, p.y); ready(b);
+      fire(sim, 0, ACT.GADGET, 0, 1);
+      const ranges = [];
+      for (let k = 0; k < 4; k++) {
+        ready(b);
+        const n0 = sim.nextId;
+        fire(sim, 0, ACT.ATTACK, 0, 1);
+        const mine = sim.shots.filter((e) => e.id >= n0 && e.owner === 0);
+        ranges.push(mine.length ? mine[0].range : 0);
+        stepN(sim, 40);
+      }
+      check(ranges.join() === '10,10,10,7.67', `Choke: 3 long attacks, then normal (${ranges.join()})`);
+    }
+    { // Heavy Paws (gadget 0): the bear stuns enemies around it
+      const sim = mkSim('test', 'crystal_cove', ['bramble', 'dax'], { gadget: 0 });
+      const [b, e] = sim.brawlers;
+      unshield(e);
+      const p = openRow(sim.map, 6, true);
+      place(sim, b, p.x, p.y); place(sim, e, p.x + 4, p.y);
+      b.sup = 1; b.supReady = true;
+      fire(sim, 0, ACT.SUPER, 0, 3 / 5);
+      stepN(sim, 2);
+      fire(sim, 0, ACT.GADGET, 0, 1);
+      check(e.stunT > 0, 'Heavy Paws: the bear stuns enemies around it');
+    }
+    { // Steady Beat (gadget 1): clears a stun from an ally and keeps them immune
+      const sim = mkSim('test', 'crystal_cove', ['melody', 'nova', 'dax'], { gadget: 1, teams: [0, 0, 1] });
+      const [m, a] = sim.brawlers;
+      off(sim.brawlers[2]);
+      const p = openRow(sim.map, 3, false);
+      place(sim, m, p.x, p.y); place(sim, a, p.x + 1, p.y); unshield(a);
+      sim.stun(a, 3, 2, 1);
+      fire(sim, 0, ACT.GADGET, 0, 1);
+      const freed = a.stunT === 0;
+      sim.stun(a, 2, 2, 1);
+      check(freed && a.stunT === 0 && a.ccT > 3, `Steady Beat frees a stunned ally and stops the next stun (ccT ${a.ccT.toFixed(2)})`);
+    }
+    { // the gas: 20% of max health a second, healing halved in it
+      const sim = mkSim('sd', 'skull_creek', KEYS.slice(0, 10), { teams: KEYS.slice(0, 10).map((_, i) => i) });
+      const b = sim.brawlers[0];
+      for (const o of sim.brawlers) unshield(o);
+      sim.roundT0 = -200; // fully closed in
+      stepN(sim, 1);
+      const P = sim.poison, inGas = !(b.x >= P.x0 && b.x <= P.x1 && b.y >= P.y0 && b.y <= P.y1);
+      b.hp = b.maxHp;
+      stepN(sim, 30 * 3); // ticks at 0.5, 1.5 and 2.5 s
+      const lost = (b.maxHp - b.hp) / b.maxHp;
+      const h0 = b.hp, got = sim.heal(b, 1000, -1, 0);
+      check(inGas && Math.abs(lost - 0.6) < 0.01 && got === 500 && b.hp === h0 + 500, `the gas takes 20% a second (3 s: ${(lost * 100).toFixed(0)}%) and halves healing (${got})`);
+    }
+    { // the gem mine waits while 15 gems lie around
+      const sim = mkSim('gem', 'crystal_cove', KEYS.slice(0, 6));
+      const mine = sim.map.mine;
+      for (let i = 0; i < 15; i++) sim.spawnPickup(A.PICK.GEM, 1, mine.x, mine.y, mine.x, mine.y);
+      stepN(sim, 30 * 3);
+      const n = sim.pickups.filter((q) => q.pick === A.PICK.GEM).length;
+      check(n === 15 && sim.ms.spawned === 0, `no new gems while 15 lie on the ground (${n}, spawned ${sim.ms.spawned})`);
+    }
+    { // respawn times: 5 s in Gem Rush and Blast Ball, 3 s in Bounty
+      const t = {};
+      for (const [mode, map] of [['gem', 'crystal_cove'], ['ball', 'pinball_pitch'], ['bounty', 'snake_meadow']]) {
+        const sim = mkSim(mode, map, KEYS.slice(0, 6));
+        const v = sim.brawlers[3];
+        v.hp = 0; v.killer = 0; v.shieldT = 0;
+        stepN(sim, 1);
+        t[mode] = Math.round(v.respawnT * 10) / 10;
+      }
+      check(t.gem === 5 && t.ball === 5 && t.bounty === 3, `respawn in ${JSON.stringify(t)}`);
+    }
+    { // Bounty: 20 stars wins at once
+      const sim = mkSim('bounty', 'snake_meadow', KEYS.slice(0, 6));
+      sim.ms.stars[1] = 20;
+      stepN(sim, 1);
+      check(sim.over && sim.result.winner === 1, 'Bounty: the first team to 20 stars wins');
+    }
+    { // Rocket Boots (star 0): Pip caught in his own blast is flung forward
+      const sim = mkSim('test', 'crystal_cove', ['pip', 'dax'], { star: 0 });
+      const b = sim.brawlers[0]; off(sim.brawlers[1]);
+      const p = openRow(sim.map, 6, true);
+      place(sim, b, p.x, p.y); ready(b);
+      fire(sim, 0, ACT.ATTACK, 0, 0);
+      stepN(sim, 45);
+      check(b.x - p.x > 2.5, `Rocket Boots: Pip jumps out of his own blast (${(b.x - p.x).toFixed(2)} tiles)`);
+    }
+    { // Hard Gust (star 0): pushed into a wall, enemies are stunned
+      const sim = mkSim('test', 'crystal_cove', ['frost', 'dax'], { star: 0 });
+      const [b, e] = sim.brawlers;
+      unshield(e);
+      const p = wallAhead(sim.map);
+      place(sim, b, p.x, p.y); place(sim, e, p.x + 2.5, p.y);
+      b.sup = 1; b.supReady = true;
+      fire(sim, 0, ACT.SUPER, 0, 1);
+      let stunned = false;
+      for (let k = 0; k < 20; k++) { stepN(sim, 1); if (e.stunT > 0) stunned = true; }
+      check(stunned, 'Hard Gust: Gale Wall stuns an enemy it pushes into a wall');
+    }
+    { // Whirlwind (gadget 0): the twister shoves enemies away
+      const sim = mkSim('test', 'crystal_cove', ['frost', 'dax']);
+      const [b, e] = sim.brawlers;
+      unshield(e);
+      const p = openRow(sim.map, 8, true);
+      place(sim, b, p.x, p.y); place(sim, e, p.x + 3, p.y);
+      fire(sim, 0, ACT.GADGET, 0, 2.6 / 6);
+      stepN(sim, 30);
+      check(e.x - (p.x + 3) > 0.5, `Whirlwind pushes enemies out (${(e.x - p.x - 3).toFixed(2)} tiles)`);
+    }
+    { // Sap (gadget 1): the cactus heals nearby allies when it breaks
+      const sim = mkSim('test', 'crystal_cove', ['thorn', 'nova', 'dax'], { gadget: 1, teams: [0, 0, 1] });
+      const [t, a] = sim.brawlers;
+      off(sim.brawlers[2]);
+      const p = openRow(sim.map, 4, true);
+      place(sim, t, p.x, p.y); place(sim, a, p.x + 2, p.y);
+      fire(sim, 0, ACT.GADGET, 0, 1);
+      const plant = sim.deployOf(0);
+      a.hp = 1000;
+      sim.hurt(plant, 1e7, 2, 1, 0, 0);
+      check(plant.dead && a.hp === 1000 + Math.round(900 * LM), `Sap heals ${Math.round(900 * LM)} when it breaks (${a.hp - 1000})`);
+    }
+    { // Bolt Box (gadget 0): bursts into 8 bouncing bolts after 1.5 s
+      const sim = mkSim('test', 'crystal_cove', ['volt', 'dax']);
+      const b = sim.brawlers[0]; off(sim.brawlers[1]);
+      const p = openRow(sim.map, 4, true);
+      place(sim, b, p.x, p.y);
+      fire(sim, 0, ACT.GADGET, 0, 1);
+      const n0 = sim.nextId;
+      stepN(sim, 46);
+      const bolts = sim.shots.filter((e) => e.id >= n0 && e.s.ricochet).length;
+      check(!sim.deployOf(0) && bolts === 8, `Bolt Box bursts into 8 bolts (${bolts})`);
+    }
+    { // Needle Ball: a direct hit is the ball plus the one or two spikes that burst at the target
+      const sim = mkSim('test', 'crystal_cove', ['thorn', 'dax']);
+      const [b, e] = sim.brawlers;
+      unshield(e); e.hp = e.maxHp = 1e6;
+      const p = openRow(sim.map, 6, true);
+      place(sim, b, p.x, p.y); place(sim, e, p.x + 4, p.y); ready(b);
+      fire(sim, 0, ACT.ATTACK, 0, 1);
+      stepN(sim, 30);
+      const hits = Math.round((1e6 - e.hp) / (540 * LM));
+      check(hits >= 2 && hits <= 3, `a direct Needle Ball hit counts the ball and 1-2 spikes (${hits} hits)`);
+    }
+    { // gear: every gadget and star power index builds a kit (and a missing one is no gear)
+      let ok = true;
+      for (const k of KEYS) {
+        const D = A.BRAWLERS[k];
+        for (let g = -1; g <= D.gadgets.length; g++) for (let st = -1; st <= D.stars.length; st++) {
+          const kit = A.brawlerKit(k, st, g);
+          if ((g >= 0 && g < D.gadgets.length) !== !!kit.gad) ok = false;
+        }
+      }
+      check(ok, 'every gadget / star power index gives a kit; one out of range gives none');
+    }
   }
 
   section('Bounty rules');

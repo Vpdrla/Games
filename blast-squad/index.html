@@ -530,236 +530,329 @@ const ROLES = {
 //   heals when the main attack hits), ammoOnHit, killHeal, moveReload (+share of reload while
 //   moving), invisHeal (per second while invisible), fieldHeal (per second in own lasting zone).
 
+// Each brawler copies one from the original game, with its numbers at power 1 as of the September
+// 2026 balance update (Brawl Stars wiki, Liquipedia, Brawl Time Ninja): health, movement speed
+// (750 normal, 800 fast, 855 very fast since every brawler got faster that month), damage, range,
+// reload, super charge per hit (chg), gadgets with their cooldowns and star powers. The names are
+// our own. Original:   nova Shelly, dax Colt, brick El Primo, bramble Nita, pip Dynamike, melody Poco,
+// sizzle Barley, gizmo Jessie, volt Rico, hawk Piper, frost Gale, shade Mortis, zip Max, specter
+// Leon, thorn Spike. Not copied: hypercharges and a few gadgets / star powers that need systems we
+// don't have (Spring Ejector, Sneaky Sneakers, Lollipop Drop, Curveball).
 const BRAWLERS = {
   nova: {
     name: 'Nova', rarity: 'start', role: 'fighter', color: '#e8574a',
     desc: 'A scrappy shotgunner who wins every fight up close.',
-    hp: 3900, speed: 720, reload: 1.5,
+    hp: 3900, speed: 800, reload: 1.5,
     atk: {
-      name: 'Scattershot', text: 'Fires 5 pellets in a cone. Brutal up close.',
-      t: 'shot', n: 5, spread: 0.52, dmg: 340, range: 7.67, spd: 11.3, r: 0.18, chg: 1 / 12,
+      name: 'Scattershot', text: 'Fires 5 shells in a 27° cone. Brutal up close.',
+      t: 'shot', n: 5, spread: 0.471, dmg: 300, range: 7.67, spd: 10.33, r: 0.18, chg: 0.1005,
     },
     sup: {
-      name: 'Big Bang', text: 'A wide blast of 9 pellets that knocks enemies back and smashes walls.',
-      t: 'shot', n: 9, spread: 0.62, dmg: 320, range: 7.67, spd: 11.3, r: 0.22, kb: 1.6, breaks: true,
+      name: 'Big Bang', text: 'A wide blast of 9 shells that knocks enemies back and smashes walls.',
+      t: 'shot', n: 9, spread: 0.785, dmg: 320, range: 7.67, spd: 10.33, r: 0.22, kb: 1.6, breaks: true,
     },
-    gadgets: [{ name: 'Quick Step', text: 'Dashes 2.5 tiles in the aimed direction.', cd: 5, t: 'dash', dist: 2.5, spd: 14 }],
-    stars: [{ name: 'Sticky Shells', text: 'Big Bang pellets slow enemies for 2.5 seconds.', patch: { sup: { slow: { T: 2.5, f: 0.35 } } } }],
+    gadgets: [
+      { name: 'Quick Step', text: 'Dashes 2.67 tiles and fully reloads.', cd: 16, t: 'dash', dist: 2.67, spd: 8, then: [{ t: 'buff', what: 'ammo', v: 3 }] },
+      { name: 'Choke', text: 'The next 3 attacks are much narrower and reach 10 tiles.', cd: 18, t: 'buff', what: 'nextAtk', n: 3, patch: { spread: 0.236, range: 10, chg: 0.075 } },
+    ],
+    stars: [
+      { name: 'Sticky Shells', text: 'Big Bang slows enemies by 55% for 2 seconds.', patch: { sup: { slow: { T: 2, f: 0.55 } } } },
+      { name: 'Patch Up', text: 'Dropping below 40% health heals 30% of max health. Recharges in 15 s.', pass: { lowHeal: { at: 0.4, f: 0.3, cd: 15 } } },
+    ],
   },
   dax: {
     name: 'Dax', rarity: 'rare', role: 'sharp', color: '#d9a441',
     desc: 'A quick-draw gunslinger who melts anything in a straight line.',
-    hp: 2800, speed: 720, reload: 1.6,
+    hp: 3100, speed: 750, reload: 1.3,
     atk: {
       name: 'Six-Shooter', text: 'Fires 6 bullets in a fast line from both revolvers.',
-      t: 'shot', n: 6, burst: 0.08, jit: 0.15, dmg: 360, range: 9, spd: 12.7, r: 0.14, chg: 1 / 12,
+      t: 'shot', n: 6, burst: 0.08, jit: 0.15, dmg: 360, range: 9, spd: 13.33, r: 0.14, chg: 0.0835,
     },
     sup: {
       name: 'Bullet Storm', text: 'A long burst of 12 bullets that pierce enemies and tear through walls.',
-      t: 'shot', n: 12, burst: 0.06, jit: 0.15, dmg: 360, range: 11, spd: 14, r: 0.16, pierce: true, breaks: true,
+      t: 'shot', n: 12, burst: 0.06, jit: 0.15, dmg: 320, range: 11, spd: 16.3, r: 0.16, pierce: true, breaks: true,
     },
-    gadgets: [{ name: 'Speedloader', text: 'Instantly reloads 2 ammo.', cd: 6, t: 'buff', what: 'ammo', v: 2 }],
-    stars: [{ name: 'Long Barrel', text: 'Six-Shooter reaches 1.3 tiles further.', patch: { atk: { range: 10.3 } } }],
+    gadgets: [
+      { name: 'Speedloader', text: 'Fires 2 quick shots that slow enemies.', cd: 15, t: 'shot', n: 2, burst: 0.1, jit: 0.15, dmg: 320, range: 9, spd: 13.33, r: 0.14, slow: { T: 1.5, f: 0.3 } },
+      { name: 'Silver Bullet', text: 'One big bullet that pierces enemies and breaks walls.', cd: 17, t: 'shot', dmg: 601, range: 11, spd: 12.68, r: 0.2, pierce: true, breaks: true },
+    ],
+    stars: [
+      { name: 'Slick Boots', text: 'Moves 13% faster.', pass: { speedMul: 0.13 } },
+      { name: 'Long Barrel', text: 'Six-Shooter reaches 1 tile further and its bullets fly 11% faster.', patch: { atk: { range: 10, spd: 14.8 } } },
+    ],
   },
   brick: {
     name: 'Brick', rarity: 'rare', role: 'tank', color: '#3f8fd8',
     desc: 'A wrestler with a mountain of health and fists of stone.',
-    hp: 5600, speed: 770, reload: 1.2,
+    hp: 6500, speed: 800, reload: 0.8,
     atk: {
       name: 'Fist Flurry', text: 'Throws 4 quick punches at short range.',
-      t: 'shot', n: 4, burst: 0.07, jit: 0.25, dmg: 380, range: 3, spd: 12, r: 0.3, chg: 1 / 10,
+      t: 'shot', n: 4, burst: 0.07, jit: 0.25, dmg: 380, range: 3, spd: 10.87, r: 0.3, chg: 0.095,
     },
     sup: {
       name: 'Big Drop', text: 'Leaps to a spot and slams down, damaging enemies and breaking walls.',
-      t: 'leap', range: 9, r: 1.7, dmg: 800, breaks: true,
+      t: 'leap', range: 9, r: 1.7, dmg: 960, breaks: true,
     },
-    gadgets: [{ name: 'Iron Hide', text: 'Blocks half of all damage for 3 seconds.', cd: 7, t: 'buff', what: 'shield', T: 3, f: 0.5 }],
-    stars: [{ name: 'Second Wind', text: 'Big Drop heals Brick for 1200 on landing.', patch: { sup: { heal: 1200 } } }],
+    gadgets: [
+      { name: 'Body Slam', text: 'Dashes 3 tiles and throws everyone he runs into behind him.', cd: 14, t: 'dash', dist: 3, spd: 12, w: 0.5, throwBack: 3 },
+      { name: 'Iron Hide', text: 'For 1 second, enemy projectiles that reach him are destroyed.', cd: 20, t: 'buff', what: 'block', T: 1 },
+    ],
+    stars: [
+      { name: 'Hot Landing', text: 'Enemies hit by Big Drop burn for 900 over 4 seconds.', patch: { sup: { burn: { dmg: 900, T: 4 } } } },
+      { name: 'Second Wind', text: 'Moves 25% faster for 3 seconds after landing Big Drop.', patch: { sup: { onLand: { t: 'buff', what: 'speed', f: 0.25, T: 3 } } } },
+    ],
   },
   bramble: {
     name: 'Bramble', rarity: 'rare', role: 'fighter', color: '#8a5a3a',
     desc: 'A forest kid who never fights alone: her bear has her back.',
-    hp: 4000, speed: 720, reload: 1.25,
+    hp: 4200, speed: 750, reload: 1.1,
     atk: {
-      name: 'Root Wave', text: 'A shockwave that pierces through every enemy in its path.',
-      t: 'shot', dmg: 820, range: 6.3, spd: 7.7, r: 0.5, pierce: true, chg: 1 / 3.5,
+      name: 'Root Wave', text: 'A wide shockwave that pierces through every enemy in its path.',
+      t: 'shot', dmg: 960, range: 6, spd: 9.06, r: 0.8, pierce: true, chg: 0.209,
     },
     sup: {
-      name: 'Big Bruno', text: 'Summons Bruno the bear, who mauls nearby enemies.',
-      t: 'deploy', unit: 'pet', dk: 'bramble.bear', range: 7, rad: 0.55, hp: 3400, dmg: 350, rate: 1.0, reach: 1.15,
-      spd: 2.9, aggro: 8, chg: 1 / 7, land: { r: 1.3, dmg: 800 },
+      name: 'Big Bruno', text: 'Summons Bruno the bear, who chases and mauls nearby enemies.',
+      t: 'deploy', unit: 'pet', dk: 'bramble.bear', range: 5, rad: 0.55, hp: 4300, dmg: 400, rate: 0.6, reach: 1.15,
+      spd: 3.99, aggro: 8, chg: 0.1,
     },
-    gadgets: [{ name: 'Heavy Paws', text: "Bruno's next hit stuns for 1 second.", cd: 6, req: 'deploy', t: 'buff', what: 'petStun', v: 1.0 }],
-    stars: [{ name: 'Best Buddies', text: 'Bramble heals 430 whenever Bruno lands a hit.', pass: { petHeal: 430 } }],
+    gadgets: [
+      { name: 'Heavy Paws', text: 'Bruno stuns enemies within 3.33 tiles for 0.5 seconds.', cd: 15, req: 'deploy', t: 'pulse', at: 'unit', r: 3.33, stun: 0.5 },
+      { name: 'Thick Fur', text: 'Bruno blocks 35% of damage for 3 seconds.', cd: 15, req: 'deploy', t: 'buff', what: 'unitShield', f: 0.35, T: 3 },
+    ],
+    stars: [
+      { name: 'Best Buddies', text: 'Bramble heals 546 when Bruno lands a hit, and Bruno heals 546 when she does.', pass: { petHeal: 546, deployHeal: 546 } },
+      { name: 'Angry Bruno', text: "Bruno swipes 60% more often.", patch: { sup: { rate: 0.24 } } },
+    ],
   },
   pip: {
-    name: 'Pip', rarity: 'rare', role: 'thrower', color: '#ff8a3d',
+    name: 'Pip', rarity: 'super', role: 'thrower', color: '#ff8a3d',
     desc: 'A cheerful demolition miner who lobs dynamite over walls.',
-    hp: 2800, speed: 720, reload: 1.7,
+    hp: 3000, speed: 800, reload: 1.4,
     atk: {
       name: 'Fuse Pair', text: 'Lobs 2 sticks of dynamite over walls.',
-      t: 'lob', n: 2, gap: 0.7, T: 0.95, range: 7, dmg: 1090, blast: 0.95, r: 0.18, chg: 1 / 6,
+      t: 'lob', n: 2, gap: 0.7, T: 0.95, range: 7.33, dmg: 800, blast: 0.95, r: 0.18, chg: 0.125,
     },
     sup: {
       name: 'Big Barrel', text: 'A huge barrel bomb that knocks enemies back and blows up walls.',
-      t: 'lob', T: 1.1, range: 7, dmg: 2000, blast: 2.0, kb: 1.8, breaks: true, r: 0.35,
+      t: 'lob', T: 1.1, range: 8.33, dmg: 2200, blast: 2.0, kb: 1.8, breaks: true, r: 0.35,
     },
-    gadgets: [{ name: 'Short Fuse', text: 'The next attack stuns enemies for 1.5 seconds.', cd: 7, t: 'buff', what: 'nextStun', v: 1.5 }],
-    stars: [{ name: 'Boom Boost', text: 'Big Barrel deals 1000 extra damage.', patch: { sup: { dmg: 3000 } } }],
+    gadgets: [
+      { name: 'Spin Cycle', text: 'Spins 20% faster for 2 seconds, tossing dynamite all around.', cd: 12, t: 'buff', what: 'speed', f: 0.2, T: 2, then: [{ t: 'lob', at: 'self', n: 6, ring: 2.2, T: 0.6, dmg: 1200, blast: 0.95, r: 0.18 }] },
+      { name: 'Short Fuse', text: 'The next attack stuns enemies for 1.5 seconds.', cd: 23, t: 'buff', what: 'nextStun', v: 1.5 },
+    ],
+    stars: [
+      { name: 'Rocket Boots', text: 'Caught in his own blast, Pip is flung 3 tiles forward.', pass: { dynaJump: 3 } },
+      { name: 'Boom Boost', text: 'Big Barrel deals 800 extra damage.', patch: { sup: { dmg: 3000 } } },
+    ],
   },
   melody: {
     name: 'Melody', rarity: 'rare', role: 'support', color: '#e45bb0',
     desc: 'A street musician whose songs hurt foes and mend friends.',
-    hp: 3400, speed: 720, reload: 1.55,
+    hp: 4000, speed: 750, reload: 1.6,
     atk: {
-      name: 'Sonic Chord', text: 'A wide sound wave that pierces enemies.',
-      t: 'shot', dmg: 650, range: 7, spd: 8.7, r: 0.5, grow: 0.16, pierce: true, chg: 1 / 8,
+      name: 'Sonic Chord', text: 'A very wide sound wave that pierces enemies and heals allies for 200.',
+      t: 'shot', dmg: 760, heal: 200, range: 7, spd: 8.33, r: 0.5, grow: 0.6, pierce: true, chg: 0.25,
     },
     sup: {
-      name: 'Encore', text: 'A huge wave that heals Melody and every ally it passes.',
-      t: 'shot', dmg: 0, heal: 2100, hself: true, range: 9.7, spd: 9, r: 1.0, grow: 0.1, pierce: true,
+      name: 'Encore', text: 'A huge wave that heals Melody and every ally it passes for 2100.',
+      t: 'shot', dmg: 0, heal: 2100, hself: true, range: 9.33, spd: 16.67, r: 1.0, grow: 0.6, pierce: true,
     },
-    gadgets: [{ name: 'Lullaby', text: 'Heals Melody and nearby allies for 1050.', cd: 7, t: 'pulse', r: 3.3, heal: 1050 }],
-    stars: [{ name: 'Harmony', text: 'Sonic Chord also heals allies it passes for 340.', patch: { atk: { heal: 340 } } }],
+    gadgets: [
+      { name: 'Lullaby', text: 'Heals Melody and nearby allies for 700.', cd: 20, t: 'pulse', r: 3.33, heal: 700 },
+      { name: 'Steady Beat', text: 'Melody and nearby allies shake off stuns and slows and ignore them for 4 seconds.', cd: 24, t: 'pulse', r: 3.33, cleanse: 4 },
+    ],
+    stars: [
+      { name: 'Harmony', text: 'Sonic Chord heals allies for 400 more.', patch: { atk: { heal: 600 } } },
+      { name: 'Feedback', text: 'Encore also hits enemies for 760.', patch: { sup: { dmg: 760 } } },
+    ],
   },
   sizzle: {
-    name: 'Sizzle', rarity: 'super', role: 'thrower', color: '#ff5a1f',
+    name: 'Sizzle', rarity: 'rare', role: 'thrower', color: '#ff5a1f',
     desc: 'A food-truck chef who throws bottles of blazing sauce.',
-    hp: 2400, speed: 720, reload: 1.85,
+    hp: 2700, speed: 750, reload: 2.0,
     atk: {
-      name: 'Hot Sauce', text: 'Lobs a bottle that leaves a burning puddle.',
-      t: 'lob', T: 0.95, range: 7.67, r: 0.2, dmg: 0, area: { r: 1.3, T: 1.6, dps: 860 }, chg: 1 / 10,
+      name: 'Hot Sauce', text: 'Lobs a bottle that leaves a puddle burning 800 a second.',
+      t: 'lob', T: 0.95, range: 7.33, r: 0.2, dmg: 0, area: { r: 1.3, T: 1.6, dps: 800 }, chg: 0.09,
     },
     sup: {
       name: 'Last Call', text: 'Throws 5 bottles in a fan, setting a whole area ablaze.',
-      t: 'lob', n: 5, spread: 0.55, T: 1.0, range: 9, r: 0.2, dmg: 0, area: { r: 1.15, T: 2.6, dps: 760 },
+      t: 'lob', n: 5, spread: 0.55, T: 1.0, range: 9.33, r: 0.2, dmg: 0, area: { r: 1.15, T: 2.6, dps: 800 },
     },
-    gadgets: [{ name: 'Syrup', text: 'The next puddle also slows enemies by 40%.', cd: 6, t: 'buff', what: 'nextSlow', v: 0.4 }],
-    stars: [{ name: 'Taste Test', text: 'Heals Sizzle for 400 with every attack.', pass: { atkHeal: 400 } }],
+    gadgets: [
+      { name: 'Syrup', text: 'Drops a sticky puddle that slows enemies by half.', cd: 18, t: 'area', at: 'self', r: 2, T: 3, slow: 0.5 },
+      { name: 'House Special', text: 'Drops a soothing puddle that heals allies 400 a second.', cd: 20, t: 'area', at: 'self', r: 2, T: 3, hps: 400, ak: 'melody.gad' },
+    ],
+    stars: [
+      { name: 'Taste Test', text: 'Heals Sizzle for 243 with every attack.', pass: { atkHeal: 243 } },
+      { name: 'Extra Spicy', text: 'Hot Sauce burns 100 more a second.', patch: { atk: { area: { r: 1.3, T: 1.6, dps: 900 } } } },
+    ],
   },
   gizmo: {
     name: 'Gizmo', rarity: 'super', role: 'support', color: '#3fc3b5',
     desc: 'A young inventor whose sparks bounce and whose turret never sleeps.',
-    hp: 3450, speed: 720, reload: 1.5,
+    hp: 3300, speed: 750, reload: 1.8,
     atk: {
-      name: 'Spark Orb', text: 'An orb that bounces on to 2 more nearby enemies.',
-      t: 'shot', dmg: 920, range: 9, spd: 8.3, r: 0.25, bounce: { n: 2, r: 4.7 }, chg: 1 / 4,
+      name: 'Spark Orb', text: 'An orb that bounces on to 2 more nearby enemies, 25% softer each time.',
+      t: 'shot', dmg: 1060, range: 9, spd: 8.3, r: 0.25, bounce: { n: 2, r: 4.7, mul: 0.75 }, chg: 0.167,
     },
     sup: {
-      name: 'Turret', text: 'Builds a turret that shoots the nearest enemy.',
-      t: 'deploy', unit: 'turret', dk: 'gizmo.turret', range: 4, rad: 0.5, hp: 3000, aggro: 8.7, rate: 0.4,
-      shot: { pk: 'gizmo.turret', dmg: 260, range: 8.7, spd: 11, r: 0.13 },
+      name: 'Turret', text: 'Builds a turret that rapidly shoots the nearest enemy within 5 tiles.',
+      t: 'deploy', unit: 'turret', dk: 'gizmo.turret', range: 5, rad: 0.5, hp: 3600, aggro: 5, rate: 0.3,
+      shot: { pk: 'gizmo.turret', dmg: 300, range: 5.5, spd: 11, r: 0.13 },
     },
-    gadgets: [{ name: 'Overclock', text: 'The turret fires twice as fast for 5 seconds.', cd: 7, req: 'deploy', t: 'buff', what: 'deployRate', v: 2, T: 5 }],
-    stars: [{ name: 'Repair Kit', text: 'Spark Orb hits repair the turret for 400.', pass: { deployHeal: 400 } }],
+    gadgets: [
+      { name: 'Static Field', text: 'The turret slows enemies within 4.33 tiles for 3 seconds.', cd: 15, req: 'deploy', t: 'pulse', at: 'unit', r: 4.33, slow: { T: 3, f: 0.4 } },
+      { name: 'Overclock', text: 'The turret fires twice as fast for 5 seconds.', cd: 11, req: 'deploy', t: 'buff', what: 'deployRate', v: 2, T: 5 },
+    ],
+    stars: [
+      { name: 'Repair Kit', text: 'Spark Orb hits repair the turret for 530.', pass: { deployHeal: 530 } },
+      { name: 'Chain Sparks', text: "The turret's shots bounce on to 2 more enemies.", patch: { sup: { shot: { pk: 'gizmo.turret', dmg: 300, range: 5.5, spd: 11, r: 0.13, bounce: { n: 2, r: 2.55, mul: 0.75 } } } } },
+    ],
   },
   volt: {
-    name: 'Volt', rarity: 'super', role: 'control', color: '#ffd23f',
-    desc: 'A storm chaser who zaps through crowds in an instant.',
-    hp: 3200, speed: 720, reload: 2.05,
+    name: 'Volt', rarity: 'super', role: 'sharp', color: '#ffd23f',
+    desc: 'A storm-chasing robot whose bolts ricochet off every wall.',
+    hp: 3000, speed: 750, reload: 1.1,
     atk: {
-      // no travel time to dodge, so it hits for less than a projectile of the same reload would
-      name: 'Arc Beam', text: 'An instant beam that pierces every enemy in a line.',
-      t: 'beam', dmg: 790, range: 8, w: 0.28, pierce: true, chg: 1 / 4,
+      name: 'Ricochet Bolts', text: 'A burst of 5 bolts that bounce off walls.',
+      t: 'shot', n: 5, burst: 0.06, jit: 0.1, dmg: 300, range: 9.67, spd: 13.33, r: 0.13, ricochet: true, chg: 0.06375,
     },
     sup: {
-      name: 'Thunderhead', text: 'Calls a storm cloud that shocks and slows enemies under it.',
-      t: 'area', at: 'aim', range: 8, r: 2.4, T: 4, dps: 500, slow: 0.4,
+      name: 'Thunder Spray', text: 'A long burst of 12 bolts that pierce enemies and bounce off walls.',
+      t: 'shot', n: 12, burst: 0.05, jit: 0.12, dmg: 360, range: 13.33, spd: 15, r: 0.15, pierce: true, ricochet: true,
     },
-    gadgets: [{ name: 'Static Burst', text: 'Stuns nearby enemies for 1 second.', cd: 7, t: 'pulse', r: 2.4, dmg: 300, stun: 1.0 }],
-    stars: [{ name: 'Jumper Cable', text: 'Arc Beam chains to one more enemy nearby.', patch: { atk: { chain: { n: 1, r: 3.5, mul: 0.6 } } } }],
+    gadgets: [
+      { name: 'Bolt Box', text: 'Drops a box that bursts into 8 bouncing bolts after 1.5 seconds.', cd: 22, t: 'deploy', unit: 'plant', dk: 'volt.box', range: 2, rad: 0.45, hp: 2000, life: 1.5,
+        burst: { n: 8, shot: { pk: 'volt.atk', dmg: 300, range: 9.67, spd: 13.33, r: 0.13, ricochet: true } } },
+      { name: 'Split Bolt', text: 'A big bolt that splits into 3 when it hits an enemy or a wall.', cd: 17, t: 'shot', dmg: 600, range: 9.67, spd: 12, r: 0.22, pk: 'volt.sup',
+        split: { n: 3, dmg: 300, range: 4, spd: 12, r: 0.13, ricochet: true, pk: 'volt.atk' } },
+    ],
+    stars: [
+      { name: 'Overcharge', text: 'Bolts that have bounced deal 120 more damage.', patch: { atk: { bounceDmg: 120 }, sup: { bounceDmg: 120 } } },
+      { name: 'Escape Mode', text: 'Moves 35% faster below 40% health.', pass: { lowSpeed: { at: 0.4, f: 0.35 } } },
+    ],
   },
   hawk: {
     name: 'Hawk', rarity: 'epic', role: 'sharp', color: '#7b6cf6',
     desc: 'An elegant sharpshooter: the further the target, the harder it hits.',
-    hp: 2750, speed: 720, reload: 2.3,
+    hp: 2800, speed: 750, reload: 2.3,
     atk: {
-      name: 'Long Shot', text: 'A single bullet that deals more damage the further it flies.',
-      t: 'shot', dmg: 1740, ramp: [0.35, 1], range: 10, spd: 15, r: 0.14, chg: 1 / 3,
+      name: 'Long Shot', text: 'A single bullet: 360 damage up close, 1800 at full range.',
+      t: 'shot', dmg: 1800, ramp: [0.2, 1], range: 10, spd: 15, r: 0.14, chg: 0.1765,
     },
     sup: {
       name: 'Pop-Up', text: 'Leaps away, dropping 4 grenades where she took off.',
-      t: 'leap', range: 7.3, away: true,
-      then: [{ t: 'lob', at: 'self', n: 4, ring: 0.9, T: 0.8, dmg: 900, blast: 1.0, r: 0.2 }],
+      t: 'leap', range: 8.67, away: true,
+      then: [{ t: 'lob', at: 'self', n: 4, ring: 0.9, T: 0.8, dmg: 900, blast: 1.0, r: 0.2, breaks: true }],
     },
-    gadgets: [{ name: 'Back Off', text: 'Blasts nearby enemies back and damages them.', cd: 6, t: 'pulse', r: 2.6, dmg: 600, kb: 3 }],
-    stars: [{ name: 'Quick Hands', text: 'Hitting an enemy refunds half an ammo bar.', pass: { ammoOnHit: 0.5 } }],
+    gadgets: [
+      { name: 'Back Off', text: 'Fires at the nearest enemy, knocking them back.', cd: 18, t: 'shot', seek: true, dmg: 90, range: 8, spd: 15, r: 0.15, kb: 2.5 },
+      { name: 'Scope', text: 'The next attack reaches 11.67 tiles.', cd: 16, t: 'buff', what: 'nextAtk', n: 1, patch: { range: 11.67 } },
+    ],
+    stars: [
+      { name: 'Hidden Shot', text: 'From a bush, Long Shot deals up to 630 more at full range.', patch: { atk: { ambush: 630 } } },
+      { name: 'Quick Hands', text: 'Hitting an enemy refunds 0.4 of an ammo bar.', pass: { ammoOnHit: 0.4 } },
+    ],
   },
   frost: {
     name: 'Frost', rarity: 'epic', role: 'control', color: '#7fd6ff',
     desc: 'A grumpy snow-cone vendor who blows enemies away.',
-    hp: 3800, speed: 720, reload: 1.4,
+    hp: 4000, speed: 750, reload: 1.2,
     atk: {
       name: 'Snow Flurry', text: 'Throws 6 snowballs in a wide fan.',
-      t: 'shot', n: 6, spread: 0.7, dmg: 330, range: 8, spd: 9.7, r: 0.17, chg: 1 / 14,
+      t: 'shot', n: 6, spread: 0.7, dmg: 300, range: 8.33, spd: 9.7, r: 0.17, chg: 0.0675,
     },
     sup: {
-      name: 'Gale Wall', text: 'A wide gust that pushes enemies back.',
-      t: 'shot', dmg: 300, range: 8.3, spd: 10, r: 1.6, pierce: true, kb: 3.2,
+      name: 'Gale Wall', text: 'A huge gust that pushes every enemy it passes back.',
+      t: 'shot', dmg: 800, range: 10, spd: 15, r: 1.0, grow: 0.6, pierce: true, kb: 3.2,
     },
-    gadgets: [{ name: 'Frost Ring', text: 'Slows nearby enemies by 45% for 2.5 seconds.', cd: 7, t: 'pulse', r: 3.2, dmg: 0, slow: { T: 2.5, f: 0.45 } }],
-    stars: [{ name: 'Frostbite', text: 'Snowballs slow enemies for half a second.', patch: { atk: { slow: { T: 0.5, f: 0.3 } } } }],
+    gadgets: [
+      { name: 'Whirlwind', text: 'A twister that shoves enemies away for 5 seconds.', cd: 21, t: 'area', at: 'aim', range: 6, r: 1.3, T: 5, push: 3 },
+    ],
+    stars: [
+      { name: 'Hard Gust', text: 'Enemies Gale Wall pushes into a wall are stunned for 1.3 seconds.', patch: { sup: { wallStun: 1.3 } } },
+      { name: 'Frostbite', text: 'Snowballs slow enemies for half a second.', patch: { atk: { slow: { T: 0.5, f: 0.3 } } } },
+    ],
   },
   shade: {
     name: 'Shade', rarity: 'mythic', role: 'assassin', color: '#6b3fa0',
     desc: 'A gloomy undertaker who dashes in for the finishing blow.',
-    hp: 4350, speed: 820, reload: 2.05,
+    hp: 4000, speed: 855, reload: 2.4,
     atk: {
-      name: 'Night Lunge', text: 'Dashes forward, striking every enemy in the way.',
-      t: 'dash', dist: 3.3, spd: 12, dmg: 1030, w: 0.5, chg: 1 / 3.6,
+      name: 'Night Lunge', text: 'Dashes 2.67 tiles, striking every enemy in the way. After 4.5 s without attacking it reaches 4.67.',
+      t: 'dash', dist: 2.67, spd: 9, dmg: 1000, w: 0.5, chg: 0.2125, long: { dist: 4.67, T: 4.5 },
     },
     sup: {
       name: 'Soul Swarm', text: 'A swarm of bats that pierces enemies and steals their health.',
-      t: 'shot', dmg: 900, range: 8, spd: 10, r: 0.6, grow: 0.08, pierce: true, steal: 1,
+      t: 'shot', dmg: 900, range: 10, spd: 10, r: 0.6, grow: 0.08, pierce: true, steal: 1,
     },
-    gadgets: [{ name: 'Quick Recharge', text: 'Instantly reloads 1 ammo.', cd: 6, t: 'buff', what: 'ammo', v: 1 }],
-    stars: [{ name: 'Feast', text: 'Heals 1500 after taking down an enemy.', pass: { killHeal: 1500 } }],
+    gadgets: [
+      { name: 'Whirl', text: 'Spins his shovel, hitting every enemy around him for 1000.', cd: 10, t: 'pulse', r: 2, dmg: 1000 },
+      { name: 'Bat Form', text: 'Turns into bats and flies 6 tiles, untouchable, hitting enemies on the way.', cd: 24, t: 'dash', dist: 6, spd: 14, dmg: 700, w: 0.6, inv: true },
+    ],
+    stars: [
+      { name: 'Feast', text: 'Taking down an enemy heals 20% of max health.', pass: { killHealF: 0.2 } },
+      { name: 'Coiled', text: 'The long lunge is ready 2 seconds sooner.', pass: { dashCharge: 2 } },
+    ],
   },
   zip: {
     name: 'Zip', rarity: 'mythic', role: 'fighter', color: '#ffcc33',
     desc: 'A hyperactive speedster who never stops moving or shooting.',
-    hp: 3100, speed: 820, reload: 1.1,
+    hp: 3500, speed: 855, reload: 1.3,
     atk: {
       name: 'Rapid Fire', text: 'Fires 4 fast bullets in a quick burst.',
-      t: 'shot', n: 4, burst: 0.05, jit: 0.1, dmg: 275, range: 8.7, spd: 13.3, r: 0.13, chg: 1 / 14,
+      t: 'shot', n: 4, burst: 0.05, jit: 0.1, dmg: 320, range: 8.33, spd: 13.33, r: 0.13, chg: 1 / 18,
     },
     sup: {
-      name: 'Rush Hour', text: 'Zip and nearby allies move 50% faster for 4 seconds.',
-      t: 'buff', what: 'speed', f: 0.5, T: 4, r: 6,
+      name: 'Rush Hour', text: 'Zip and allies within 4 tiles move 35% faster for 4 seconds.',
+      t: 'buff', what: 'speed', f: 0.35, T: 4, r: 4,
     },
-    gadgets: [{ name: 'Blink', text: 'A short dash during which Zip cannot be hurt.', cd: 6, t: 'dash', dist: 3, spd: 18, inv: true }],
-    stars: [{ name: 'Run and Gun', text: 'Reloads 50% faster while moving.', pass: { moveReload: 0.5 } }],
+    gadgets: [{ name: 'Blink', text: 'A short dash during which Zip cannot be hurt.', cd: 18, t: 'dash', dist: 3, spd: 18, inv: true }],
+    stars: [
+      { name: 'Overdrive', text: 'Each hit during Rush Hour makes it last 0.25 s longer.', pass: { supExtend: 0.25 } },
+      { name: 'Run and Gun', text: 'Reloads 18% faster while moving.', pass: { moveReload: 0.18 } },
+    ],
   },
   specter: {
     name: 'Specter', rarity: 'legend', role: 'assassin', color: '#4fd18b',
     desc: 'A sly phantom who vanishes, then strikes from nowhere.',
-    hp: 3200, speed: 820, reload: 1.9,
+    hp: 3300, speed: 855, reload: 1.9,
     atk: {
-      name: 'Spectral Blades', text: '4 blades in a fan. They hit harder up close.',
-      t: 'shot', n: 4, spread: 0.36, dmg: 550, ramp: [1, 0.45], range: 9.7, spd: 11.7, r: 0.14, chg: 1 / 11,
+      name: 'Spectral Blades', text: '4 blades in a fan: 480 damage up close, 191 at full range.',
+      t: 'shot', n: 4, spread: 0.36, dmg: 480, ramp: [1, 0.4], range: 9.67, spd: 11.7, r: 0.14, chg: 0.12625,
     },
     sup: {
       name: 'Fade', text: 'Turns invisible to enemies for 6 seconds. Attacking ends it.',
       t: 'buff', what: 'invis', T: 6,
     },
-    gadgets: [{ name: 'Shadow Step', text: 'Moves 60% faster for 3 seconds.', cd: 7, t: 'buff', what: 'speed', f: 0.6, T: 3 }],
-    stars: [{ name: 'Hidden Mend', text: 'Heals 1000 per second while invisible.', pass: { invisHeal: 1000 } }],
+    gadgets: [
+      { name: 'Double', text: 'Sends out a fragile copy of himself that chases enemies for 8 seconds.', cd: 13, t: 'deploy', unit: 'pet', dk: 'specter', range: 1.5, rad: 0.42, hp: 1650, dmg: 320, rate: 1.0,
+        reach: 1.15, spd: 2.85, aggro: 8, life: 8 },
+    ],
+    stars: [
+      { name: 'Shadow Step', text: 'Moves 30% faster while invisible.', pass: { invisSpeed: 0.3 } },
+      { name: 'Hidden Mend', text: 'Heals 660 per second while invisible.', pass: { invisHeal: 660 } },
+    ],
   },
   thorn: {
     name: 'Thorn', rarity: 'legend', role: 'sharp', color: '#6fcf3f',
     desc: 'A silent cactus whose needle balls burst into spikes.',
-    hp: 2750, speed: 720, reload: 1.75,
+    hp: 3000, speed: 750, reload: 2.0,
     atk: {
-      name: 'Needle Ball', text: 'A cactus ball that bursts into 6 spikes when it stops.',
-      t: 'shot', dmg: 800, range: 7.67, spd: 9.5, r: 0.3, chg: 1 / 5,
-      split: { n: 6, dmg: 595, range: 3.0, spd: 9.7, r: 0.12, chg: 1 / 12, pk: 'thorn.spike' },
+      name: 'Needle Ball', text: 'A cactus ball that bursts into 6 spikes flying 4.33 tiles when it hits or stops.',
+      t: 'shot', dmg: 540, range: 7.67, spd: 9.5, r: 0.3, chg: 0.13,
+      split: { n: 6, dmg: 540, range: 4.33, spd: 9.7, r: 0.12, chg: 0.13, pk: 'thorn.spike', fixed: true },
     },
     sup: {
-      name: 'Briar Patch', text: 'Lobs a spike field that damages and slows enemies.',
-      t: 'lob', T: 1.0, range: 9, r: 0.3, dmg: 0, area: { r: 2.4, T: 4.5, dps: 600, slow: 0.4 },
+      name: 'Briar Patch', text: 'Lobs a spike field that burns 400 a second and slows enemies.',
+      t: 'lob', T: 1.0, range: 7.67, r: 0.3, dmg: 0, area: { r: 2.67, T: 4.5, dps: 400, slow: 0.5 },
     },
-    gadgets: [{ name: 'Sap', text: 'Instantly heals 1500.', cd: 7, t: 'heal', amt: 1500 }],
-    stars: [{ name: 'Green Thumb', text: 'Heals 800 per second inside his own Briar Patch.', pass: { fieldHeal: 800 } }],
+    gadgets: [
+      { name: 'Pincushion', text: 'Fires a ring of 12 spikes around him.', cd: 17, t: 'shot', n: 12, spread: TAU * 11 / 12, dmg: 500, range: 4, spd: 9.7, r: 0.12, pk: 'thorn.spike' },
+      { name: 'Sap', text: 'Plants a cactus with 1750 health; when it breaks, nearby allies heal 900.', cd: 20, t: 'deploy', unit: 'plant', dk: 'thorn', range: 2, rad: 0.5, hp: 1750,
+        burst: { r: 3, heal: 900 } },
+    ],
+    stars: [{ name: 'Green Thumb', text: 'Heals 750 per second inside his own Briar Patch.', pass: { fieldHeal: 750 } }],
   },
 };
 
@@ -779,9 +872,11 @@ function brawlerKit(bk, star, gadget) {
     bk, D, hp: D.hp, speed: U(D.speed), reload: D.reload,
     atk: Object.assign({}, D.atk, patch.atk || {}),
     sup: Object.assign({}, D.sup, patch.sup || {}),
-    gad: gadget >= 0 ? D.gadgets[gadget] : null,
+    gad: gadget >= 0 ? D.gadgets[gadget] || null : null,
     pass: (sp && sp.pass) || {},
   };
+  // a gadget that changes the next few main attacks (Choke, Scope): the attack it turns into
+  kit.nxAtk = kit.gad && kit.gad.what === 'nextAtk' ? Object.assign({}, kit.atk, kit.gad.patch) : null;
   brawlerKitCache[key] = kit;
   return kit;
 }
@@ -795,11 +890,12 @@ function brawlerStats(bk, lvl) {
     dmg: Math.round((a.dmg || (a.area ? a.area.dps : 0)) * m),
     n: a.n || 1,
     range,
-    rangeName: range < 4.5 ? 'Short' : range < 8.5 ? 'Normal' : 'Long',
+    // the original's classes (e.g. Colt 9 Long, Rico 9.67 Very long; Colt 1.3 s Very fast, Piper 2.3 Very slow)
+    rangeName: range < 4 ? 'Short' : range < 6.67 ? 'Normal' : range < 9.5 ? 'Long' : 'Very long',
     reload: D.reload,
-    reloadName: D.reload < 1.3 ? 'Fast' : D.reload < 1.9 ? 'Normal' : 'Slow',
+    reloadName: D.reload <= 1.3 ? 'Very fast' : D.reload <= 1.45 ? 'Fast' : D.reload <= 1.8 ? 'Normal' : D.reload < 2.3 ? 'Slow' : 'Very slow',
     speed: D.speed,
-    speedName: D.speed >= 820 ? 'Very fast' : D.speed >= 770 ? 'Fast' : 'Normal',
+    speedName: D.speed >= 855 ? 'Very fast' : D.speed >= 800 ? 'Fast' : 'Normal',
     supDmg: Math.round((D.sup.dmg || D.sup.heal || (D.sup.area ? D.sup.area.dps : 0) || D.sup.dps || (D.sup.shot ? D.sup.shot.dmg : 0) || 0) * m),
   };
 }
@@ -1482,12 +1578,16 @@ class Sim {
       mvx: 0, mvy: 0, lastSeq: 0,
       st: { kills: 0, deaths: 0, dmg: 0, heal: 0, gems: 0, goals: 0, stars: 0 },
       // sim-private (the view may read jumpT/jumpTT for the jump arc, aimA/fireT/lastAct for poses)
-      kit, pk: [c.bk, c.bk + '.atk', c.bk + '.sup', c.bk + '.gad'], speed: kit.speed,
+      kit, pk: [c.bk, c.bk + '.atk', c.bk + '.sup', c.bk + '.gad'], speed: kit.speed * (1 + (kit.pass.speedMul || 0)),
       shieldF: 0, spawnSh: false, fireT: 9, faceT: 0, atkCd: 0, lastAct: 0, aimA: 0,
       bqN: 0, bqI: 0, bqT: 0, bqS: null, bqA: 0, bqAct: 0, bqMul: 1, bqStun: 0,
       dvx: 0, dvy: 0, dashS: null, dashAct: 0, dashHit: 0, dashHitD: 0, dashMul: 1,
       jumpT: 0, jumpTT: 0, jx0: 0, jy0: 0, jx1: 0, jy1: 0, jumpS: null, jumpAct: 0, jumpMul: 1,
       nxStun: 0, nxSlow: 0, regenAcc: 0, passAcc: 0, poisAcc: 0, killer: -1, dying: false,
+      // later additions: next-attack patch uses, last main attack (dash charge), burn, projectile
+      // block, crowd-control immunity, knockback into a wall stuns, low-health heal recharge
+      nxN: 0, atkT: -99, dashLong: false, burnT: 0, burnDps: 0, burnSrc: -1, burnAcc: 0, blockT: 0, ccT: 0,
+      kbStun: 0, kbSrc: -1, kbAct: 0, bandT: 0, speedSrc: -1, poisN: 0, inPois: false,
     };
   }
 
@@ -1518,6 +1618,8 @@ class Sim {
     b.bqN = 0; b.bqS = null; b.dashS = null; b.jumpT = 0; b.jumpS = null;
     b.mvx = b.mvy = 0; b.nxStun = b.nxSlow = 0; b.atkCd = 0; b.faceT = 0;
     b.poisAcc = 0.5; b.regenAcc = 0; b.passAcc = 0; b.killer = -1; b.dying = false;
+    b.nxN = 0; b.atkT = -99; b.burnT = 0; b.burnAcc = 0; b.blockT = 0; b.ccT = 0; b.kbStun = 0; b.speedSrc = -1;
+    b.poisN = 0; b.inPois = false;
   }
 
   // ================= step =================
@@ -1570,13 +1672,24 @@ class Sim {
     else if (b.kbT > 0) {
       const k = Math.min(dt, b.kbT);
       moveCircle(m, b.x, b.y, b.r, b.kbx * k, b.kby * k, o);
+      // knocked into a wall: some knockbacks stun then (Blustery Blow)
+      const want = Math.hypot(b.kbx, b.kby) * k;
+      if (b.kbStun > 0 && Math.hypot(o.x - b.x, o.y - b.y) < want * 0.5) {
+        b.kbT = 0;
+        this.stun(b, b.kbStun, b.kbSrc, b.kbAct);
+        b.kbStun = 0;
+      }
       b.x = o.x; b.y = o.y;
       b.kbT = Math.max(0, b.kbT - dt);
+      if (b.kbT <= 0) b.kbStun = 0;
     } else if (b.dashT > 0) this.stepDash(b);
     else if (b.stunT <= 0 && I.mvM > 0) {
       let k = b.speed * dt;
+      const pass = b.kit.pass;
       if (b.slowT > 0) k *= 1 - b.slowF;
       if (b.speedT > 0) k *= 1 + b.speedF;
+      if (pass.lowSpeed && b.hp < b.maxHp * pass.lowSpeed.at) k *= 1 + pass.lowSpeed.f;
+      if (pass.invisSpeed && b.invisT > 0) k *= 1 + pass.invisSpeed;
       moveCircle(m, b.x, b.y, b.r, I.mx * k, I.my * k, o);
       b.x = o.x; b.y = o.y;
       if (b.faceT <= 0) b.face = I.mvA;
@@ -1593,7 +1706,7 @@ class Sim {
     let s;
     if (act === ACT.ATTACK) {
       if (b.ammo < 1 || b.atkCd > 0 || b.bqN > 0) return false;
-      s = kit.atk;
+      s = b.nxN > 0 && kit.nxAtk ? kit.nxAtk : kit.atk;
     } else if (act === ACT.SUPER) {
       if (!b.supReady || b.bqN > 0) return false;
       s = kit.sup;
@@ -1604,7 +1717,7 @@ class Sim {
     }
     const range = s.range || s.dist || 0;
     let ang, d;
-    if (I.auto) {
+    if (I.auto || s.seek) { // seek: fires at the nearest enemy whatever the aim (Auto Aimer)
       const tg = range > 0 ? this.autoTarget(b, range) : null;
       if (tg && s.away) { ang = Math.atan2(b.y - tg.y, b.x - tg.x); d = range; } // escapes jump away
       else if (tg) { ang = Math.atan2(tg.y - b.y, tg.x - b.x); d = Math.min(range, Math.hypot(tg.x - b.x, tg.y - b.y)); }
@@ -1616,6 +1729,10 @@ class Sim {
     if (act === ACT.ATTACK) {
       b.ammo -= 1;
       b.atkCd = s.cd || (s.burst ? (s.n - 1) * s.burst + 0.15 : 0.3);
+      if (s === kit.nxAtk) b.nxN--;
+      // a dash attack goes further after a while without attacking (the charge bar)
+      b.dashLong = !!s.long && this.t - b.atkT >= s.long.T - (kit.pass.dashCharge || 0);
+      b.atkT = this.t;
     } else if (act === ACT.SUPER) {
       b.sup = 0;
       b.supReady = false;
@@ -1736,6 +1853,7 @@ class Sim {
       dmg: (s.dmg || 0) * mul, pierce: !!s.pierce, hitMask: 0, sup: act === ACT.SUPER, breaks: !!s.breaks, lob: null,
       act, s, vx: c, vy: sn, r0: r, hitD: 0, bnc: s.bounce ? s.bounce.n : 0,
       heal: (s.heal || 0) * LEVEL_MULT(ob.lvl), stun: Math.max(s.stun || 0, xstun || 0), xslow: 0, beam: 0, ttl: 0, mul,
+      wallBnc: 0, amb: s.ambush && ob.inBush ? s.ambush * mul : 0, // ricochets so far; Ambush bonus (fired from a bush)
     };
     this.shots.push(e);
     this.ev(EV.SPAWN, e.id, K.SHOT);
@@ -1856,7 +1974,8 @@ class Sim {
   }
 
   doDash(b, s, act, ang, mul) {
-    b.dashT = s.dist / s.spd;
+    const dist = act === ACT.ATTACK && b.dashLong ? s.long.dist : s.dist;
+    b.dashT = dist / s.spd;
     b.dvx = Math.cos(ang) * s.spd;
     b.dvy = Math.sin(ang) * s.spd;
     b.dashS = s; b.dashAct = act; b.dashHit = 0; b.dashHitD = 0; b.dashMul = mul;
@@ -1876,14 +1995,14 @@ class Sim {
     b.x = o.x; b.y = o.y;
     b.dashT -= SIM_DT;
     const s = b.dashS;
-    if (s && s.dmg) {
+    if (s && (s.dmg || s.throwBack)) {
       const B = this.brawlers, w = s.w || 0.4, chg = b.dashAct === ACT.ATTACK ? s.chg || 0 : 0;
       for (let i = 0; i < B.length; i++) {
         const e = B[i];
         if (!this.hittable(e) || e.team === b.team || ((b.dashHit >> e.slot) & 1)) continue;
         if (segCircle(x0, y0, b.x, b.y, e.x, e.y, e.r + w) < 0) continue;
         b.dashHit |= 1 << e.slot;
-        this.hurt(e, s.dmg * b.dashMul, b.slot, b.dashAct, 0, chg);
+        if (s.dmg) this.hurt(e, s.dmg * b.dashMul, b.slot, b.dashAct, 0, chg);
         this.applyMods(e, s, b.slot, b.dashAct, b.dvx / s.spd, b.dvy / s.spd, 0);
       }
       for (let i = 0; i < this.deploys.length; i++) {
@@ -1891,7 +2010,7 @@ class Sim {
         if (e.dead || e.team === b.team || ((b.dashHitD >> e.owner) & 1)) continue;
         if (segCircle(x0, y0, b.x, b.y, e.x, e.y, e.r + w) < 0) continue;
         b.dashHitD |= 1 << e.owner;
-        this.hurt(e, s.dmg * b.dashMul, b.slot, b.dashAct, 0, 0);
+        if (s.dmg) this.hurt(e, s.dmg * b.dashMul, b.slot, b.dashAct, 0, 0);
       }
     }
     // stopped by a wall
@@ -1932,6 +2051,7 @@ class Sim {
     if (s.breaks) this.breakCircle(b.x, b.y, s.r || 1, b.slot, b.jumpAct);
     if (s.dmg) this.blast(b.slot, b.team, b.jumpAct, b.x, b.y, s.r || 1, s.dmg * b.jumpMul, s, 0, 0);
     if (s.heal) this.heal(b, s.heal * LEVEL_MULT(b.lvl), b.slot, b.jumpAct);
+    if (s.onLand) this.exec(b, s.onLand, b.jumpAct, b.face, 0, b.jumpMul);
   }
 
   padJump(b) {
@@ -1958,7 +2078,7 @@ class Sim {
     const e = {
       id: this.nextId++, kind: K.DEPLOY, team: b.team, x: o.x, y: o.y, px: o.x, py: o.y, r, dead: false,
       owner: b.slot, dk: s.dk, hp, maxHp: hp, face: ang, t: 0,
-      s, act, mul, cd: 0.5, tgt: null, mvx: 0, mvy: 0, rateT: 0, rateF: 1, stunNext: 0,
+      s, act, mul, cd: 0.5, tgt: null, mvx: 0, mvy: 0, rateT: 0, rateF: 1, stunNext: 0, shieldT: 0, shieldF: 0,
     };
     this.deploys.push(e);
     this.ev(EV.SPAWN, e.id, K.DEPLOY);
@@ -1971,6 +2091,21 @@ class Sim {
     e.dead = true;
     e.hp = 0;
     this.ev(EV.DESPAWN, e.id, K.DEPLOY);
+  }
+
+  // A unit that bursts when destroyed or when its time runs out: heals the owner's team around it
+  // (Life Plant) and/or fires a ring of shots (Multiball Launcher).
+  unitBurst(e) {
+    const bu = e.s.burst, ob = this.brawlers[e.owner];
+    if (!bu) return;
+    if (bu.heal) {
+      const B = this.brawlers, h = bu.heal * LEVEL_MULT(ob.lvl);
+      for (let i = 0; i < B.length; i++) {
+        const a = B[i];
+        if (a.alive && a.team === e.team && dist2(e.x, e.y, a.x, a.y) <= (bu.r + a.r) * (bu.r + a.r)) this.heal(a, h, e.owner, e.act);
+      }
+    }
+    if (bu.shot) for (let i = 0; i < bu.n; i++) this.spawnShot(e.owner, e.team, bu.shot, e.act, e.face + (i / bu.n) * TAU, e.x, e.y, e.mul, 0);
   }
 
   doArea(b, s, act, ang, d, mul) {
@@ -1988,24 +2123,30 @@ class Sim {
     const e = {
       id: this.nextId++, kind: K.AREA, team, x, y, px: x, py: y, r: a.r, dead: false,
       owner, ak: a.ak || ob.pk[act], t: a.T, T: a.T, dmg: (a.dps || 0) * mul, heal: (a.hps || 0) * LEVEL_MULT(ob.lvl),
-      slow: Math.max(a.slow || 0, xslow || 0), act, tickT: 0, chg: chg || 0,
+      slow: Math.max(a.slow || 0, xslow || 0), act, tickT: 0, chg: chg || 0, push: a.push || 0, pushed: 0,
     };
     this.areas.push(e);
     this.ev(EV.SPAWN, e.id, K.AREA);
     return e;
   }
 
-  // Instant ring around the user: damage/knockback/stun/slow enemies, heal allies (and self).
+  // Instant ring around the user (or, at:'unit', around the user's pet or turret): damage/knockback/
+  // stun/slow enemies, heal allies (and self), cleanse: clears stuns and slows from allies and makes
+  // them immune to them for that many seconds.
   doPulse(b, s, act, mul) {
     const B = this.brawlers;
+    let x = b.x, y = b.y;
+    if (s.at === 'unit') { const d = this.deployOf(b.slot); if (!d) return; x = d.x; y = d.y; }
     if (s.dmg || s.kb || s.stun || s.slow) {
-      this.blast(b.slot, b.team, act, b.x, b.y, s.r, (s.dmg || 0) * mul, s, s.stun || 0, 0);
+      this.blast(b.slot, b.team, act, x, y, s.r, (s.dmg || 0) * mul, s, s.stun || 0, 0);
     }
-    if (s.heal) {
-      const h = s.heal * LEVEL_MULT(b.lvl);
+    if (s.heal || s.cleanse) {
+      const h = (s.heal || 0) * LEVEL_MULT(b.lvl);
       for (let i = 0; i < B.length; i++) {
         const e = B[i];
-        if (e.alive && e.team === b.team && dist2(b.x, b.y, e.x, e.y) <= (s.r + e.r) * (s.r + e.r)) this.heal(e, h, b.slot, act);
+        if (!e.alive || e.team !== b.team || dist2(x, y, e.x, e.y) > (s.r + e.r) * (s.r + e.r)) continue;
+        if (h) this.heal(e, h, b.slot, act);
+        if (s.cleanse) { e.stunT = 0; e.slowT = 0; e.slowF = 0; e.ccT = Math.max(e.ccT, s.cleanse); this.ev(EV.STATUS, e.slot, 5, s.cleanse); }
       }
     }
   }
@@ -2024,7 +2165,7 @@ class Sim {
           const e = B[i];
           if (!e.alive || e.team !== b.team) continue;
           if (e !== b && (!s.r || dist2(b.x, b.y, e.x, e.y) > s.r * s.r)) continue;
-          e.speedT = s.T; e.speedF = s.f;
+          e.speedT = s.T; e.speedF = s.f; e.speedSrc = b.slot;
           this.ev(EV.STATUS, e.slot, 6, s.T);
         }
         break;
@@ -2037,6 +2178,9 @@ class Sim {
       case 'nextSlow': b.nxSlow = s.v; break;
       case 'petStun': { const d = this.deployOf(b.slot); if (d) d.stunNext = s.v; break; }
       case 'deployRate': { const d = this.deployOf(b.slot); if (d) { d.rateT = s.T; d.rateF = s.v; } break; }
+      case 'unitShield': { const d = this.deployOf(b.slot); if (d) { d.shieldT = s.T; d.shieldF = s.f; } break; }
+      case 'block': b.blockT = s.T; this.ev(EV.STATUS, b.slot, 5, s.T); break; // enemy projectiles that reach it are destroyed
+      case 'nextAtk': b.nxN = s.n || 1; break; // the next n main attacks use the kit's nxAtk spec
       default: throw new Error('Unknown buff ' + s.what);
     }
     this.fxn[b.slot * 4 + act]++;
@@ -2067,7 +2211,9 @@ class Sim {
   // Knockback along (dx, dy), stun and slow from a spec onto a brawler.
   applyMods(e, s, src, act, dx, dy, xstun) {
     if (!s) return;
-    if (s.kb) this.knock(e, dx, dy, s.kb, src, act);
+    if (s.kb) this.knock(e, dx, dy, s.kb, src, act, s.wallStun);
+    if (s.throwBack) this.knock(e, -dx, -dy, s.throwBack, src, act, 0); // thrown behind the attacker (Suplex)
+    if (s.burn && src >= 0) this.burn(e, s.burn, src);
     const st = Math.max(s.stun || 0, xstun || 0);
     if (st) this.stun(e, st, src, act);
     if (s.slow && s.slow.T) this.slow(e, s.slow.T, s.slow.f, src, act);
@@ -2105,13 +2251,14 @@ class Sim {
     }
     if (e.kind === K.DEPLOY) {
       if (e.dead) return 0;
+      if (e.shieldT > 0) amt *= 1 - e.shieldF;
       amt = Math.round(amt);
       if (amt <= 0) return 0;
       const dealt = Math.min(amt, e.hp);
       e.hp -= amt;
       this.ev(EV.HIT, e.id, amt, e.x, e.y, src, crit || 0);
       if (src >= 0) this.fxn[src * 4 + act]++;
-      if (e.hp <= 0) this.killDeploy(e);
+      if (e.hp <= 0) { this.killDeploy(e); this.unitBurst(e); }
       return dealt;
     }
     return 0;
@@ -2121,6 +2268,7 @@ class Sim {
   onAtkHit(b) {
     const p = b.kit.pass;
     if (p.ammoOnHit) b.ammo = Math.min(MAX_AMMO, b.ammo + p.ammoOnHit);
+    if (p.supExtend && b.speedT > 0 && b.speedSrc === b.slot) b.speedT += p.supExtend; // hits stretch your own super
     if (p.deployHeal) {
       const d = this.deployOf(b.slot);
       if (d) d.hp = Math.min(d.maxHp, d.hp + Math.round(p.deployHeal * LEVEL_MULT(b.lvl)));
@@ -2139,6 +2287,7 @@ class Sim {
 
   heal(b, amt, src, act) {
     if (!b.alive || b.hp <= 0 || amt <= 0) return 0; // at 0 HP it goes down this tick, whatever heals it
+    if (b.inPois) amt *= 0.5; // the poison gas halves all healing
     const real = Math.min(Math.round(amt), b.maxHp - b.hp);
     if (real <= 0) return 0;
     b.hp += real;
@@ -2149,19 +2298,20 @@ class Sim {
 
   immune(b) { return b.shieldT > 0 && b.shieldF >= 1; }
 
-  knock(b, dx, dy, dist, src, act) {
-    if (!b.alive || this.immune(b) || b.jumpT > 0) return;
+  knock(b, dx, dy, dist, src, act, wallStun) {
+    if (!b.alive || this.immune(b) || b.ccT > 0 || b.jumpT > 0) return;
     const T = 0.12 + dist * 0.05;
     b.kbT = T;
     b.kbx = dx * dist / T;
     b.kby = dy * dist / T;
+    b.kbStun = wallStun || 0; b.kbSrc = src; b.kbAct = act;
     b.dashT = 0; b.dashS = null; b.bqN = 0;
     this.ev(EV.STATUS, b.slot, 3, T);
     if (src >= 0) this.fxn[src * 4 + act]++;
   }
 
   stun(b, t, src, act) {
-    if (!b.alive || this.immune(b)) return;
+    if (!b.alive || this.immune(b) || b.ccT > 0) return;
     b.stunT = Math.max(b.stunT, t);
     b.dashT = 0; b.dashS = null; b.bqN = 0;
     this.ev(EV.STATUS, b.slot, 1, t);
@@ -2169,12 +2319,22 @@ class Sim {
   }
 
   slow(b, T, f, src, act) {
-    if (!b.alive || this.immune(b)) return;
+    if (!b.alive || this.immune(b) || b.ccT > 0) return;
     const was = b.slowT > 0;
     b.slowT = Math.max(b.slowT, T);
     b.slowF = was ? Math.max(b.slowF, f) : f;
     if (!was) this.ev(EV.STATUS, b.slot, 2, T);
     if (src >= 0) this.fxn[src * 4 + act]++;
+  }
+
+  // Damage over time from a spec's burn {dmg, T} (El Fuego): dmg in total over T s, in 0.5 s ticks.
+  burn(b, o, src) {
+    if (!b.alive || this.immune(b)) return;
+    b.burnT = o.T;
+    b.burnDps = (o.dmg / o.T) * LEVEL_MULT(this.brawlers[src].lvl);
+    b.burnSrc = src;
+    b.burnAcc = 0.5;
+    this.fxn[src * 4 + ACT.SUPER]++;
   }
 
   // Showdown power-cube boxes
@@ -2289,8 +2449,11 @@ class Sim {
       d.t += dt;
       d.cd -= dt;
       if (d.rateT > 0) d.rateT -= dt;
+      if (d.shieldT > 0) d.shieldT -= dt;
+      if (d.s.life && d.t >= d.s.life) { this.killDeploy(d); this.unitBurst(d); continue; }
       if (d.s.unit === 'turret') this.stepTurret(d);
-      else this.stepPet(d);
+      else if (d.s.unit === 'pet') this.stepPet(d);
+      // 'plant': just stands there (cover that bursts)
       d.mvx = (d.x - d.px) / dt;
       d.mvy = (d.y - d.py) / dt;
     }
@@ -2401,6 +2564,7 @@ class Sim {
         if (!this.hittable(e) || e.team === s.team || ((s.hitMask >> e.slot) & 1)) continue;
         const t = segCircle(x0, y0, x1, y1, e.x, e.y, e.r + s.r);
         if (t < 0 || t > tEnd) continue;
+        if (e.blockT > 0) { if (t < bt) { bt = t; best = e; } continue; } // destroyed on reaching it, even piercing ones
         if (s.pierce) { s.hitMask |= 1 << e.slot; this.shotHit(s, e); } else if (t < bt) { bt = t; best = e; }
       }
       for (let i = 0; i < D.length; i++) {
@@ -2414,6 +2578,7 @@ class Sim {
         s.x = x0 + (x1 - x0) * bt;
         s.y = y0 + (y1 - y0) * bt;
         s.trav += step * bt;
+        if (best.kind === K.BRAWLER && best.blockT > 0) { s.dead = true; this.ev(EV.SHOT_END, s.id, s.x, s.y, 1); return; }
         if (best.kind === K.BRAWLER) s.hitMask |= 1 << best.slot; else s.hitD |= 1 << best.owner;
         this.shotHit(s, best);
         if (s.bnc > 0 && this.bounce(s)) return;
@@ -2436,20 +2601,44 @@ class Sim {
     s.trav += step * tEnd;
     if (tw >= 0) {
       if (s.dmg > 0 && tileAtT(m, wtx, wty) === TILE.BOX) this.hurtBox(wty * m.w + wtx, s.dmg, s.owner, s.act);
+      if (sp.ricochet && s.trav < s.range - 0.1 && this.ricochet(s, wtx, wty)) return;
       this.endShot(s, 1);
     } else if (s.trav >= s.range - 1e-6) this.endShot(s, 0);
   }
 
+  // A ricocheting shot (Rico) that reached a wall bounces off it like light off a mirror and flies on
+  // for what is left of its range. The new leg starts a new path (x0, y0) like a target bounce, so
+  // the online host resends it. False if it can't (stuck in a corner).
+  ricochet(s, wtx, wty) {
+    const m = this.map, e = 1e-3;
+    const ptx = Math.floor(s.x - s.vx * e), pty = Math.floor(s.y - s.vy * e);
+    let vx = s.vx, vy = s.vy;
+    if (ptx !== wtx) vx = -vx;
+    if (pty !== wty) vy = -vy;
+    if (ptx === wtx && pty === wty) { vx = -vx; vy = -vy; }
+    const x = s.x - s.vx * 0.02, y = s.y - s.vy * 0.02;
+    if (flagsAt(m, x, y) & TF_SHOT) return false;
+    s.x = s.px = s.x0 = x; s.y = s.py = s.y0 = y;
+    s.range = s.range - s.trav; s.trav = 0;
+    s.vx = vx; s.vy = vy; s.ang = Math.atan2(vy, vx);
+    s.wallBnc++;
+    return true;
+  }
+
   shotHit(s, e) {
     const sp = s.s;
-    let dmg = s.dmg, crit = s.sup ? 1 : 0;
+    let dmg = s.dmg, crit = s.sup ? 1 : 0, chg = sp.chg || 0;
+    const k = clamp(s.trav / (sp.range || s.range || 1), 0, 1);
     if (sp.ramp) {
-      const k = clamp(s.trav / (sp.range || s.range || 1), 0, 1);
-      dmg *= sp.ramp[0] + (sp.ramp[1] - sp.ramp[0]) * k;
+      const rk = sp.ramp[0] + (sp.ramp[1] - sp.ramp[0]) * k;
+      dmg *= rk;
+      chg *= rk / Math.max(sp.ramp[0], sp.ramp[1]); // charge follows the damage (chg is at full damage)
       if ((sp.ramp[1] > sp.ramp[0] && k > 0.85) || (sp.ramp[1] < sp.ramp[0] && k < 0.15)) crit = 1;
     }
+    if (s.amb) dmg += s.amb * k; // Ambush: more the further it flew
+    if (s.wallBnc > 0 && sp.bounceDmg) dmg += sp.bounceDmg * s.mul; // Super Bouncy
     const isB = e.kind === K.BRAWLER;
-    const dealt = this.hurt(e, dmg, s.owner, s.act, crit, isB && s.act === ACT.ATTACK ? sp.chg || 0 : 0);
+    const dealt = this.hurt(e, dmg, s.owner, s.act, crit, isB && s.act === ACT.ATTACK ? chg : 0);
     if (isB) this.applyMods(e, sp, s.owner, s.act, s.vx, s.vy, s.stun);
     if (sp.steal && dealt > 0) this.heal(this.brawlers[s.owner], dealt * sp.steal, s.owner, s.act);
   }
@@ -2466,6 +2655,7 @@ class Sim {
     }
     if (!best) return false;
     s.bnc--;
+    if (s.s.bounce.mul) s.dmg *= s.s.bounce.mul; // each bounce hits a little softer
     s.x0 = s.x; s.y0 = s.y;
     s.ang = Math.atan2(best.y - s.y, best.x - s.x);
     s.vx = Math.cos(s.ang); s.vy = Math.sin(s.ang);
@@ -2479,11 +2669,13 @@ class Sim {
     this.ev(EV.SHOT_END, s.id, s.x, s.y, wall);
     const sp = s.s.split;
     if (!sp) return;
-    // spikes start just in front of a wall, not inside it
+    // spikes start just in front of a wall, not inside it. fixed: a pattern that doesn't turn with
+    // the throw (Needle Ball), and spikes may hit the one the ball hit (it bursts at their edge, so
+    // the one or two spikes pointing at them do); else around the shot's heading, sparing its targets.
     const x = wall ? s.x - s.vx * 0.15 : s.x, y = wall ? s.y - s.vy * 0.15 : s.y;
     for (let i = 0; i < sp.n; i++) {
-      const e = this.spawnShot(s.owner, s.team, sp, s.act, s.ang + ((i + 0.5) / sp.n) * TAU, x, y, s.mul, 0);
-      e.hitMask = s.hitMask;
+      const e = this.spawnShot(s.owner, s.team, sp, s.act, (sp.fixed ? 0 : s.ang) + ((i + 0.5) / sp.n) * TAU, x, y, s.mul, 0);
+      if (!sp.fixed) e.hitMask = s.hitMask;
       e.hitD = s.hitD;
     }
   }
@@ -2500,6 +2692,12 @@ class Sim {
     if (sp.breaks) this.breakCircle(s.x, s.y, sp.blast || 1, s.owner, s.act);
     if (sp.blast && (s.dmg > 0 || sp.kb || s.stun)) this.blast(s.owner, s.team, s.act, s.x, s.y, sp.blast, s.dmg, sp, s.stun, chg);
     if (sp.area) this.spawnArea(s.owner, s.team, sp.area, s.act, s.x, s.y, s.mul, s.xslow, chg);
+    // Dyna-Jump: a thrower caught in his own blast is flung forwards
+    const ob = this.brawlers[s.owner], dj = ob.kit.pass.dynaJump;
+    if (dj && sp.blast && ob.alive && this.canAct(ob) && dist2(s.x, s.y, ob.x, ob.y) <= (sp.blast + ob.r) * (sp.blast + ob.r)) {
+      const o = this.freeSpot(ob.x + Math.cos(ob.face) * dj, ob.y + Math.sin(ob.face) * dj, ob.r, this._o2);
+      this.startJump(ob, o.x, o.y, 0.45, null, 0, 1);
+    }
     this.endShot(s, 0);
   }
 
@@ -2519,6 +2717,20 @@ class Sim {
             if (e.slowT < 0.2) this.slow(e, 0.3, a.slow, a.owner, a.act);
             else { e.slowT = Math.max(e.slowT, 0.3); e.slowF = Math.max(e.slowF, a.slow); }
           }
+        }
+      }
+      if (a.push > 0) {
+        // a twister: shoves enemies out of it
+        const o = this._o;
+        for (let j = 0; j < B.length; j++) {
+          const e = B[j];
+          if (!this.hittable(e) || e.team === a.team || this.immune(e) || e.ccT > 0) continue;
+          const d2 = dist2(a.x, a.y, e.x, e.y), rr = a.r + e.r;
+          if (d2 > rr * rr) continue;
+          const d = Math.sqrt(d2) || 1, k = a.push * dt;
+          if (!((a.pushed >> e.slot) & 1)) { a.pushed |= 1 << e.slot; this.fxn[a.owner * 4 + a.act]++; }
+          moveCircle(this.map, e.x, e.y, e.r, d2 > 1e-6 ? ((e.x - a.x) / d) * k : k, d2 > 1e-6 ? ((e.y - a.y) / d) * k : 0, o);
+          e.x = o.x; e.y = o.y;
         }
       }
       if (a.tickT <= 0 && a.t > 1e-6) { // ticks at 0, 0.5, ... < T; the last one covers only what's left
@@ -2653,7 +2865,20 @@ class Sim {
       if (b.faceT > 0) b.faceT = Math.max(0, b.faceT - dt);
       if (b.atkCd > 0) b.atkCd = Math.max(0, b.atkCd - dt);
       if (b.gadT > 0) b.gadT = Math.max(0, b.gadT - dt);
+      if (b.blockT > 0) b.blockT = Math.max(0, b.blockT - dt);
+      if (b.ccT > 0) b.ccT = Math.max(0, b.ccT - dt);
+      if (b.burnT > 0) {
+        b.burnT -= dt;
+        b.burnAcc -= dt;
+        if (b.burnAcc <= 0) { b.burnAcc += 0.5; this.hurt(b, b.burnDps * 0.5, b.burnSrc, ACT.SUPER, 0, 0); }
+        if (b.burnT <= 0) b.burnT = 0;
+      }
       const pass = b.kit.pass;
+      if (pass.lowHeal) {
+        // Band-Aid: dropping low heals a share of max health, then it recharges
+        if (b.bandT > 0) b.bandT -= dt;
+        else if (b.hp > 0 && b.hp < b.maxHp * pass.lowHeal.at) { this.heal(b, b.maxHp * pass.lowHeal.f, b.slot, 0); b.bandT = pass.lowHeal.cd; }
+      }
       if (b.ammo < MAX_AMMO) {
         let rate = 1 / b.reload;
         if (pass.moveReload && (b.mvx !== 0 || b.mvy !== 0)) rate *= 1 + pass.moveReload;
@@ -2681,16 +2906,20 @@ class Sim {
     if (pt < sch.start) return;
     if (this.poisonStage === 0) { this.poisonStage = 1; this.ev(EV.POISON, 1); }
     if (this.poisonStage === 1 && pt >= sch.start + sch.shrink) { this.poisonStage = 2; this.ev(EV.POISON, 2); }
+    // as in the original: 20% of max health a second, 5% more every second after the first 5 in it,
+    // and healing halved while in it
     const B = this.brawlers;
     for (let i = 0; i < B.length; i++) {
       const b = B[i];
       if (!b.alive) continue;
       // inside: the clock winds back up to 0.5 s (a one-tick dip doesn't reset it)
-      if (b.x >= P.x0 && b.x <= P.x1 && b.y >= P.y0 && b.y <= P.y1) { if (b.poisAcc < 0.5) b.poisAcc = Math.min(0.5, b.poisAcc + dt); continue; }
+      if (b.x >= P.x0 && b.x <= P.x1 && b.y >= P.y0 && b.y <= P.y1) { b.inPois = false; b.poisN = 0; if (b.poisAcc < 0.5) b.poisAcc = Math.min(0.5, b.poisAcc + dt); continue; }
+      b.inPois = true;
       b.poisAcc -= dt;
       if (b.poisAcc <= 0) {
         b.poisAcc += 1;
-        this.hurt(b, sch.dmg || 1000, -1, 0, 0, 0);
+        b.poisN++;
+        this.hurt(b, b.maxHp * ((sch.pct || 0.2) + 0.05 * Math.max(0, b.poisN - 5)), -1, 0, 0, 0);
       }
     }
   }
@@ -2733,7 +2962,8 @@ class Sim {
     if (this.ball && this.ball.holder === b.slot) this.dropBall();
     this.mode.onKill(this, b, killer);
     if (killer && killer.alive && killer.kit.pass.killHeal) this.heal(killer, killer.kit.pass.killHeal * LEVEL_MULT(killer.lvl), killer.slot, 0);
-    b.respawnT = this.mode.canRespawn(this, b) ? RESPAWN_T : -1;
+    if (killer && killer.alive && killer.kit.pass.killHealF) this.heal(killer, killer.maxHp * killer.kit.pass.killHealF, killer.slot, 0);
+    b.respawnT = this.mode.canRespawn(this, b) ? this.mode.respawn || RESPAWN_T : -1;
   }
 
   // ---- 10. vision ----
@@ -2917,9 +3147,11 @@ Sim.BEAM_FX = { pk: '', dmg: 0, spd: 0, range: 0, r: 0.1 };
 //
 // What the sim offers modes:
 //   - spawns: ModeKit.spawnPoint picks map.spawns by team (3v3) or by slot / sim.ms.order (Showdown).
-//   - poison: `poison: { start, shrink, minHalf, dmg }`. The sim keeps sim.poison (the safe rect),
-//     deals `dmg` per second outside it, emits EV.POISON, and measures time from sim.roundT0
+//   - poison: `poison: { start, shrink, minHalf, pct }`. The sim keeps sim.poison (the safe rect),
+//     deals `pct` (default 20%) of max health per second outside it, 5% more each second after
+//     the first 5, halves healing there, emits EV.POISON, and measures time from sim.roundT0
 //     (restarted by sim.resetRound()).
+//   - respawn: seconds before the fallen come back (RESPAWN_T if not set).
 //   - freeze: setting sim.freezeT stops the world (goal celebrations, between rounds); when it runs
 //     out the sim calls thaw(sim). Mode clocks use sim.playT, which doesn't run while frozen.
 //   - boxes: map BOX tiles have sim.boxHp and drop PICK.CUBE pickups (ModeKit.cube takes them).
@@ -2981,13 +3213,16 @@ const ModeKit = {
 };
 
 const MODES = {
-  // Gem Rush (Gem Grab): the mine spits a gem every 7 s; a team holding 10+ gems and more than the
-  // other starts a 15 s countdown that resets as soon as that stops being true.
+  // Gem Rush (Gem Grab): the mine spits a gem every 7 s (not while 15 lie around); a team holding
+  // 10+ gems and more than the other starts a 15 s countdown that resets as soon as that stops being
+  // true. The fallen come back after 5 s.
   gem: ModeKit.make(MODE.GEM, {
     first: 2, // s until the first gem
     every: 7,
     goal: 10,
     count: 15,
+    loose: 15, // the mine waits while this many gems lie on the ground
+    respawn: 5,
     cap: 300, // hidden safety cap: no visible clock, but a match can't run forever
 
     init(sim) {
@@ -2999,7 +3234,9 @@ const MODES = {
       ms.mineT -= SIM_DT;
       if (ms.mineT <= 0) {
         ms.mineT += this.every;
-        if (mine) { sim.popPickup(PICK.GEM, 1, mine.x, mine.y, 1.1, 2.1); ms.spawned++; }
+        let loose = 0;
+        for (const p of sim.pickups) if (!p.dead && p.pick === PICK.GEM) loose += p.n;
+        if (mine && loose < this.loose) { sim.popPickup(PICK.GEM, 1, mine.x, mine.y, 1.1, 2.1); ms.spawned++; }
       }
       if (!this.recount(sim) && ms.countTeam >= 0) ms.count -= SIM_DT;
     },
@@ -3054,7 +3291,7 @@ const MODES = {
   // Showdown (solo): 10 players, no respawns, power cubes from boxes and from the fallen, poison
   // closing in from every side. Placement: the survivors first, then the fallen, last one down first.
   sd: ModeKit.make(MODE.SHOWDOWN, {
-    poison: { start: 30, shrink: 100, minHalf: 0.5, dmg: 1000 },
+    poison: { start: 30, shrink: 100, minHalf: 0.5, pct: 0.2 },
     cap: 300, // the poison covers everything long before this; a safety net
 
     init(sim) {
@@ -3067,8 +3304,9 @@ const MODES = {
 
     canRespawn() { return false; },
 
+    // the fallen drop 1 power cube plus a third of theirs, 5 at most (the original's rule)
     onKill(sim, v) {
-      if (v.cubes > 0) sim.dropPickups(PICK.CUBE, v.cubes, v.x, v.y);
+      sim.dropPickups(PICK.CUBE, Math.min(5, 1 + Math.floor(v.cubes / 3)), v.x, v.y);
     },
 
     // Placement right now: the living by health (most first), then the fallen in reverse order.
@@ -3100,6 +3338,7 @@ const MODES = {
   // celebration, then everyone and the ball go back to the start. Tied at the end of the clock:
   // sudden-death overtime with every breakable wall gone; still tied, a draw.
   ball: ModeKit.make(MODE.BALL, {
+    respawn: 5,
     len: 150,
     otLen: 60,
     goal: 2,
@@ -3183,7 +3422,7 @@ const MODES = {
   // Knockout: best of 3 rounds, no respawns. A round goes to the team that knocks out the other;
   // poison closes in after 45 s. Between rounds the world freezes, then the map and everyone reset.
   ko: ModeKit.make(MODE.KNOCKOUT, {
-    poison: { start: 45, shrink: 40, minHalf: 1, dmg: 1000 },
+    poison: { start: 45, shrink: 40, minHalf: 1, pct: 0.2 },
     roundCap: 120, // the poison has won by then; a safety net decided by who is still standing
     need: 2,
     maxRounds: 5, // drawn rounds don't count
@@ -3227,12 +3466,14 @@ const MODES = {
   }),
 
   // Bounty: everyone wears 2 stars, +1 per takedown (up to 7). Taking someone down scores their
-  // stars for your team and puts them back to 2. The centre star is worth 1. Most stars after
-  // 2 minutes wins.
+  // stars for your team and puts them back to 2. The centre star is worth 1. The first team to 20
+  // stars wins, else the most stars after 2 minutes. Respawns take only 3 s here.
   bounty: ModeKit.make(MODE.BOUNTY, {
     len: 120,
     base: 2,
     max: 7,
+    win: 20,
+    respawn: 3,
 
     init(sim) {
       sim.ms = { stars: [0, 0] };
@@ -3259,8 +3500,9 @@ const MODES = {
     },
 
     checkEnd(sim) {
-      if (sim.playT < this.len) return null;
       const s = sim.ms.stars;
+      if (s[0] >= this.win || s[1] >= this.win) return sim.makeResult(ModeKit.leader(s), 'stars', s.slice());
+      if (sim.playT < this.len) return null;
       return sim.makeResult(ModeKit.leader(s), 'stars', s.slice());
     },
 
@@ -3311,7 +3553,7 @@ function percNoise(id, slot, k) {
 function newPercept() {
   return {
     tick: 0, t: 0, mode: '', map: null, cam: { x0: 0, y0: 0, x1: 0, y1: 0, cx: 0, cy: 0 }, flip: false,
-    me: { slot: 0, team: 0, bk: '', x: 0, y: 0, hp: 0, maxHp: 1, ammo: 0, sup: 0, supReady: false, gadLeft: 0, gadReady: false, carry: 0, cubes: 0, alive: false, respawnT: 0, inBush: false, invis: false, stunned: false, face: 0, lvl: 1, shield: false },
+    me: { slot: 0, team: 0, bk: '', x: 0, y: 0, hp: 0, maxHp: 1, ammo: 0, sup: 0, supReady: false, gadLeft: 0, gadReady: false, gadget: -1, carry: 0, cubes: 0, alive: false, respawnT: 0, inBush: false, invis: false, stunned: false, face: 0, lvl: 1, shield: false },
     allies: [], enemies: [], shots: [], areas: [], pickups: [], deploys: [], cues: [], pins: [],
     ball: null, hud: null, poison: null, nTeams: 2, frozen: false,
   };
@@ -3331,7 +3573,7 @@ function perceive(sim, slot, P, rng) {
   const cam = P.cam;
   const m = P.me;
   m.slot = slot; m.team = me.team; m.bk = me.bk; m.x = me.x; m.y = me.y; m.hp = me.hp; m.maxHp = me.maxHp;
-  m.ammo = me.ammo; m.sup = me.sup; m.supReady = me.supReady; m.gadLeft = me.gadLeft; m.gadReady = me.gadLeft > 0 && me.gadT <= 0 && me.gadget >= 0;
+  m.ammo = me.ammo; m.sup = me.sup; m.supReady = me.supReady; m.gadLeft = me.gadLeft; m.gadReady = me.gadLeft > 0 && me.gadT <= 0 && me.gadget >= 0; m.gadget = me.gadget; // own loadout
   m.carry = me.carry; m.cubes = me.cubes; m.alive = me.alive; m.respawnT = me.respawnT; m.inBush = me.inBush;
   m.invis = me.invisT > 0; m.stunned = me.stunT > 0; m.face = me.face; m.lvl = me.lvl; m.shield = me.shieldT > 0; m.bounty = me.bounty;
   P.frozen = sim.freezeT > 0; // the GOAL / ROUND banner is up: nothing moves
@@ -3462,7 +3704,12 @@ function atkFacts(spec, kitSpeed) {
   const spread = spec.spread || 0;
   // effective range: shotguns want to be close, everything else near max range
   const eff = range * (t === 'shot' && spec.n >= 4 && spread > 0.3 ? 0.68 : t === 'dash' ? 0.9 : 0.93);
-  return { t, range, spd, lob, T: spec.T || (lob ? 0.75 : 0), melee: t === 'dash' || t === 'arc' || range < 3.5, spread, n: spec.n || 1, eff, dmg: spec.dmg || 0, heal: spec.heal || spec.hps || 0, away: !!spec.away, what: spec.what, unit: spec.unit, sp: kitSpeed };
+  return {
+    t, range, spd, lob, T: spec.T || (lob ? 0.75 : 0), melee: t === 'dash' || t === 'arc' || range < 3.5, spread, n: spec.n || 1, eff, dmg: spec.dmg || 0,
+    heal: spec.heal || spec.hps || 0, away: !!spec.away, what: spec.what, unit: spec.unit, sp: kitSpeed,
+    at: spec.at || '', r: spec.r || 0, cleanse: !!spec.cleanse, burstShot: !!(spec.burst && spec.burst.shot), seek: !!spec.seek, inv: !!spec.inv,
+    patchRange: spec.patch && spec.patch.range || 0,
+  };
 }
 
 class Mind {
@@ -3890,12 +4137,25 @@ class Mind {
       }
     }
     if (me.gadReady && gad.t !== 'none') {
-      if (gad.t === 'heal' || (gad.t === 'pulse' && gad.heal > 0)) I.wantGadget = myHPf < 0.5;
+      // my pet or turret, and how close the nearest enemy I know of is to it
+      const unit = P.deploys.find((d) => d.owner === me.slot);
+      const foeNearUnit = unit ? Math.min(99, ...this.known(true).map((m) => Math.hypot(m.x - unit.x, m.y - unit.y))) : 99;
+      const allyHurt = P.allies.some((a) => a.alive && a.hp / a.maxHp < 0.5 && Math.hypot(a.x - me.x, a.y - me.y) < 3.5);
+      if (gad.t === 'heal' || (gad.t === 'pulse' && gad.heal > 0) || (gad.t === 'area' && gad.heal > 0)) I.wantGadget = myHPf < 0.5 || allyHurt;
+      else if (gad.t === 'pulse' && gad.cleanse) I.wantGadget = me.stunned || (danger > 0.8 && myHPf < 0.6);
+      else if (gad.t === 'pulse' && gad.at === 'unit') I.wantGadget = unit && foeNearUnit < gad.r;
+      else if (gad.t === 'buff' && (gad.what === 'unitShield' || gad.what === 'deployRate' || gad.what === 'petStun')) I.wantGadget = unit && foeNearUnit < 5;
       else if (gad.t === 'buff' && gad.what === 'ammo') I.wantGadget = me.ammo < 0.8 && target && td < kit.atkF.range;
-      else if (gad.t === 'buff' && gad.what === 'shield') I.wantGadget = danger > 0.8 && myHPf < 0.7;
+      else if (gad.t === 'buff' && (gad.what === 'shield' || gad.what === 'block')) I.wantGadget = danger > 0.8 && myHPf < 0.7;
+      else if (gad.t === 'buff' && gad.what === 'nextAtk') I.wantGadget = target && me.ammo >= 1 && td < (gad.patchRange || kit.atkF.range) && td > kit.atkF.range * 0.6;
+      else if (gad.t === 'buff' && gad.what === 'speed') I.wantGadget = target && td < 4;
       else if (gad.t === 'buff') I.wantGadget = target && td < 8 && r.chance(0.5);
-      else if (gad.t === 'dash') { I.wantGadget = (myHPf < 0.35 && danger > 0.5) || (target && target.hp / target.maxHp < 0.3 && td < 6); I.gadMode = myHPf < 0.35 ? 'away' : 'target'; } else if (gad.t === 'pulse') I.wantGadget = target && td < (gad.range || 2.5);
+      else if (gad.t === 'dash') { I.wantGadget = (myHPf < 0.35 && danger > 0.5) || (target && target.hp / target.maxHp < 0.3 && td < 6) || (gad.dmg === 0 && !gad.inv && target && td < 3); I.gadMode = myHPf < 0.35 ? 'away' : 'target'; } else if (gad.t === 'pulse') I.wantGadget = target && td < (gad.r || gad.range || 2.5);
+      else if (gad.t === 'area' && gad.at === 'self') I.wantGadget = target && td < (gad.r || 2) + 1;
+      else if (gad.t === 'deploy' && gad.unit === 'plant' && gad.burstShot) I.wantGadget = target && td < 6; // a box that bursts into shots
+      else if (gad.t === 'deploy' && gad.unit === 'plant') I.wantGadget = (myHPf < 0.6 && danger > 0.5) || allyHurt; // cover that heals when it breaks
       else if (gad.t === 'deploy') I.wantGadget = target && td < 9;
+      else if (gad.t === 'shot' && gad.seek) I.wantGadget = target && td < 3 && danger > 0.5;
       else I.wantGadget = target && td < (gad.range || 6) && r.chance(0.4);
       I.wantGadget = !!I.wantGadget;
     }
@@ -3981,10 +4241,10 @@ class Bot {
     return { reacts: m.reacts.slice(), retreatHPs: m.retreatHPs.slice(), dirChanges: T.dirCh, fastReversals: T.fastRev, idle: T.idle, alive: T.alive, bush: T.bush, ticks: T.ticks, stuck: T.stuck, superDelays: T.supDelay.slice(), fires: T.fires, supers: T.supers, gadgets: T.gadgets, autoTaps: T.autoTaps };
   }
 
-  initKit(bk) {
+  initKit(bk, gadget) {
     const D = BRAWLERS[bk];
     const sp = U(D.speed);
-    this.kit = { bk, D, atkF: atkFacts(D.atk, sp), supF: atkFacts(D.sup, sp), gadF: atkFacts(D.gadgets && D.gadgets[0], sp), speed: sp };
+    this.kit = { bk, D, atkF: atkFacts(D.atk, sp), supF: atkFacts(D.sup, sp), gadF: atkFacts(D.gadgets && gadget >= 0 ? D.gadgets[gadget] : null, sp), speed: sp };
   }
 
   // One tick: called by the match right before sim.step(), returns this player's input word.
@@ -3998,7 +4258,7 @@ class Bot {
 
   act(P, fresh) {
     const mind = this.mind, me = P.me;
-    if (!this.kit) this.initKit(me.bk);
+    if (!this.kit) this.initKit(me.bk, me.gadget);
     if (fresh) mind.observe(P);
     if (this.t >= mind.nextThink) {
       mind.decide(P, this.kit);
@@ -4400,7 +4660,10 @@ class Telemetry {
           for (const e of sim.brawlers) if (e.team !== b.team && e.alive && sim.visibleTo(b.team, e)) nd = Math.min(nd, Math.hypot(e.x - b.x, e.y - b.y));
           const D = BRAWLERS[b.bk].atk;
           const flight = D.t === 'lob' ? D.T || 0.8 : D.t === 'shot' ? nd / (D.spd || 12) : 0.1;
-          this.fires.push({ t, d: nd, flight, hit: false, multi: (D.n || 1) > 1 || D.t === 'beam' || D.t === 'dash' });
+          // "multi": anything but one narrow projectile (spreads, bursts, beams, dashes, wide or widening
+          // waves, puddles): hitting with those says little about aim
+          const wide = (D.r || 0) >= 0.5 || !!D.grow || !!D.area;
+          this.fires.push({ t, d: nd, flight, hit: false, multi: (D.n || 1) > 1 || D.t === 'beam' || D.t === 'dash' || wide });
           for (const [slot, at] of this.appear) { if (at >= 0) { this.responses.push(t - at); this.appear.set(slot, -1); } }
         } else if (ev[2] === ACT.SUPER && this.supReadyT >= 0) { this.supDelays.push(t - this.supReadyT); this.supReadyT = -1; }
       } else if (ev[0] === EV.HIT && ev[5] === this.slot && ev[7] === ACT.ATTACK) {
@@ -4471,13 +4734,13 @@ const Input = {
   _en: false, touchMode: false, device: 'mouse', tick: 0, anim: 0,
   // controls (centres and radii in CSS px, filled by layout)
   btn: {
-    atk: { x: 0, y: 0, r: 46, hit: 1.45 },
-    sup: { x: 0, y: 0, r: 36, hit: 1.35 },
-    gad: { x: 0, y: 0, r: 24, hit: 1.5 },
-    chat: { x: 0, y: 0, r: 19, hit: 1.6 },
+    atk: { x: 0, y: 0, r: 62, hit: 1.4 },
+    sup: { x: 0, y: 0, r: 48, hit: 1.3 },
+    gad: { x: 0, y: 0, r: 32, hit: 1.45 },
+    chat: { x: 0, y: 0, r: 24, hit: 1.5 },
   },
-  home: { x: 120, y: 290 }, // resting place of the move joystick
-  R: 58, // joystick radius (move and aim drags)
+  home: { x: 140, y: 278 }, // resting place of the move joystick
+  R: 74, // joystick radius (move and aim drags)
   ptr: new Map(), // pointerId -> 'move' | 'atk' | 'sup' | 'gad' | 'chat' | 'none'
   mv: { id: null, ox: 0, oy: 0, x: 0, y: 0 },
   st: {
@@ -4555,14 +4818,16 @@ const Input = {
     const L = lh ? sf.r : sf.l, R = lh ? sf.l : sf.r, B = Math.max(sf.b, 0);
     const mx = (x) => (lh ? w - x : x);
     const set = (b, x, y, r) => { b.x = mx(x); b.y = y; b.r = r; };
-    const ax = w - R - 104 * s, ay = h - B - 92 * s;
-    set(this.btn.atk, ax, ay, 46 * s);
-    set(this.btn.sup, ax - 102 * s, ay - 34 * s, 36 * s);
-    set(this.btn.gad, ax - 18 * s, ay - 96 * s, 24 * s);
-    set(this.btn.chat, w - R - 30 * s, ay - 166 * s, 19 * s);
-    this.R = 58 * s;
-    this.home.x = mx(L + 128 * s);
-    this.home.y = h - B - 104 * s;
+    // sizes as on the original's phone layout: a big attack stick, a slightly smaller super to its
+    // left, the gadget above them
+    const ax = w - R - 118 * s, ay = h - B - 100 * s;
+    set(this.btn.atk, ax, ay, 62 * s);
+    set(this.btn.sup, ax - 138 * s, ay - 22 * s, 48 * s);
+    set(this.btn.gad, ax - 44 * s, ay - 118 * s, 32 * s);
+    set(this.btn.chat, w - R - 34 * s, Math.max((sf.t || 0) + 32 * s, ay - 190 * s), 24 * s);
+    this.R = 74 * s;
+    this.home.x = mx(L + 140 * s);
+    this.home.y = h - B - 112 * s;
     const wh = this.wheel;
     // upper right, clear of the player (the camera keeps the brawler at the middle of the screen)
     wh.R = Math.min(h * 0.34, 128 * s);
@@ -5179,8 +5444,8 @@ const Input = {
     // uses left: small pips under the button
     ctx.globalAlpha = op;
     for (let i = 0; i < 3; i++) {
-      const px = b.x + (i - 1) * 8 * s, py = b.y + b.r + 7 * s;
-      circle(ctx, px, py, 3 * s);
+      const px = b.x + (i - 1) * 10 * s, py = b.y + b.r + 8 * s;
+      circle(ctx, px, py, 3.5 * s);
       ctx.fillStyle = i < left ? '#7dff6a' : 'rgba(30,30,30,0.7)';
       ctx.fill();
       ctx.lineWidth = 1;
@@ -5732,7 +5997,8 @@ const Net = {
 //     B   [slot, x*100, y*100, face/64, hp, flags, (jump: T*100, TT*100, x0, y0, x1, y1 *10), (carry, bounty, cubes)]
 //         or [slot, -1, respawnT*10] when down. flags: 1 bush 2 super 4 stun 8 slow 16 shield 32 invisible
 //         64 speed 128 dash 256 knockback 512 jump fields follow 1024 carried items follow
-//     m   [ammo*100, super*100, gadgets left, gadget cooldown*10, last input seq applied, slowF*100, speedF*100]
+//     m   [ammo*100, super*100, gadgets left, gadget cooldown*10, last input seq applied, slowF*100, speedF*100,
+//          speed multiplier from star powers right now*100 (Escape Mode, Shadow Step)]
 //     D   [id, key, owner, x*100, y*100, hp, maxHp, face/64]          b  [x*100, y*100, z*100, holder]
 //     E   [ticks ago, EV.x, ...args] with seq es + index; each event rides in 5 snapshots in a row
 //     S   [ticks since it was at its start, first id, n, key, owner, flags (1 super 2 lob 4 beam 8 breaks),
@@ -5832,7 +6098,8 @@ function syncDataVer() {
 function syncGrow(pk) {
   const p = String(pk).split('.'), D = BRAWLERS[p[0]];
   if (!D) return 0;
-  const sp = p[1] === 'sup' ? D.sup : p[1] === 'gad' ? D.gadgets && D.gadgets[0] : D.atk;
+  if (p[1] === 'gad') return Math.max(0, ...(D.gadgets || []).map((g) => g.grow || 0));
+  const sp = p[1] === 'sup' ? D.sup : D.atk;
   return (sp && sp.grow) || 0;
 }
 
@@ -6069,7 +6336,9 @@ class SyncHost {
       BB.push(a);
     }
     msg.B = BB;
-    msg.m = [sq2(g.ammo), sq2(g.sup), g.gadLeft, sq1(g.gadT), g.lastSeq, sq2(g.slowF), sq2(g.speedF)];
+    const gp = g.kit.pass;
+    const pm = (gp.lowSpeed && g.hp < g.maxHp * gp.lowSpeed.at ? 1 + gp.lowSpeed.f : 1) * (gp.invisSpeed && g.invisT > 0 ? 1 + gp.invisSpeed : 1);
+    msg.m = [sq2(g.ammo), sq2(g.sup), g.gadLeft, sq1(g.gadT), g.lastSeq, sq2(g.slowF), sq2(g.speedF), sq2(pm)];
     const D = [];
     for (const d of sim.deploys) if (!d.dead && this.near(d.x, d.y, 2)) D.push([d.id, SyncKeys.enc(d.dk), d.owner, sq2(d.x), sq2(d.y), Math.ceil(d.hp), d.maxHp, sqFace(d.face)]);
     if (D.length) msg.D = D;
@@ -6125,7 +6394,7 @@ class GuestState {
         vis: 1 << s.team, inBush: false, revealT: 0, quietT: 0, shieldT: 0,
         stunT: 0, slowT: 0, slowF: 0, kbT: 0, kbx: 0, kby: 0, dashT: 0, invisT: 0, speedT: 0, speedF: 0,
         mvx: 0, mvy: 0, lastSeq: 0, st: { kills: 0, deaths: 0, dmg: 0, heal: 0, gems: 0, goals: 0, stars: 0 },
-        kit, pk: [s.bk, s.bk + '.atk', s.bk + '.sup', s.bk + '.gad'], speed: kit.speed,
+        kit, pk: [s.bk, s.bk + '.atk', s.bk + '.sup', s.bk + '.gad'], speed: kit.speed * (1 + (kit.pass.speedMul || 0)),
         jumpT: 0, jumpTT: 0, jx0: 0, jy0: 0, jx1: 0, jy1: 0,
       };
     });
@@ -6330,9 +6599,10 @@ class GuestMatch {
   }
   moveSpeed(s) {
     const r = s.B[this.local], m = s.me || [];
-    let k = this.me.kit.speed;
+    let k = this.me.speed;
     if (r.fl & 8) k *= 1 - (m[5] || 0) / 100;
     if (r.fl & 64) k *= 1 + (m[6] || 0) / 100;
+    if (m[7]) k *= m[7] / 100;
     return k;
   }
   step(x, y, w, sp, out) {
@@ -6858,7 +7128,7 @@ const Friend = {
     const s = SAVE, bk = BRAWLERS[s.sel] ? s.sel : 'nova', b = s.brawlers[bk] || { lvl: 1, tro: 0 };
     return {
       t: 'hello', v: NET_PROTO, dv: syncDataVer(), name: String(s.name || 'Player').slice(0, 16), bk, lvl: b.lvl | 0, tro: b.tro | 0,
-      gad: b.lvl >= Meta.GADGET_LVL && b.gadget >= 0 ? 1 : 0, star: b.lvl >= Meta.STAR_LVL && b.star >= 0 ? 1 : 0, // equipped gear
+      gad: b.lvl >= Meta.GADGET_LVL ? b.gadget : -1, star: b.lvl >= Meta.STAR_LVL ? b.star : -1, // equipped gear (index, -1 none)
     };
   },
 
@@ -6968,7 +7238,7 @@ const Friend = {
     const cfg = Meta.friendlyCfg({
       mode: o.mode, map: o.map, sameTeam: !!o.sameTeam, hostBk, hostLvl: (s.brawlers[hostBk] || { lvl: 1 }).lvl,
       guestBk: this.st.friend.bk, guestLvl: clamp(h.lvl | 0, 1, MAX_POWER), guestName: this.st.friend.name, guestTro: h.tro | 0,
-      guestGad: h.gad === 1, guestStar: h.star === 1,
+      guestGad: h.gad, guestStar: h.star,
     });
     this.link.send({ t: 'start', cfg });
     this.phase = 'vs';
@@ -9025,7 +9295,7 @@ const Art = (() => {
     'sizzle.atk': ['bottle', '#3ad06a', '#7aff6a'], 'sizzle.sup': ['bottle', '#ff8a2a', '#ffd23f'], 'sizzle.gad': ['bottle', '#5a6aff', '#9ab0ff'],
     'gizmo.atk': ['orb', '#e8feff', '#1fc8ff'], 'gizmo.sup': ['crate', '#ff9a2e', '#ffd23f'], 'gizmo.gad': ['orb', '#e8feff', '#1fc8ff'],
     'gizmo.tshot': ['bolt', '#e8feff', '#1fc8ff'], 'gizmo.turret': ['bolt', '#e8feff', '#1fc8ff'], 'hawk.nade': ['grenade', '#4a6a3a', '#ff8a1a'],
-    'volt.atk': ['zap', '#f0feff', '#3ad8ff'], 'volt.sup': ['storm', '#c0f0ff', '#3a7aff'], 'volt.gad': ['zap', '#f0feff', '#3ad8ff'],
+    'volt.atk': ['bolt', '#f0feff', '#3ad8ff'], 'volt.sup': ['bullet2', '#f0feff', '#3a7aff'], 'volt.gad': ['bullet2', '#f0feff', '#3ad8ff'],
     'hawk.atk': ['tracer', '#ffffff', '#c86aff'], 'hawk.sup': ['grenade', '#4a6a3a', '#ff8a1a'], 'hawk.gad': ['wave', '#ffffff', '#c86aff'],
     'frost.atk': ['snow', '#ffffff', '#8ad8ff'], 'frost.sup': ['wind', '#ffffff', '#8ad8ff'], 'frost.gad': ['snow', '#ffffff', '#8ad8ff'],
     'shade.atk': ['slash', '#e0c8ff', '#7a3ad8'], 'shade.sup': ['bats', '#ff5a8a', '#8a1a4a'], 'shade.gad': ['slash', '#e0c8ff', '#7a3ad8'],
@@ -9260,10 +9530,10 @@ const Art = (() => {
   // ---- areas ----
   const AREA = {
     'sizzle.atk': 'fire', 'sizzle.sup': 'fire', 'sizzle.gad': 'tar',
-    'volt.sup': 'storm', 'volt.gad': 'pulse',
+    'volt.gad': 'pulse',
     'thorn.sup': 'spikes', 'thorn.atk': 'spikes', 'thorn.gad': 'heal',
     'melody.gad': 'heal', 'melody.sup': 'heal', 'melody.atk': 'heal',
-    'frost.gad': 'frost', 'frost.sup': 'frost', 'frost.atk': 'frost',
+    'frost.gad': 'storm', 'frost.sup': 'frost', 'frost.atk': 'frost',
     'brick.sup': 'slam', 'brick.gad': 'shield', 'hawk.gad': 'pulse', 'hawk.sup': 'boom',
     'pip.sup': 'boom', 'pip.atk': 'boom', 'pip.gad': 'boom',
     'zip.sup': 'speed', 'specter.sup': 'smoke', 'specter.gad': 'speed', 'gizmo.gad': 'heal', 'shade.sup': 'drain',
@@ -10962,6 +11232,20 @@ const View = (() => {
             ctx.fill();
           }
         }
+        // the lunge's charge (Night Lunge): fills while not attacking; full means the long lunge
+        const L = b.kit && b.kit.atk && b.kit.atk.long;
+        if (L && b.atkT != null && state.t != null) {
+          const f = clamp((state.t - b.atkT) / (L.T - (b.kit.pass.dashCharge || 0)), 0, 1);
+          const dy = ay + ah + Math.max(1.5, T * 0.03), dh = Math.max(2, T * 0.06);
+          roundRect(ctx, d.sx - w / 2, dy, w, dh, dh * 0.4);
+          ctx.fillStyle = 'rgba(20,10,30,0.8)';
+          ctx.fill();
+          if (f > 0) {
+            roundRect(ctx, d.sx - w / 2, dy, w * f, dh, dh * 0.4);
+            ctx.fillStyle = f >= 1 ? '#ffe23a' : '#a08a2a';
+            ctx.fill();
+          }
+        }
       }
       // carried gems / bounty stars / power cubes
       const tag = (icon, n, col2) => {
@@ -11257,7 +11541,7 @@ function defaultSave() {
     drops: [], // pending drops (rarity floors, '' = random)
     daily: { day: '', wins: 0, quests: [], gift: false, bought: [] },
     stats: { played: 0, wins: 0, losses: 0, draws: 0, sdWins: 0, kills: 0, deaths: 0, mvps: 0, streak: 0, bestStreak: 0 },
-    settings: { sound: true, music: true, vibrate: true, quality: 'auto', leftHanded: false, autoAimHint: true },
+    settings: { sound: true, music: true, vibrate: true, quality: 'auto', leftHanded: false, autoAimHint: true, btnSize: 1 },
     seen: {}, // one-time tips and "new" badges
     pending: null, // { cfg, local, result? } while a trophy match runs (closing the app mid-match is a loss)
   };
@@ -11693,9 +11977,11 @@ const Meta = (() => {
     const prof = botProfile(rng, btro, mode);
     const bk = botBrawler(rng, prof, mode, mapKey, taken);
     taken.add(bk);
-    const blvl = clamp(lvl + rng.int(-1, 1), 1, MAX_POWER);
+    const blvl = clamp(lvl + rng.int(-1, 1), 1, MAX_POWER), D = BRAWLERS[bk];
     return {
-      team, bk, lvl: blvl, gadget: blvl >= GADGET_LVL && rng.chance(0.8) ? 0 : -1, star: blvl >= STAR_LVL && rng.chance(0.7) ? 0 : -1,
+      team, bk, lvl: blvl,
+      gadget: blvl >= GADGET_LVL && rng.chance(0.8) ? rng.int(0, D.gadgets.length - 1) : -1,
+      star: blvl >= STAR_LVL && rng.chance(0.7) ? rng.int(0, D.stars.length - 1) : -1,
       name: prof.name, icon: prof.icon, tro: btro, ctrl: 'bot', profile: prof,
     };
   }
@@ -11742,7 +12028,10 @@ const Meta = (() => {
       if (i === 0) slots.push(Object.assign(localSlot(team, owned(opts.hostBk) ? opts.hostBk : S().sel), { ctrl: 'local' }));
       else if (i === guestSlot) {
         const lvl = clamp(opts.guestLvl | 0 || 1, 1, MAX_POWER);
-        slots.push({ team, bk: guestBk, lvl, gadget: lvl >= GADGET_LVL && opts.guestGad ? 0 : -1, star: lvl >= STAR_LVL && opts.guestStar ? 0 : -1, name: String(opts.guestName || 'Friend').slice(0, 16), icon: guestBk, tro: opts.guestTro | 0, ctrl: 'remote', profile: null });
+        // gear index from the network: an index this brawler has, else none (true: an older build's "the first")
+        const gi = (v, list) => (v === true ? 0 : Number.isInteger(v) && v >= 0 && v < list.length ? v : -1);
+        const GD = BRAWLERS[guestBk];
+        slots.push({ team, bk: guestBk, lvl, gadget: lvl >= GADGET_LVL ? gi(opts.guestGad, GD.gadgets) : -1, star: lvl >= STAR_LVL ? gi(opts.guestStar, GD.stars) : -1, name: String(opts.guestName || 'Friend').slice(0, 16), icon: guestBk, tro: opts.guestTro | 0, ctrl: 'remote', profile: null });
       } else slots.push(botSlot(rng, team, mode, opts.map, 300, Math.max(1, Math.round(((opts.hostLvl || 1) + (opts.guestLvl || 1)) / 2)), taken));
     }
     return { mode, map: opts.map, seed, slots, localSlot: 0, guestSlot, friendly: true };
@@ -12073,8 +12362,8 @@ const UI = (() => {
         const eq = kind === 'gadget' ? st.gadget === i : st.star === i;
         const cost = Meta.gearCost(bk, kind, i);
         let act = '';
-        if (o && ownedG) act = `<button class="btn ${eq ? 'g' : 'dark'} o" data-eq="${kind}">${eq ? 'Equipped' : 'Equip'}</button>`;
-        else if (o && lv >= need && cost) act = `<button class="btn y o" data-buy="${kind}" ${S().coins >= cost.coins ? '' : 'disabled'}><i class="coin"></i>${fmtNum(cost.coins)}</button>`;
+        if (o && ownedG) act = `<button class="btn ${eq ? 'g' : 'dark'} o" data-eq="${kind}:${i}">${eq ? 'Equipped' : 'Equip'}</button>`;
+        else if (o && lv >= need && cost) act = `<button class="btn y o" data-buy="${kind}:${i}" ${S().coins >= cost.coins ? '' : 'disabled'}><i class="coin"></i>${fmtNum(cost.coins)}</button>`;
         else act = `<span class="muted" style="font-size:.7em">Power ${need}</span>`;
         return `<div class="abil"><span class="tag o" style="background:${kind === 'gadget' ? '#2fa83d' : '#e0a000'}">${kind === 'gadget' ? 'GADGET' : 'STAR'}</span><div class="tx"><b>${esc(g.name)}</b> ${esc(g.text)}</div>${act}</div>`;
       };
@@ -12107,10 +12396,11 @@ const UI = (() => {
       bind(P, '[data-up]', () => { if (Meta.upgrade(bk)) { snd('levelUp'); U.toast(`${D.name} is now power ${Meta.bState(bk).lvl}!`); } PANELS.brawler(bk); });
       bind(P, '[data-sel]', () => { Meta.select(bk); U.showLobby(); });
       bind(P, '[data-unlock]', () => { if (Meta.buyBrawler(bk)) { snd('unlock'); U.toast(`${D.name} unlocked!`); } PANELS.brawler(bk); });
-      bind(P, '[data-buy]', (b) => { if (Meta.buyGear(bk, b.dataset.buy, 0)) { snd('buy'); } PANELS.brawler(bk); });
+      // data-buy / data-eq: "gadget:1", "star:0" (one of each can be equipped; tapping the equipped one takes it off)
+      bind(P, '[data-buy]', (b) => { const [k, i] = b.dataset.buy.split(':'); if (Meta.buyGear(bk, k, +i)) { snd('buy'); } PANELS.brawler(bk); });
       bind(P, '[data-eq]', (b) => {
-        const s2 = Meta.bState(bk);
-        if (b.dataset.eq === 'gadget') Meta.setGear(bk, s2.gadget === 0 ? -1 : 0, s2.star); else Meta.setGear(bk, s2.gadget, s2.star === 0 ? -1 : 0);
+        const s2 = Meta.bState(bk), [k, i] = b.dataset.eq.split(':'), n = +i;
+        if (k === 'gadget') Meta.setGear(bk, s2.gadget === n ? -1 : n, s2.star); else Meta.setGear(bk, s2.gadget, s2.star === n ? -1 : n);
         PANELS.brawler(bk);
       });
     },
@@ -12195,13 +12485,15 @@ const UI = (() => {
       const body = `<div class="rows">
         <div class="card set"><span>Name</span><input class="nm" id="pname" maxlength="16" value="${esc(S().name)}"></div>
         <div class="card rows">${tog('sound', 'Sound effects')}${tog('music', 'Music')}${tog('vibrate', 'Vibration')}${tog('leftHanded', 'Left-handed controls')}
-          <div class="set"><span>Graphics</span><span>${['auto', 'high', 'low'].map((q) => `<button class="btn ${st.quality === q ? 'g' : 'dark'} o" data-q="${q}">${q.toUpperCase()}</button>`).join(' ')}</span></div></div>
+          <div class="set"><span>Graphics</span><span>${['auto', 'high', 'low'].map((q) => `<button class="btn ${st.quality === q ? 'g' : 'dark'} o" data-q="${q}">${q.toUpperCase()}</button>`).join(' ')}</span></div>
+          <div class="set"><span>Button size</span><span>${[['S', 0.85], ['M', 1], ['L', 1.2], ['XL', 1.4]].map(([n, v]) => `<button class="btn ${(+st.btnSize || 1) === v ? 'g' : 'dark'} o" data-bs="${v}">${n}</button>`).join(' ')}</span></div></div>
         <div class="card muted" style="font-size:.72em;font-family:system-ui,sans-serif;font-weight:700">Controls: drag on the left to move. Tap the red button to auto-aim, or drag it to aim and release to fire. The yellow button fires your super once it's charged; the green one uses your gadget. Keyboard: WASD, mouse aim, click to attack, Space for super, Q for gadget.</div>
       </div>`;
       const P = panel('Settings', body);
       const apply = () => { saveGame(); if (U.onSettings) U.onSettings(S().settings); };
       bind(P, '[data-tog]', (b) => { st[b.dataset.tog] = !st[b.dataset.tog]; apply(); PANELS.settings(); });
       bind(P, '[data-q]', (b) => { st.quality = b.dataset.q; apply(); PANELS.settings(); });
+      bind(P, '[data-bs]', (b) => { st.btnSize = +b.dataset.bs; apply(); PANELS.settings(); });
       const nm = $('pname');
       nm.addEventListener('change', () => { const v = nm.value.trim().slice(0, 16); if (v) { S().name = v; saveGame(); } });
     },
@@ -13345,6 +13637,7 @@ const Game = {
       if (Sound.setMusic) Sound.setMusic(st.music);
     }
     Input.leftHanded = !!st.leftHanded;
+    Input.size = clamp(+st.btnSize || 1, 0.6, 1.6);
     this.autoLow = false;
     if (typeof FX !== 'undefined') FX.low = st.quality === 'low';
     this.resize();

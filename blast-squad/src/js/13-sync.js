@@ -15,7 +15,8 @@
 //     B   [slot, x*100, y*100, face/64, hp, flags, (jump: T*100, TT*100, x0, y0, x1, y1 *10), (carry, bounty, cubes)]
 //         or [slot, -1, respawnT*10] when down. flags: 1 bush 2 super 4 stun 8 slow 16 shield 32 invisible
 //         64 speed 128 dash 256 knockback 512 jump fields follow 1024 carried items follow
-//     m   [ammo*100, super*100, gadgets left, gadget cooldown*10, last input seq applied, slowF*100, speedF*100]
+//     m   [ammo*100, super*100, gadgets left, gadget cooldown*10, last input seq applied, slowF*100, speedF*100,
+//          speed multiplier from star powers right now*100 (Escape Mode, Shadow Step)]
 //     D   [id, key, owner, x*100, y*100, hp, maxHp, face/64]          b  [x*100, y*100, z*100, holder]
 //     E   [ticks ago, EV.x, ...args] with seq es + index; each event rides in 5 snapshots in a row
 //     S   [ticks since it was at its start, first id, n, key, owner, flags (1 super 2 lob 4 beam 8 breaks),
@@ -115,7 +116,8 @@ function syncDataVer() {
 function syncGrow(pk) {
   const p = String(pk).split('.'), D = BRAWLERS[p[0]];
   if (!D) return 0;
-  const sp = p[1] === 'sup' ? D.sup : p[1] === 'gad' ? D.gadgets && D.gadgets[0] : D.atk;
+  if (p[1] === 'gad') return Math.max(0, ...(D.gadgets || []).map((g) => g.grow || 0));
+  const sp = p[1] === 'sup' ? D.sup : D.atk;
   return (sp && sp.grow) || 0;
 }
 
@@ -352,7 +354,9 @@ class SyncHost {
       BB.push(a);
     }
     msg.B = BB;
-    msg.m = [sq2(g.ammo), sq2(g.sup), g.gadLeft, sq1(g.gadT), g.lastSeq, sq2(g.slowF), sq2(g.speedF)];
+    const gp = g.kit.pass;
+    const pm = (gp.lowSpeed && g.hp < g.maxHp * gp.lowSpeed.at ? 1 + gp.lowSpeed.f : 1) * (gp.invisSpeed && g.invisT > 0 ? 1 + gp.invisSpeed : 1);
+    msg.m = [sq2(g.ammo), sq2(g.sup), g.gadLeft, sq1(g.gadT), g.lastSeq, sq2(g.slowF), sq2(g.speedF), sq2(pm)];
     const D = [];
     for (const d of sim.deploys) if (!d.dead && this.near(d.x, d.y, 2)) D.push([d.id, SyncKeys.enc(d.dk), d.owner, sq2(d.x), sq2(d.y), Math.ceil(d.hp), d.maxHp, sqFace(d.face)]);
     if (D.length) msg.D = D;
@@ -408,7 +412,7 @@ class GuestState {
         vis: 1 << s.team, inBush: false, revealT: 0, quietT: 0, shieldT: 0,
         stunT: 0, slowT: 0, slowF: 0, kbT: 0, kbx: 0, kby: 0, dashT: 0, invisT: 0, speedT: 0, speedF: 0,
         mvx: 0, mvy: 0, lastSeq: 0, st: { kills: 0, deaths: 0, dmg: 0, heal: 0, gems: 0, goals: 0, stars: 0 },
-        kit, pk: [s.bk, s.bk + '.atk', s.bk + '.sup', s.bk + '.gad'], speed: kit.speed,
+        kit, pk: [s.bk, s.bk + '.atk', s.bk + '.sup', s.bk + '.gad'], speed: kit.speed * (1 + (kit.pass.speedMul || 0)),
         jumpT: 0, jumpTT: 0, jx0: 0, jy0: 0, jx1: 0, jy1: 0,
       };
     });
@@ -613,9 +617,10 @@ class GuestMatch {
   }
   moveSpeed(s) {
     const r = s.B[this.local], m = s.me || [];
-    let k = this.me.kit.speed;
+    let k = this.me.speed;
     if (r.fl & 8) k *= 1 - (m[5] || 0) / 100;
     if (r.fl & 64) k *= 1 + (m[6] || 0) / 100;
+    if (m[7]) k *= m[7] / 100;
     return k;
   }
   step(x, y, w, sp, out) {
@@ -1141,7 +1146,7 @@ const Friend = {
     const s = SAVE, bk = BRAWLERS[s.sel] ? s.sel : 'nova', b = s.brawlers[bk] || { lvl: 1, tro: 0 };
     return {
       t: 'hello', v: NET_PROTO, dv: syncDataVer(), name: String(s.name || 'Player').slice(0, 16), bk, lvl: b.lvl | 0, tro: b.tro | 0,
-      gad: b.lvl >= Meta.GADGET_LVL && b.gadget >= 0 ? 1 : 0, star: b.lvl >= Meta.STAR_LVL && b.star >= 0 ? 1 : 0, // equipped gear
+      gad: b.lvl >= Meta.GADGET_LVL ? b.gadget : -1, star: b.lvl >= Meta.STAR_LVL ? b.star : -1, // equipped gear (index, -1 none)
     };
   },
 
@@ -1251,7 +1256,7 @@ const Friend = {
     const cfg = Meta.friendlyCfg({
       mode: o.mode, map: o.map, sameTeam: !!o.sameTeam, hostBk, hostLvl: (s.brawlers[hostBk] || { lvl: 1 }).lvl,
       guestBk: this.st.friend.bk, guestLvl: clamp(h.lvl | 0, 1, MAX_POWER), guestName: this.st.friend.name, guestTro: h.tro | 0,
-      guestGad: h.gad === 1, guestStar: h.star === 1,
+      guestGad: h.gad, guestStar: h.star,
     });
     this.link.send({ t: 'start', cfg });
     this.phase = 'vs';

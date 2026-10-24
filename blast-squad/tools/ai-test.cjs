@@ -134,7 +134,7 @@ for (const tier of TIERS) {
   const dm = med(agg.dir);
   say(dm >= 40 && dm <= 120, 'stick direction changes', `${dm.toFixed(0)} per minute (40-120)`);
   const im = med(agg.idle);
-  say(im >= 0.03 && im <= 0.12, 'idle while alive', `${pct(im)} (3-12%)`);
+  say(im >= 0.03 && im <= 0.12, 'idle while alive', `${(im * 100).toFixed(1)}% (3-12%)`);
   const bm = med(agg.bush);
   say(bm >= 0.03 && bm <= 0.25, 'time in bushes', `${pct(bm)} (3-25%)`);
   const rt = med(agg.retreat);

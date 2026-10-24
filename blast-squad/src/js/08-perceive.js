@@ -20,7 +20,7 @@ function percNoise(id, slot, k) {
 function newPercept() {
   return {
     tick: 0, t: 0, mode: '', map: null, cam: { x0: 0, y0: 0, x1: 0, y1: 0, cx: 0, cy: 0 }, flip: false,
-    me: { slot: 0, team: 0, bk: '', x: 0, y: 0, hp: 0, maxHp: 1, ammo: 0, sup: 0, supReady: false, gadLeft: 0, gadReady: false, carry: 0, cubes: 0, alive: false, respawnT: 0, inBush: false, invis: false, stunned: false, face: 0, lvl: 1, shield: false },
+    me: { slot: 0, team: 0, bk: '', x: 0, y: 0, hp: 0, maxHp: 1, ammo: 0, sup: 0, supReady: false, gadLeft: 0, gadReady: false, gadget: -1, carry: 0, cubes: 0, alive: false, respawnT: 0, inBush: false, invis: false, stunned: false, face: 0, lvl: 1, shield: false },
     allies: [], enemies: [], shots: [], areas: [], pickups: [], deploys: [], cues: [], pins: [],
     ball: null, hud: null, poison: null, nTeams: 2, frozen: false,
   };
@@ -40,7 +40,7 @@ function perceive(sim, slot, P, rng) {
   const cam = P.cam;
   const m = P.me;
   m.slot = slot; m.team = me.team; m.bk = me.bk; m.x = me.x; m.y = me.y; m.hp = me.hp; m.maxHp = me.maxHp;
-  m.ammo = me.ammo; m.sup = me.sup; m.supReady = me.supReady; m.gadLeft = me.gadLeft; m.gadReady = me.gadLeft > 0 && me.gadT <= 0 && me.gadget >= 0;
+  m.ammo = me.ammo; m.sup = me.sup; m.supReady = me.supReady; m.gadLeft = me.gadLeft; m.gadReady = me.gadLeft > 0 && me.gadT <= 0 && me.gadget >= 0; m.gadget = me.gadget; // own loadout
   m.carry = me.carry; m.cubes = me.cubes; m.alive = me.alive; m.respawnT = me.respawnT; m.inBush = me.inBush;
   m.invis = me.invisT > 0; m.stunned = me.stunT > 0; m.face = me.face; m.lvl = me.lvl; m.shield = me.shieldT > 0; m.bounty = me.bounty;
   P.frozen = sim.freezeT > 0; // the GOAL / ROUND banner is up: nothing moves
