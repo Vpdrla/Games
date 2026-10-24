@@ -70,6 +70,7 @@ class Sim {
 
   newBrawler(slot, c) {
     const star = c.star == null ? -1 : c.star, gad = c.gadget == null ? -1 : c.gadget;
+    if (!Object.prototype.hasOwnProperty.call(BRAWLERS, c.bk)) c = Object.assign({}, c, { bk: 'nova' }); // a bad key (from the network) can't break the sim
     const kit = brawlerKit(c.bk, star, gad);
     const lvl = c.lvl || 1;
     const hp = Math.round(kit.hp * LEVEL_MULT(lvl));

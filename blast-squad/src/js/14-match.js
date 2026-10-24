@@ -28,13 +28,15 @@ class RemoteCtrl {
       this.q.push(words[i] >>> 0);
       this.qs.push(s);
     }
-    // a long backlog: drop movement-only words but keep every action
+    // a long backlog: drop movement-only words but keep actions; past 12 words (0.4 s) the oldest go
+    // too, so a flood can't build an endless queue
     while (this.q.length > 4) {
       const i = this.q.findIndex((w) => !inAct(w));
       if (i < 0) break;
       this.q.splice(i, 1);
       this.qs.splice(i, 1);
     }
+    if (this.q.length > 12) { this.q.splice(0, this.q.length - 12); this.qs.splice(0, this.qs.length - 12); }
   }
   word(sim) {
     if (this.bot) return this.bot.tick(sim); // the friend dropped out: an AI holds the brawler
@@ -97,6 +99,7 @@ class Match {
   pin(slot, id) {
     const sim = this.sim;
     sim.pins.push({ slot, id, t: sim.t });
+    if (sim.pins.length > 12) sim.pins.shift();
     sim.ev(EV.PIN, slot, id);
   }
   emote(slot, id) { this.sim.ev(EV.EMOTE, slot, id); }

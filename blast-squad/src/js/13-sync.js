@@ -100,6 +100,17 @@ function syncUnHud(h, poison) {
   return h;
 }
 
+// A key from the network that names an own entry of a data table (never 'constructor', '__proto__'...).
+const syncOwn = (o, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k);
+
+// A fingerprint of the game data both phones must share (brawlers and maps): different builds
+// don't play together.
+let syncDV = 0;
+function syncDataVer() {
+  if (!syncDV) syncDV = hashStr(JSON.stringify(BRAWLERS) + JSON.stringify(MAPS)) || 1;
+  return syncDV;
+}
+
 // Radius growth per tile of a shot kind ('bk.atk' / 'bk.sup' / 'bk.gad'), from the brawler data.
 function syncGrow(pk) {
   const p = String(pk).split('.'), D = BRAWLERS[p[0]];
@@ -157,10 +168,19 @@ class SyncHost {
         if (c instanceof RemoteCtrl) c.push(m.s | 0, m.w.slice(-SYNC_WORDS).map((w) => w >>> 0));
         break;
       }
-      case 'pin': if (!this.m.ended) this.m.pin(this.gs, clamp(m.i | 0, 0, PINS.length - 1)); break;
-      case 'emo': if (!this.m.ended) this.m.emote(this.gs, clamp(m.i | 0, 0, EMOTES.length - 1)); break;
-      case 'rs': this.send({ t: 'PL', P: this.sim.pickups.filter((p) => !p.dead).map((p) => { const r = this.pickRec(p, this.sim.tick); r[0] = 0; return r; }) }); break;
+      // chat and resend requests are rate-limited (a flooding friend can't bog the host down)
+      case 'pin': if (!this.m.ended && this.limit('pin', 400)) this.m.pin(this.gs, clamp(m.i | 0, 0, PINS.length - 1)); break;
+      case 'emo': if (!this.m.ended && this.limit('emo', 400)) this.m.emote(this.gs, clamp(m.i | 0, 0, EMOTES.length - 1)); break;
+      case 'rs': if (this.limit('rs', 1000)) this.send({ t: 'PL', P: this.sim.pickups.filter((p) => !p.dead).map((p) => { const r = this.pickRec(p, this.sim.tick); r[0] = 0; return r; }) }); break;
     }
+  }
+
+  // True at most once per `ms` for a kind of request.
+  limit(kind, ms) {
+    const now = performance.now(), L = this.lim || (this.lim = {});
+    if (L[kind] && now - L[kind] < ms) return false;
+    L[kind] = now;
+    return true;
   }
 
   onTick() {
@@ -197,9 +217,16 @@ class SyncHost {
 
   // Near the guest's screen? (Anywhere while they watch someone else after being knocked out.)
   near(x, y, pad) {
-    const g = this.sim.brawlers[this.gs];
+    const sim = this.sim, g = sim.brawlers[this.gs];
     if (!g.alive && g.respawnT < 0) return true;
-    return Math.abs(x - g.x) <= SYNC_FAR_X + pad && Math.abs(y - g.y) <= SYNC_FAR_Y + pad;
+    if (Math.abs(x - g.x) <= SYNC_FAR_X + pad && Math.abs(y - g.y) <= SYNC_FAR_Y + pad) return true;
+    // the view's camera stops at the map edges, so a player near an edge sees farther the other way
+    if (this.camK !== sim.tick) {
+      const sd = sim.modeKey === MODE.SHOWDOWN;
+      this.cam = cameraRect(sim.map, g.x, g.y, g.team === 1 && !sd, sd, this.cam || {});
+      this.camK = sim.tick;
+    }
+    return inRect(this.cam, x, y, pad + 3);
   }
 
   // Shot records for this tick's new shots (a volley shares one record). The friend's own shots are
@@ -346,7 +373,7 @@ class SyncHost {
     let pn = 0, ps = 0;
     for (const p of sim.pickups) if (!p.dead) { pn++; ps = (ps + p.id) & 0xffff; }
     msg.pc = [pn, ps];
-    const size = this.send(msg, true);
+    const size = this.send(msg, !this.sim.over); // the final one (the last events) must arrive
     const st = this.stats;
     st.n++; st.bytes += size; st.max = Math.max(st.max, size);
     st.sizes.push(size);
@@ -1112,7 +1139,10 @@ const Friend = {
 
   mine() {
     const s = SAVE, bk = BRAWLERS[s.sel] ? s.sel : 'nova', b = s.brawlers[bk] || { lvl: 1, tro: 0 };
-    return { t: 'hello', v: NET_PROTO, name: String(s.name || 'Player').slice(0, 16), bk, lvl: b.lvl | 0, tro: b.tro | 0 };
+    return {
+      t: 'hello', v: NET_PROTO, dv: syncDataVer(), name: String(s.name || 'Player').slice(0, 16), bk, lvl: b.lvl | 0, tro: b.tro | 0,
+      gad: b.lvl >= Meta.GADGET_LVL && b.gadget >= 0 ? 1 : 0, star: b.lvl >= Meta.STAR_LVL && b.star >= 0 ? 1 : 0, // equipped gear
+    };
   },
 
   // Forget the current room (sending a goodbye if a friend is connected).
@@ -1174,10 +1204,10 @@ const Friend = {
   onMsg(m) {
     switch (m.t) {
       case 'hello': {
-        if (m.v !== NET_PROTO) { UI.toast('Your friend has a different version of the game. Both of you should reload.'); this.leave(); UI.open('friends'); return; }
+        if (m.v !== NET_PROTO || m.dv !== syncDataVer()) { UI.toast('Your friend has a different version of the game. Both of you should reload.'); this.leave(); UI.open('friends'); return; }
         this.hello = m;
-        this.st.friend = { name: String(m.name || 'Friend').slice(0, 16), bk: BRAWLERS[m.bk] ? m.bk : 'nova' };
-        if (this.role === 'guest') { this.st.mode = m.mode; this.st.map = m.map; this.st.sameTeam = !!m.sameTeam; }
+        this.st.friend = { name: String(m.name || 'Friend').slice(0, 16), bk: BRAWLER_KEYS.includes(m.bk) ? m.bk : 'nova' };
+        if (this.role === 'guest') { this.st.mode = syncOwn(MODE_INFO, m.mode) ? m.mode : 'gem'; this.st.map = syncOwn(MAPS, m.map) ? m.map : ''; this.st.sameTeam = !!m.sameTeam; }
         else { this.st.canStart = true; this.st.status = 'Ready!'; }
         if (typeof Sound !== 'undefined') Sound.play('confirm');
         this.show();
@@ -1221,6 +1251,7 @@ const Friend = {
     const cfg = Meta.friendlyCfg({
       mode: o.mode, map: o.map, sameTeam: !!o.sameTeam, hostBk, hostLvl: (s.brawlers[hostBk] || { lvl: 1 }).lvl,
       guestBk: this.st.friend.bk, guestLvl: clamp(h.lvl | 0, 1, MAX_POWER), guestName: this.st.friend.name, guestTro: h.tro | 0,
+      guestGad: h.gad === 1, guestStar: h.star === 1,
     });
     this.link.send({ t: 'start', cfg });
     this.phase = 'vs';
@@ -1238,7 +1269,12 @@ const Friend = {
 
   // Guest: the host started.
   startGuest(cfg0) {
-    const cfg = Object.assign({}, cfg0, { localSlot: cfg0.guestSlot });
+    const ok = cfg0 && syncOwn(MODE_INFO, cfg0.mode) && syncOwn(MAPS, cfg0.map) && Array.isArray(cfg0.slots) &&
+      cfg0.slots.length === MODE_INFO[cfg0.mode].teams * MODE_INFO[cfg0.mode].size && (cfg0.guestSlot | 0) === cfg0.guestSlot &&
+      cfg0.guestSlot > 0 && cfg0.guestSlot < cfg0.slots.length && cfg0.slots.every((s) => s && BRAWLER_KEYS.includes(s.bk));
+    if (!ok) { UI.toast('Could not start the battle'); this.leave(); UI.open('friends'); return; }
+    // friendly no matter what the host's message says: a friend's phone can't change your trophies
+    const cfg = Object.assign({}, cfg0, { localSlot: cfg0.guestSlot, friendly: true });
     this.phase = 'vs';
     if (typeof Sound !== 'undefined') Sound.init();
     UI.showVs(cfg, () => {
