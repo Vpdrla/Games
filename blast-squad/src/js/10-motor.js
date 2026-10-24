@@ -301,7 +301,7 @@ class Bot {
     if (t < this.tapAt) return out;
     // decide to shoot (a kick: in range, with a clear line to the goal mouth)
     if (act === 0 && key === 101) {
-      if (d > range * lerp(0.75, 1, p.discipline) || !shotClear(P.map, me.x, me.y, tx, ty)) return out;
+      if (d > range * lerp(0.85, 1, p.s) || !shotClear(P.map, me.x, me.y, tx, ty)) return out;
       act = ACT.ATTACK;
     } else if (act === 0) {
       const atk = this.kit.atkF;
