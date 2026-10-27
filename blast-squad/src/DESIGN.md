@@ -127,7 +127,7 @@ sim.rng                        // RNG for gameplay randomness
   - `vis` (bit per team that can see it), `inBush`, `revealT`, `quietT` (s since it last attacked or
     was hit), `shieldT`
   - `stunT, slowT, slowF, kbT, kbx, kby, dashT`
-  - `invisT` (invisible to enemies; they still see it within 1.6 tiles), `speedT, speedF`
+  - `invisT` (invisible to enemies; they still see it within 4 tiles), `speedT, speedF`
   - `mvx, mvy` (velocity last tick, tiles/s, for animation)
   - `lastSeq` (the remote input sequence applied, set by the match)
   - `st` (stats: `{ kills, deaths, dmg, heal, gems, goals, stars }`)
@@ -136,7 +136,9 @@ sim.rng                        // RNG for gameplay randomness
 - **Shot (`K.SHOT`):**
   - `owner` (slot), `pk` (visual key, e.g. `'nova.atk'`), `x0, y0`, `ang`, `spd`, `range`, `trav`
   - `dmg, r, pierce, hitMask` (bits of slots already hit), `sup` (from a super), `breaks`
-  - `lob`: `{ tx, ty, T, t }` for lobs, else null. They fly over everything and only act on landing.
+  - `lob`: `{ tx, ty, T, t, fuse, br }` for lobs, else null. They fly over everything and act on
+    landing, or with a `fuse` (s from the throw, at least T) lie lit on the ground until it burns
+    down; `br` is the blast radius, for the warning circle.
 - **Area (`K.AREA`):** `owner, ak` (visual key), `r, t, T` (time left / total), `dmg` (per second
   vs enemies), `heal` (per second for allies), `slow`. Like a blast, it reaches every body that overlaps
   it (`r + BRAWLER_R` from the centre), not only those whose centre is inside.
@@ -161,7 +163,7 @@ sim.rng                        // RNG for gameplay randomness
 - A brawler in a bush is seen only by its own team, plus any team that has a living member within
   `REVEAL_R`.
 - Attacking or being hit reveals it for `REVEAL_T`.
-- Invisible brawlers are seen by enemies only within 1.6 tiles.
+- Invisible brawlers are seen by enemies only within 4 tiles.
 - `vis` bits are recomputed every tick, and vision is shared within a team.
 
 **Result** (`sim.result` when `sim.over`):
@@ -225,7 +227,7 @@ rectangle (`cameraRect`, which also drives the view) plus the HUD. Bots never to
   allies:  [{ slot, bk, x, y, hp, maxHp, alive, carry, inBush, supReady, seen }], // alive/respawn from the HUD;
            //   position and health as last seen on screen (seen: false while off screen)
   enemies: [{ slot, bk, x, y, hp, maxHp, carry, cubes, inBush }], // visible to my team AND on my screen
-  shots:   [{ x, y, ang, spd, r, team, lob: {tx, ty, tLeft}|null }],      // enemy shots on my screen; a lob's
+  shots:   [{ x, y, ang, spd, r, team, lob: {tx, ty, tLeft, r}|null }], // enemy shots on my screen; a lob's
            //   landing spot is an estimate (judged from the shadow, closer as it comes down)
   areas:   [{ id, x, y, r, team, harm: bool }],  // a bot steps out of a harmful one only after a reaction
   pickups: [{ pick, x, y, n }],

@@ -41,11 +41,11 @@ function atkFacts(spec, kitSpeed) {
   const range = spec.range || spec.dist || (spec.r && t === 'pulse' ? spec.r : 0) || 0;
   const lob = t === 'lob' || t === 'leap' || (t === 'deploy') || (t === 'area' && spec.at !== 'self');
   const spd = t === 'shot' ? spec.spd || 12 : t === 'dash' ? spec.spd || 14 : Infinity;
-  const spread = spec.spread || 0;
+  const spread = spec.spread || (spec.wave && spec.wave.spread) || 0;
   // effective range: shotguns want to be close, everything else near max range
   const eff = range * (t === 'shot' && spec.n >= 4 && spread > 0.3 ? 0.68 : t === 'dash' ? 0.9 : 0.93);
   return {
-    t, range, spd, lob, T: spec.T || (lob ? 0.75 : 0), melee: t === 'dash' || t === 'arc' || range < 3.5, spread, n: spec.n || 1, eff, dmg: spec.dmg || 0,
+    t, range, spd, lob, T: spec.T || (lob ? 0.75 : 0), fuse: spec.fuse || 0, melee: t === 'dash' || t === 'arc' || range < 3.5, spread, n: spec.n || 1, eff, dmg: spec.dmg || 0,
     heal: spec.heal || spec.hps || 0, away: !!spec.away, what: spec.what, unit: spec.unit, sp: kitSpeed,
     at: spec.at || '', r: spec.r || 0, cleanse: !!spec.cleanse, burstShot: !!(spec.burst && spec.burst.shot), seek: !!spec.seek, inv: !!spec.inv,
     patchRange: spec.patch && spec.patch.range || 0,
@@ -497,7 +497,7 @@ class Mind {
       else if (gad.t === 'deploy') I.wantGadget = target && td < 9;
       else if (gad.t === 'shot' && gad.seek) I.wantGadget = target && td < 3 && danger > 0.5;
       else I.wantGadget = target && td < (gad.range || 6) && r.chance(0.4);
-      I.wantGadget = !!I.wantGadget;
+      I.wantGadget = !!I.wantGadget && !(P.ball && P.ball.holderSlot === me.slot); // no gadgets with the ball
     }
   }
 

@@ -1159,7 +1159,9 @@ const Art = (() => {
     if (map.env && ENV[map.env]) return ENV[map.env];
     return ENV[MODE_ENV[mode] || MODE_ENV[(map.modes && map.modes[0]) || 'gem']] || ENV.mine;
   }
-  const MX = 9, MY = 3; // tile layer margin around the map (tiles)
+  // Tile layer margin around the map (tiles). The camera shows CAM_H tiles of height, so MX covers
+  // a 21-wide map on screens up to ~2.6:1; a smaller layer stays at the tile size and blits 1:1.
+  const MX = 5, MY = 3;
   const RAISED = (tt) => tt === TILE.WALL || tt === TILE.STONE || tt === TILE.BOX;
 
   // Pre-renders the flat part of a map (floor, water, pads, mode markings, shadows, the border) in

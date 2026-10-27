@@ -52,7 +52,10 @@ const View = (() => {
     d.type = type; d.e = e; d.sx = sx; d.sy = sy; d.ys = ys; d.z = 0; d.side = 0; d.a = 1;
     return d;
   };
-  const D_BRAWLER = 1, D_DEPLOY = 2, D_PICKUP = 3, D_BALL = 4, D_SHOT = 5, D_LOB = 6, D_BEAM = 7, D_JUMP = 8;
+  const D_BRAWLER = 1, D_DEPLOY = 2, D_PICKUP = 3, D_BALL = 4, D_SHOT = 5, D_LOB = 6, D_BEAM = 7, D_JUMP = 8, D_WAVE = 9;
+  // the parts of each wave on screen this frame (shots sharing s.grp), drawn as one band
+  const waves = [];
+  let waveN = 0;
 
   // ---- small helpers ----
   const lerpPos = (e, a) => { F.sx = e.px + (e.x - e.px) * a; F.sy = e.py + (e.y - e.py) * a; };
@@ -382,6 +385,7 @@ const View = (() => {
   function collect(state, me) {
     const map = state.map, T = F.T, a = F.alpha;
     poolN = 0;
+    waveN = 0;
     for (let i = 0; i < rows.length; i++) if (rows[i]) rows[i].length = 0;
     overlay.length = 0;
     labels.length = 0;
@@ -478,6 +482,19 @@ const View = (() => {
         const d = rec(D_LOB, s, x, y, F.sy);
         d.z = 4 * (0.9 + Math.min(2.4, s.range * 0.22)) * k * (1 - k) + 0.25 * (1 - k);
         overlay.push(d);
+      } else if (s.grp) {
+        // part of a wave: gathered with the rest of its wave, drawn as one band above the walls
+        let w = null;
+        for (let j = 0; j < waveN; j++) if (waves[j].g === s.grp) { w = waves[j]; break; }
+        if (!w) {
+          w = waves[waveN] || (waves[waveN] = { g: null, parts: [] });
+          waveN++;
+          w.g = s.grp; w.parts.length = 0;
+          const dw = rec(D_WAVE, s, x, y, F.sy);
+          dw.w = w;
+          overlay.push(dw);
+        }
+        w.parts.push(rec(D_SHOT, s, x, y, F.sy));
       } else bucket(rec(D_SHOT, s, x, y, F.sy));
     }
     for (let i = 0; i < rows.length; i++) {
@@ -519,6 +536,60 @@ const View = (() => {
   }
   const nearPt = { x: 0, y: 0 };
 
+  // A wave (Melody's chord, Frost's gust, Bramble's shockwave) as one band through its parts: a part
+  // stopped by a wall is gone, so the band breaks only there.
+  function drawWave(ctx, P, T) {
+    const s0 = P[0].e, st = Art.shotStyle(s0.pk, s0.sup), z = SHOT_Z * T, r = Math.max(2, (s0.r || 0.3) * T);
+    const joined = (i) => i > 0 && P[i].e.id === P[i - 1].e.id + 1;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (let pass = 0; pass < 3; pass++) {
+      const lift = pass ? z : 0, w = pass === 0 ? r * 1.2 : pass === 1 ? r * 1.6 : r * 0.6;
+      ctx.globalAlpha = pass === 0 ? 0.16 : pass === 1 ? 0.55 : 0.95;
+      ctx.strokeStyle = ctx.fillStyle = pass === 0 ? '#000' : pass === 1 ? st[2] : st[1];
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      for (let i = 0; i < P.length; i++) {
+        const d = P[i];
+        if (joined(i)) ctx.lineTo(d.sx, d.sy - lift); else ctx.moveTo(d.sx, d.sy - lift);
+      }
+      ctx.stroke();
+      for (let i = 0; i < P.length; i++) {
+        if (joined(i) || (i + 1 < P.length && joined(i + 1))) continue;
+        ctx.beginPath(); // a lone part: a dot
+        ctx.arc(P[i].sx, P[i].sy - lift, w / 2, 0, TAU);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // A landed stick with a burning fuse: a faint blast circle that firms up as the fuse burns down,
+  // and a flickering spark on the stick.
+  function litFuse(ctx, d, L, T) {
+    const span = Math.max(0.05, L.fuse - L.T), p = clamp(1 - (L.fuse - L.t) / span, 0, 1);
+    const R = (L.br || 1) * T;
+    ctx.beginPath();
+    ctx.arc(d.sx, d.sy, R, 0, TAU);
+    ctx.globalAlpha = 0.08 + 0.17 * p;
+    ctx.fillStyle = '#ff4a2a';
+    ctx.fill();
+    ctx.globalAlpha = 0.35 + 0.4 * p;
+    ctx.lineWidth = Math.max(1.5, T * 0.04);
+    ctx.strokeStyle = '#ff6a3c';
+    ctx.stroke();
+    const f = 0.6 + 0.4 * Math.sin(V.time * 47 + d.e.id * 1.7);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#ffe680';
+    ctx.beginPath();
+    ctx.arc(d.sx + T * 0.14, d.sy - T * 0.2, Math.max(1.5, T * 0.08 * f), 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(d.sx + T * 0.14, d.sy - T * 0.2, Math.max(1, T * 0.035 * f), 0, TAU);
+    ctx.fill();
+  }
+
   function drawThing(ctx, d) {
     const T = F.T;
     switch (d.type) {
@@ -532,7 +603,13 @@ const View = (() => {
       case D_PICKUP: Art.pickup(ctx, d.e, d.sx, d.sy, T, V.time); break;
       case D_BALL: Art.ball(ctx, d.sx, d.sy, d.z, T, V.time, ballRoll); break;
       case D_SHOT: Art.shot(ctx, d.e, d.sx, d.sy, SHOT_Z, scrAng(d.e.ang), T, V.time); break;
-      case D_LOB: Art.shot(ctx, d.e, d.sx, d.sy, d.z, scrAng(d.e.ang), T, V.time); break;
+      case D_WAVE: drawWave(ctx, d.w.parts, T); break;
+      case D_LOB: {
+        const L = d.e.lob;
+        if (L && L.fuse > 0 && L.t >= L.T) litFuse(ctx, d, L, T);
+        Art.shot(ctx, d.e, d.sx, d.sy, d.z, scrAng(d.e.ang), T, V.time);
+        break;
+      }
       case D_BEAM: {
         const s = d.e;
         const life = clamp((s.ttl || 0) / 0.15, 0, 1);
@@ -649,7 +726,7 @@ const View = (() => {
     const sa = scrAng(ang);
     const col = A.act === ACT.SUPER ? '#ffd23f' : A.act === ACT.GADGET ? '#5dff7a' : '#ffffff';
     const x0 = toSX(wx), y0 = toSY(wy);
-    const fillA = A.act === ACT.ATTACK ? 0.36 : 0.4;
+    const fillA = A.act === ACT.ATTACK ? 0.5 : 0.45;
     ctx.save();
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
@@ -657,24 +734,51 @@ const View = (() => {
     if (air && prim !== 'lob' && prim !== 'leap' && prim !== 'deploy' && prim !== 'area') { ctx.restore(); return; }
     const range = s ? s.range || s.dist || 0 : 6;
     const d = clamp(A.d == null ? 1 : A.d, 0, 1);
-    const edge = () => { ctx.globalAlpha = 0.85; ctx.lineWidth = Math.max(1.5, T * 0.05); ctx.strokeStyle = col; ctx.stroke(); };
-    const fill = () => { ctx.globalAlpha = fillA; ctx.fillStyle = col; ctx.fill(); };
-    // straight things stop at the first wall unless they break it
-    const clipLen = (L, mask, breaks) => {
-      if (breaks || !map) return L;
-      const t = rayHit(map, wx, wy, wx + Math.cos(ang) * L, wy + Math.sin(ang) * L, mask, null);
-      return t >= 0 ? Math.max(0.3, L * t) : L;
+    // a dark rim under a bright edge, so the indicator reads on pale sand as well as on grass
+    const edge = () => {
+      ctx.globalAlpha = 0.6; ctx.lineWidth = Math.max(4, T * 0.14); ctx.strokeStyle = 'rgba(10,14,30,0.9)'; ctx.stroke();
+      ctx.globalAlpha = 1; ctx.lineWidth = Math.max(2, T * 0.07); ctx.strokeStyle = col; ctx.stroke();
     };
+    // a dim underlay first: plain white vanishes on pale ground
+    const fill = () => { ctx.globalAlpha = 0.24; ctx.fillStyle = '#0a0e1e'; ctx.fill(); ctx.globalAlpha = fillA; ctx.fillStyle = col; ctx.fill(); };
+    // How far a straight thing goes from (x, y) along angle a before its first wall (unless it breaks
+    // or passes walls). Each ray stops on its own: a wall cuts off only the part of a cone behind it.
+    const thru = s && (s.breaks || s.thru);
+    const rayLen = (x, y, a, L, mask) => {
+      if (thru || !map) return L;
+      const t = rayHit(map, x, y, x + Math.cos(a) * L, y + Math.sin(a) * L, mask, null);
+      return t >= 0 ? Math.max(0.05, L * t) : L;
+    };
+    const clipLen = (L, mask) => rayLen(wx, wy, ang, L, mask);
     const circleAt = (cx, cy, r) => { ctx.beginPath(); ctx.arc(cx, cy, r * T, 0, TAU); fill(); edge(); };
     switch (prim) {
       case 'shot': case 'beam': case 'dash': {
         const n = s ? s.n || 1 : 1;
-        const L = prim === 'dash' ? clipLen(range, TF_MOVE, false) : clipLen(range, TF_SHOT, s && s.breaks);
-        if (prim === 'shot' && n > 1 && s.spread > 0) {
-          const half = s.spread / 2 + Math.atan2(s.r || 0.15, L);
+        const L = prim === 'dash' ? clipLen(range, TF_MOVE) : clipLen(range, TF_SHOT);
+        const wave = s && s.wave;
+        const fanHalf = wave && wave.spread ? wave.spread / 2 : prim === 'shot' && n > 1 && s.spread > 0 ? s.spread / 2 : 0;
+        if (fanHalf > 0) {
+          // a cone: one ray every ~3 degrees, each cut at its own wall
+          const half = fanHalf + Math.atan2(s.r || 0.15, range), steps = Math.max(6, Math.ceil((half * 2) / 0.05));
           ctx.beginPath();
           ctx.moveTo(x0, y0);
-          ctx.arc(x0, y0, L * T, sa - half, sa + half);
+          for (let i = 0; i <= steps; i++) {
+            const a = ang - half + (i / steps) * half * 2, l = rayLen(wx, wy, a, range, TF_SHOT);
+            ctx.lineTo(toSX(wx + Math.cos(a) * l), toSY(wy + Math.sin(a) * l));
+          }
+          ctx.closePath();
+          fill();
+          edge();
+        } else if (wave && wave.width) {
+          // a wide band: parallel lanes, each cut at its own wall
+          const w = wave.width / 2 + (s.r || 0.15), c = Math.cos(ang), sn = Math.sin(ang), steps = Math.max(4, Math.ceil((w * 2) / 0.2));
+          ctx.beginPath();
+          ctx.moveTo(toSX(wx + sn * w), toSY(wy - c * w));
+          for (let i = 0; i <= steps; i++) {
+            const o = w - (i / steps) * w * 2, px = wx + sn * o, py = wy - c * o, l = rayLen(px, py, ang, range, TF_SHOT);
+            ctx.lineTo(toSX(px + c * l), toSY(py + sn * l));
+          }
+          ctx.lineTo(toSX(wx - sn * w), toSY(wy + c * w));
           ctx.closePath();
           fill();
           edge();

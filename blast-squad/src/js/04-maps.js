@@ -325,7 +325,7 @@ function parseMap(key) {
       tiles[y * w + x] = MAP_CHARS[c];
       const p = { x: x + 0.5, y: y + 0.5 };
       if (c === '1') spawns[0].push(p);
-      else if (c === '2') spawns[1].push(p);
+      else if (c === '2') (spawns[1] || (spawns[1] = [])).push(p);
       else if (c === 'S') spawns[0].push(p);
       else if (c === 'G') mine = p;
       else if (c === 'O') obj = p;

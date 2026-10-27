@@ -191,7 +191,7 @@ const MODES = {
   }),
 
   // Blast Ball: first to 2 goals. Holding the ball, attack kicks it (a tap kicks at the enemy goal)
-  // and super lobs a pass over walls; gadgets still work. After a goal the world freezes for the
+  // and super lobs a pass over walls; gadgets are off while holding it. After a goal the world freezes for the
   // celebration, then everyone and the ball go back to the start. Tied at the end of the clock:
   // sudden-death overtime with every breakable wall gone; still tied, a draw.
   ball: ModeKit.make(MODE.BALL, {
@@ -216,7 +216,9 @@ const MODES = {
 
     onAction(sim, b, act, I) {
       const o = sim.ball;
-      if (!o || o.holder !== b.slot || (act !== ACT.ATTACK && act !== ACT.SUPER)) return false;
+      if (!o || o.holder !== b.slot) return false;
+      if (act === ACT.GADGET) return true; // as in the original: no gadgets while holding the ball
+      if (act !== ACT.ATTACK && act !== ACT.SUPER) return false;
       const eg = this.goalCentre(sim, 1 - b.team);
       const ang = I.auto ? Math.atan2(eg.y - b.y, eg.x - b.x) : I.aimA;
       if (act === ACT.ATTACK) sim.kickBall(b, ang, this.kickSpd, 0, 2);

@@ -13,7 +13,7 @@ const REGEN_DELAY = 3; // s without attacking or taking damage before health reg
 const REGEN_RATE = 0.13; // share of max health regenerated per second
 const RESPAWN_T = 3; // s (3v3 modes with respawn)
 const SPAWN_SHIELD_T = 1.5; // s of spawn protection after (re)spawning
-const REVEAL_R = 2.6; // tiles: an enemy this close sees into your bush
+const REVEAL_R = 2; // tiles: an enemy this close sees into your bush
 const REVEAL_T = 1.0; // s visible after attacking or being hit while in a bush
 const LEVEL_MULT = (lvl) => 1 + 0.1 * (lvl - 1); // health and damage per power level (11 = x2)
 const MAX_POWER = 11;
@@ -21,11 +21,12 @@ const CUBE_HP = 400; // Showdown power cube: +400 max health (original units) ..
 const CUBE_DMG = 0.1; // ... and +10% damage each
 
 // The camera a player sees (and the only part of the world a bot may look at). Height in tiles; the
-// width follows a 16:9 phone in landscape. The player sits CAM_AHEAD of the way down the screen in
-// 3v3 modes (more room towards the enemy), in the middle in Showdown.
-const CAM_H = 16;
+// width follows a 16:9 phone in landscape (wider phones see a little more to the sides). Close in
+// like the original: a 3v3 map about fills the width of a phone. The player sits CAM_AHEAD of the
+// way down the screen in 3v3 modes (more room towards the enemy), in the middle in Showdown.
+const CAM_H = 12;
 const CAM_W = CAM_H * 16 / 9;
-const CAM_AHEAD = 0.62;
+const CAM_AHEAD = 0.68;
 
 // ---- tiles ----
 const TILE = { FLOOR: 0, WALL: 1, STONE: 2, WATER: 3, FENCE: 4, BUSH: 5, BOX: 6, PAD: 7 };

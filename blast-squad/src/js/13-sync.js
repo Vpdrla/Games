@@ -19,9 +19,9 @@
 //          speed multiplier from star powers right now*100 (Escape Mode, Shadow Step)]
 //     D   [id, key, owner, x*100, y*100, hp, maxHp, face/64]          b  [x*100, y*100, z*100, holder]
 //     E   [ticks ago, EV.x, ...args] with seq es + index; each event rides in 5 snapshots in a row
-//     S   [ticks since it was at its start, first id, n, key, owner, flags (1 super 2 lob 4 beam 8 breaks),
+//     S   [ticks since it was at its start, first id, n, key, owner, flags (1 super 2 lob 4 beam 8 breaks 16 thru walls),
 //          x0*10, y0*10, then straight: spd*10, range*10, r*100, angles*1000 (one per shot) | lob: T*100, r*100,
-//          tx*10, ty*10 per shot | beam: x1*10, y1*10]   (3 snapshots in a row; a bounce resends the path)
+//          fuse*100 (0: bursts on landing), blast radius*100, tx*10, ty*10 per shot | beam: x1*10, y1*10]   (3 snapshots in a row; a bounce resends the path)
 //     A   [ticks ago, id, key, owner, x*10, y*10, r*10, t left*10, T*10, flags 1 harm 2 heal 4 slow]
 //     P   [ticks ago, id, pick, n, x*10, y*10, (pop to tx*10, ty*10, pop time*100)]
 //   'r' { t:'ids', ids }  { t:'T', k, l: [tile, value, ...] }  { t:'e', k, ev } (goals, rounds)
@@ -113,6 +113,13 @@ function syncDataVer() {
 }
 
 // Radius growth per tile of a shot kind ('bk.atk' / 'bk.sup' / 'bk.gad'), from the brawler data.
+function syncWave(pk) {
+  const p = String(pk).split('.'), D = BRAWLERS[p[0]];
+  if (!D) return false;
+  if (p[1] === 'gad') return (D.gadgets || []).some((g) => !!g.wave);
+  const sp = p[1] === 'sup' ? D.sup : D.atk;
+  return !!(sp && sp.wave);
+}
 function syncGrow(pk) {
   const p = String(pk).split('.'), D = BRAWLERS[p[0]];
   if (!D) return 0;
@@ -228,7 +235,7 @@ class SyncHost {
       this.cam = cameraRect(sim.map, g.x, g.y, g.team === 1 && !sd, sd, this.cam || {});
       this.camK = sim.tick;
     }
-    return inRect(this.cam, x, y, pad + 3);
+    return inRect(this.cam, x, y, pad + 4); // a wider phone than 16:9 sees up to ~3.5 tiles more to each side
   }
 
   // Shot records for this tick's new shots (a volley shares one record). The friend's own shots are
@@ -248,12 +255,12 @@ class SyncHost {
       }
       this.shots.set(e.id, { e, x0: ex0, dead: -1 });
       if (!this.near(ex0, ey0, (range || 0) + 2)) { last = null; continue; }
-      const fl = (e.sup ? 1 : 0) | (e.lob ? 2 : 0) | (e.beam > 0 ? 4 : 0) | (e.breaks ? 8 : 0);
+      const fl = (e.sup ? 1 : 0) | (e.lob ? 2 : 0) | (e.beam > 0 ? 4 : 0) | (e.breaks ? 8 : 0) | (e.s && e.s.thru ? 16 : 0);
       const pk = SyncKeys.enc(e.pk), x0 = sq1(ex0), y0 = sq1(ey0), r = sq2(e.r0 || e.r);
       if (fl & 4) { this.cur.S.push([k0, e.id, 1, pk, e.owner, fl, x0, y0, sq1(e.x), sq1(e.y)]); last = null; continue; }
-      const a = (fl & 2) ? [sq2(e.lob.T), r] : [sq1(e.spd), sq1(range), r];
+      const a = (fl & 2) ? [sq2(e.lob.T), r, sq2(e.lob.fuse), sq2(e.lob.br)] : [sq1(e.spd), sq1(range), r];
       const same = last && last[1] + last[2] === e.id && last[0] === k0 && last[3] === pk && last[4] === e.owner && last[5] === fl && last[6] === x0 && last[7] === y0 &&
-        last[8] === a[0] && last[9] === a[1] && ((fl & 2) || last[10] === a[2]);
+        last[8] === a[0] && last[9] === a[1] && last[10] === a[2] && (!(fl & 2) || last[11] === a[3]);
       if (same) last[2]++;
       else { last = [k0, e.id, 1, pk, e.owner, fl, x0, y0].concat(a); this.cur.S.push(last); }
       if (fl & 2) last.push(sq1(e.lob.tx), sq1(e.lob.ty)); else last.push(Math.round(ang * 1000));
@@ -269,7 +276,7 @@ class SyncHost {
       if (e.dead) { if (o.dead < 0) o.dead = k; else if (k - o.dead > 1) this.shots.delete(id); continue; }
       if (e.x0 === o.x0 || e.lob) continue;
       o.x0 = e.x0;
-      this.cur.S.push([k, id, 1, SyncKeys.enc(e.pk), e.owner, (e.sup ? 1 : 0) | (e.breaks ? 8 : 0), sq1(e.x0), sq1(e.y0), sq1(e.spd), sq1(e.range), sq2(e.r0 || e.r), Math.round(e.ang * 1000)]);
+      this.cur.S.push([k, id, 1, SyncKeys.enc(e.pk), e.owner, (e.sup ? 1 : 0) | (e.breaks ? 8 : 0) | (e.s && e.s.thru ? 16 : 0), sq1(e.x0), sq1(e.y0), sq1(e.spd), sq1(e.range), sq2(e.r0 || e.r), Math.round(e.ang * 1000)]);
     }
   }
 
@@ -824,7 +831,7 @@ class GuestMatch {
     for (let i = 0; i < n; i++) {
       if (this.shotDone.has(r[1] + i)) continue;
       const s = {
-        id: r[1] + i, kind: K.SHOT, team: ob ? ob.team : -1, owner, pk, sup: !!(fl & 1), breaks: !!(fl & 8),
+        id: r[1] + i, kind: K.SHOT, team: ob ? ob.team : -1, owner, pk, sup: !!(fl & 1), breaks: !!(fl & 8), thru: !!(fl & 16),
         x: x0, y: y0, px: x0, py: y0, x0, y0, ang: 0, vx: 1, vy: 0, spd: 0, range: 0, r: 0.15, trav: 0,
         lob: null, beam: 0, ttl: 0, dead: false, p0: k0 - this.F, endL: 0, wall: 0, s: null,
       };
@@ -833,15 +840,16 @@ class GuestMatch {
         s.range = s.trav = s.beam = Math.max(0.01, Math.hypot(s.x - x0, s.y - y0));
         s.ang = Math.atan2(s.y - y0, s.x - x0); s.r = 0.1; s.ttl = 0.15;
       } else if (fl & 2) {
-        const tx = r[10 + i * 2] / 10, ty = r[11 + i * 2] / 10, T = r[8] / 100;
-        s.lob = { tx, ty, T, t: 0 };
+        const tx = r[12 + i * 2] / 10, ty = r[13 + i * 2] / 10, T = r[8] / 100;
+        s.lob = { tx, ty, T, t: 0, fuse: r[10] / 100, br: r[11] / 100 };
         s.r = r[9] / 100;
         s.range = Math.hypot(tx - x0, ty - y0);
         s.spd = s.range / Math.max(0.01, T);
         s.ang = Math.atan2(ty - y0, tx - x0);
       } else {
         s.spd = r[8] / 10; s.range = r[9] / 10; s.r = s.r0 = r[10] / 100;
-        s.grow = syncGrow(pk); // waves that widen as they travel (Melody)
+        s.grow = syncGrow(pk); // shots that widen as they travel
+        if (syncWave(pk)) s.grp = pk + '@' + owner + '@' + k0; // parts of one wave, drawn as one band
         this.path(s, r[11 + i] / 1000, x0, y0, s.range);
       }
       s.vx = Math.cos(s.ang); s.vy = Math.sin(s.ang);
@@ -860,7 +868,7 @@ class GuestMatch {
       for (let d = 0.1; d < range + 0.05; d += 0.1) {
         if (tileAt(m, x0 + s.vx * Math.min(d, range), y0 + s.vy * Math.min(d, range)) === TILE.STONE) { s.endL = Math.max(0, d - 0.1); s.wall = 1; break; }
       }
-    } else {
+    } else if (!s.thru) {
       const t = rayHit(m, x0, y0, x0 + s.vx * range, y0 + s.vy * range, TF_SHOT, null);
       if (t >= 0) { s.endL = range * t; s.wall = 1; }
     }
@@ -888,7 +896,7 @@ class GuestMatch {
       L.t = Math.max(0, el);
       s.x = s.px = s.x0 + (L.tx - s.x0) * k; s.y = s.py = s.y0 + (L.ty - s.y0) * k;
       s.trav = s.range * k;
-      if (k < 1) return true;
+      if (k < 1 || el < L.fuse) return true; // in flight, or lying lit on the ground
       this.fx([EV.SHOT_END, s.id, L.tx, L.ty, 0]);
       return false;
     }
