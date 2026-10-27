@@ -77,7 +77,7 @@ function perceive(sim, slot, P, rng) {
       const rem = Math.hypot(s.lob.tx - s.x, s.lob.ty - s.y) * LOB_JUDGE;
       lob = {
         tx: s.lob.tx + (percNoise(s.id, slot, 1) + percNoise(s.id, slot, 2)) * rem, ty: s.lob.ty + (percNoise(s.id, slot, 3) + percNoise(s.id, slot, 4)) * rem,
-        tLeft: Math.max(0, s.lob.T - s.lob.t), r: s.s && s.s.blast ? s.s.blast : 1,
+        tLeft: Math.max(0, (s.lob.fuse || s.lob.T) - s.lob.t), r: s.s && s.s.blast ? s.s.blast : 1,
       };
     }
     P.shots.push({ id: s.id, x: s.x, y: s.y, ang: s.ang, spd: s.spd, r: s.r, team: s.team, owner: s.owner, lob });

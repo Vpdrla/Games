@@ -107,12 +107,14 @@ class Bot {
         dx = this._fd.x; dy = this._fd.y;
         if (dx === 0 && dy === 0) { dx = I.gx - me.x; dy = I.gy - me.y; }
       } else {
-        // arrived: with enemies on screen people keep shuffling sideways; otherwise mostly stand
-        // (but not out of a bush they're hiding in), staying around their spot
-        if (P.enemies.length && this.p.juke > 0.3 && !me.inBush && I.goal !== 'ambush') {
+        // arrived: with enemies on screen (or just off it), or while cracking a box, people keep
+        // shuffling sideways; otherwise mostly stand (but not out of a bush they're hiding in),
+        // staying around their spot
+        const e = P.enemies[0] || this.recentFoe(P, me) || (I.goal === 'box' ? I.bushShot : null);
+        if (e && this.p.juke > 0.3 && !me.inBush && I.goal !== 'ambush') {
           this.jukeT -= dt;
           if (this.jukeT <= 0) { this.jukeDir = -this.jukeDir; this.jukeT = r.range(0.4, 1.3) / Math.max(0.3, p.juke); this.tel.jukeAt = this.t; }
-          const e = P.enemies[0], ed = Math.hypot(e.x - me.x, e.y - me.y) || 1;
+          const ed = Math.hypot(e.x - me.x, e.y - me.y) || 1;
           dx = (-(e.y - me.y) / ed) * this.jukeDir + (I.gx - me.x) * 0.8; dy = ((e.x - me.x) / ed) * this.jukeDir + (I.gy - me.y) * 0.8;
           want = 0.5;
         } else if (this.t < this.fidgetUntil) {
@@ -120,7 +122,13 @@ class Bot {
         } else {
           // standing: now and then a short fidget walk, like a thumb resting on the stick
           want = 0;
-          if (this.t >= this.fidgetNext) { this.fidgetUntil = this.t + r.range(0.2, 0.6); this.fidgetNext = this.fidgetUntil + r.range(2, 5); this.fidgetA = r.range(0, TAU); }
+          // (holding a spot with nothing on screen, people reposition more often)
+          if (this.t >= this.fidgetNext) {
+            const hold = I.goal === 'hold';
+            this.fidgetUntil = this.t + (hold ? r.range(0.3, 0.9) : r.range(0.2, 0.6));
+            this.fidgetNext = this.fidgetUntil + (hold ? r.range(0.4, 1.4) : r.range(2, 5));
+            this.fidgetA = r.range(0, TAU);
+          }
         }
       }
       // carrying gems or retreating: keep away from enemies on screen
@@ -184,6 +192,18 @@ class Bot {
     }
     this.mvM = approach(this.mvM, tgtM, dt * 7);
     if (this.mvM < 0.08 && tgtM === 0) this.mvM = 0;
+  }
+
+  // An enemy noticed in the last 2.5 s and still nearby (its last seen spot): someone who just left
+  // the screen keeps a player on their toes.
+  recentFoe(P, me) {
+    let best = null, bt = 2.5;
+    for (const k in this.mind.mem) {
+      const m = this.mind.mem[k];
+      if (!m.noticed || P.t - m.t >= bt || Math.hypot(m.x - me.x, m.y - me.y) > 12) continue;
+      best = m; bt = P.t - m.t;
+    }
+    return best;
   }
 
   // Nearest walkable tile centre to (gx, gy) (goals sometimes land on walls or water).
@@ -250,13 +270,13 @@ class Bot {
     const d = Math.hypot(tx - me.x, ty - me.y) || 0.01;
     // lead: aim where it will be, partly (people under-lead). A lob's flight time depends on how far
     // it's thrown (short throws land sooner), and the throw goes to the led spot, not the target.
-    let tf = spec.lob ? spec.T : spec.spd === Infinity ? 0.05 : d / spec.spd;
+    let tf = spec.lob ? Math.max(spec.T, spec.fuse || 0) : spec.spd === Infinity ? 0.05 : d / spec.spd;
     let px = tx, py = ty;
     if (m && key === I.target) {
       px = tx + m.vx * tf * p.lead; py = ty + m.vy * tf * p.lead;
       if (spec.lob && spec.range > 0) {
         for (let i = 0; i < 2; i++) {
-          tf = spec.T * (0.6 + 0.4 * Math.min(1, Math.hypot(px - me.x, py - me.y) / spec.range));
+          tf = Math.max(spec.fuse || 0, spec.T * (0.6 + 0.4 * Math.min(1, Math.hypot(px - me.x, py - me.y) / spec.range)));
           px = tx + m.vx * tf * p.lead; py = ty + m.vy * tf * p.lead;
         }
       }
@@ -455,10 +475,10 @@ class Telemetry {
           let nd = 99;
           for (const e of sim.brawlers) if (e.team !== b.team && e.alive && sim.visibleTo(b.team, e)) nd = Math.min(nd, Math.hypot(e.x - b.x, e.y - b.y));
           const D = BRAWLERS[b.bk].atk;
-          const flight = D.t === 'lob' ? D.T || 0.8 : D.t === 'shot' ? nd / (D.spd || 12) : 0.1;
+          const flight = D.t === 'lob' ? Math.max(D.T || 0.8, D.fuse || 0) : D.t === 'shot' ? nd / (D.spd || 12) : 0.1;
           // "multi": anything but one narrow projectile (spreads, bursts, beams, dashes, wide or widening
           // waves, puddles): hitting with those says little about aim
-          const wide = (D.r || 0) >= 0.5 || !!D.grow || !!D.area;
+          const wide = (D.r || 0) >= 0.5 || !!D.grow || !!D.area || !!D.wave;
           this.fires.push({ t, d: nd, flight, hit: false, multi: (D.n || 1) > 1 || D.t === 'beam' || D.t === 'dash' || wide });
           for (const [slot, at] of this.appear) { if (at >= 0) { this.responses.push(t - at); this.appear.set(slot, -1); } }
         } else if (ev[2] === ACT.SUPER && this.supReadyT >= 0) { this.supDelays.push(t - this.supReadyT); this.supReadyT = -1; }

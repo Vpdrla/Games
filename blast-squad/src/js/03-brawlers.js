@@ -99,8 +99,8 @@ const BRAWLERS = {
       t: 'shot', n: 4, burst: 0.07, jit: 0.25, dmg: 380, range: 3, spd: 10.87, r: 0.3, chg: 0.095,
     },
     sup: {
-      name: 'Big Drop', text: 'Leaps to a spot and slams down, damaging enemies and breaking walls.',
-      t: 'leap', range: 9, r: 1.7, dmg: 960, breaks: true,
+      name: 'Big Drop', text: 'Leaps to a spot (9 tiles a second) and slams down, knocking enemies back and breaking walls.',
+      t: 'leap', range: 9, lspd: 9, r: 1.7, dmg: 960, kb: 2.6, breaks: true,
     },
     gadgets: [
       { name: 'Body Slam', text: 'Dashes 3 tiles and throws everyone he runs into behind him.', cd: 14, t: 'dash', dist: 3, spd: 12, w: 0.5, throwBack: 3 },
@@ -116,8 +116,8 @@ const BRAWLERS = {
     desc: 'A forest kid who never fights alone: her bear has her back.',
     hp: 4200, speed: 750, reload: 1.1,
     atk: {
-      name: 'Root Wave', text: 'A wide shockwave that pierces through every enemy in its path.',
-      t: 'shot', dmg: 960, range: 6, spd: 9.06, r: 0.8, pierce: true, chg: 0.209,
+      name: 'Root Wave', text: 'A 1.67-tile wide shockwave that pierces through every enemy in its path.',
+      t: 'shot', dmg: 960, range: 6, spd: 9.06, r: 0.25, wave: { n: 3, width: 1.2 }, pierce: true, chg: 0.209,
     },
     sup: {
       name: 'Big Bruno', text: 'Summons Bruno the bear, who chases and mauls nearby enemies.',
@@ -138,12 +138,12 @@ const BRAWLERS = {
     desc: 'A cheerful demolition miner who lobs dynamite over walls.',
     hp: 3000, speed: 800, reload: 1.4,
     atk: {
-      name: 'Fuse Pair', text: 'Lobs 2 sticks of dynamite over walls.',
-      t: 'lob', n: 2, gap: 0.7, T: 0.95, range: 7.33, dmg: 800, blast: 0.95, r: 0.18, chg: 0.125,
+      name: 'Fuse Pair', text: 'Lobs 2 sticks of dynamite over walls. They lie on the ground and blow up 1 second after the throw.',
+      t: 'lob', n: 2, gap: 0.7, T: 0.7, fuse: 1.0, range: 7.33, dmg: 800, blast: 1.5, r: 0.18, chg: 0.125,
     },
     sup: {
-      name: 'Big Barrel', text: 'A huge barrel bomb that knocks enemies back and blows up walls.',
-      t: 'lob', T: 1.1, range: 8.33, dmg: 2200, blast: 2.0, kb: 1.8, breaks: true, r: 0.35,
+      name: 'Big Barrel', text: 'A huge barrel bomb that blows up 1.3 seconds after the throw, knocking enemies back and destroying walls.',
+      t: 'lob', T: 0.9, fuse: 1.3, range: 8.33, dmg: 2200, blast: 2.67, kb: 3, breaks: true, r: 0.35,
     },
     gadgets: [
       { name: 'Spin Cycle', text: 'Spins 20% faster for 2 seconds, tossing dynamite all around.', cd: 12, t: 'buff', what: 'speed', f: 0.2, T: 2, then: [{ t: 'lob', at: 'self', n: 6, ring: 2.2, T: 0.6, dmg: 1200, blast: 0.95, r: 0.18 }] },
@@ -159,12 +159,12 @@ const BRAWLERS = {
     desc: 'A street musician whose songs hurt foes and mend friends.',
     hp: 4000, speed: 750, reload: 1.6,
     atk: {
-      name: 'Sonic Chord', text: 'A very wide sound wave that pierces enemies and heals allies for 200.',
-      t: 'shot', dmg: 760, heal: 200, range: 7, spd: 8.33, r: 0.5, grow: 0.6, pierce: true, chg: 0.25,
+      name: 'Sonic Chord', text: 'A 65° sound wave that pierces enemies and heals allies for 200.',
+      t: 'shot', dmg: 760, heal: 200, range: 7, spd: 8.33, r: 0.35, wave: { n: 11, spread: 1.134 }, pierce: true, chg: 0.25,
     },
     sup: {
-      name: 'Encore', text: 'A huge wave that heals Melody and every ally it passes for 2100.',
-      t: 'shot', dmg: 0, heal: 2100, hself: true, range: 9.33, spd: 16.67, r: 1.0, grow: 0.6, pierce: true,
+      name: 'Encore', text: 'A 65° wave that passes through walls and heals Melody and every ally it reaches for 2100.',
+      t: 'shot', dmg: 0, heal: 2100, hself: true, range: 9.33, spd: 16.67, r: 0.35, wave: { n: 13, spread: 1.134 }, pierce: true, thru: true,
     },
     gadgets: [
       { name: 'Lullaby', text: 'Heals Melody and nearby allies for 700.', cd: 20, t: 'pulse', r: 3.33, heal: 700 },
@@ -181,19 +181,19 @@ const BRAWLERS = {
     hp: 2700, speed: 750, reload: 2.0,
     atk: {
       name: 'Hot Sauce', text: 'Lobs a bottle that leaves a puddle burning 800 a second.',
-      t: 'lob', T: 0.95, range: 7.33, r: 0.2, dmg: 0, area: { r: 1.3, T: 1.6, dps: 800 }, chg: 0.09,
+      t: 'lob', T: 0.95, range: 7.33, r: 0.2, dmg: 0, area: { r: 2, T: 1.9, dps: 800 }, chg: 0.09,
     },
     sup: {
       name: 'Last Call', text: 'Throws 5 bottles in a fan, setting a whole area ablaze.',
-      t: 'lob', n: 5, spread: 0.55, T: 1.0, range: 9.33, r: 0.2, dmg: 0, area: { r: 1.15, T: 2.6, dps: 800 },
+      t: 'lob', n: 5, spread: 0.55, T: 1.0, range: 9.33, r: 0.2, dmg: 0, area: { r: 1.15, T: 3.9, dps: 800 },
     },
     gadgets: [
-      { name: 'Syrup', text: 'Drops a sticky puddle that slows enemies by half.', cd: 18, t: 'area', at: 'self', r: 2, T: 3, slow: 0.5 },
+      { name: 'Syrup', text: 'Drops a big sticky puddle that slows enemies by half for 4 seconds.', cd: 18, t: 'area', at: 'self', r: 3.33, T: 4, slow: 0.5 },
       { name: 'House Special', text: 'Drops a soothing puddle that heals allies 400 a second.', cd: 20, t: 'area', at: 'self', r: 2, T: 3, hps: 400, ak: 'melody.gad' },
     ],
     stars: [
       { name: 'Taste Test', text: 'Heals Sizzle for 243 with every attack.', pass: { atkHeal: 243 } },
-      { name: 'Extra Spicy', text: 'Hot Sauce burns 100 more a second.', patch: { atk: { area: { r: 1.3, T: 1.6, dps: 900 } } } },
+      { name: 'Extra Spicy', text: 'Hot Sauce burns 100 more a second.', patch: { atk: { area: { r: 2, T: 1.9, dps: 900 } } } },
     ],
   },
   gizmo: {
@@ -252,7 +252,7 @@ const BRAWLERS = {
     sup: {
       name: 'Pop-Up', text: 'Leaps away, dropping 4 grenades where she took off.',
       t: 'leap', range: 8.67, away: true,
-      then: [{ t: 'lob', at: 'self', n: 4, ring: 0.9, T: 0.8, dmg: 900, blast: 1.0, r: 0.2, breaks: true }],
+      then: [{ t: 'lob', at: 'self', n: 4, ring: 0.9, T: 0.5, fuse: 0.8, dmg: 900, blast: 2, r: 0.2, breaks: true }],
     },
     gadgets: [
       { name: 'Back Off', text: 'Fires at the nearest enemy, knocking them back.', cd: 18, t: 'shot', seek: true, dmg: 90, range: 8, spd: 15, r: 0.15, kb: 2.5 },
@@ -269,11 +269,11 @@ const BRAWLERS = {
     hp: 4000, speed: 750, reload: 1.2,
     atk: {
       name: 'Snow Flurry', text: 'Throws 6 snowballs in a wide fan.',
-      t: 'shot', n: 6, spread: 0.7, dmg: 300, range: 8.33, spd: 9.7, r: 0.17, chg: 0.0675,
+      t: 'shot', n: 6, spread: 0.524, dmg: 300, range: 8.33, spd: 10.67, r: 0.17, chg: 0.0675,
     },
     sup: {
-      name: 'Gale Wall', text: 'A huge gust that pushes every enemy it passes back.',
-      t: 'shot', dmg: 800, range: 10, spd: 15, r: 1.0, grow: 0.6, pierce: true, kb: 3.2,
+      name: 'Gale Wall', text: 'An 80° gust that passes through walls and carries enemies away (up to 8.33 tiles).',
+      t: 'shot', dmg: 800, range: 10, spd: 15, r: 0.4, wave: { n: 13, spread: 1.396 }, pierce: true, thru: true, carry: 8.33,
     },
     gadgets: [
       { name: 'Whirlwind', text: 'A twister that shoves enemies away for 5 seconds.', cd: 21, t: 'area', at: 'aim', range: 6, r: 1.3, T: 5, push: 3 },
@@ -292,8 +292,8 @@ const BRAWLERS = {
       t: 'dash', dist: 2.67, spd: 9, dmg: 1000, w: 0.5, chg: 0.2125, long: { dist: 4.67, T: 4.5 },
     },
     sup: {
-      name: 'Soul Swarm', text: 'A swarm of bats that pierces enemies and steals their health.',
-      t: 'shot', dmg: 900, range: 10, spd: 10, r: 0.6, grow: 0.08, pierce: true, steal: 1,
+      name: 'Soul Swarm', text: 'A 2.67-tile wide swarm of bats that flies through walls, piercing enemies and stealing their health.',
+      t: 'shot', dmg: 900, range: 10, spd: 9.06, r: 0.92, pierce: true, thru: true, steal: 1,
     },
     gadgets: [
       { name: 'Whirl', text: 'Spins his shovel, hitting every enemy around him for 1000.', cd: 10, t: 'pulse', r: 2, dmg: 1000 },
@@ -331,7 +331,7 @@ const BRAWLERS = {
       t: 'shot', n: 4, spread: 0.36, dmg: 480, ramp: [1, 0.4], range: 9.67, spd: 11.7, r: 0.14, chg: 0.12625,
     },
     sup: {
-      name: 'Fade', text: 'Turns invisible to enemies for 6 seconds. Attacking ends it.',
+      name: 'Fade', text: 'Turns invisible for 6 seconds: only enemies within 4 tiles see him. Attacking ends it.',
       t: 'buff', what: 'invis', T: 6,
     },
     gadgets: [

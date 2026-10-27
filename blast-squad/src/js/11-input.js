@@ -451,6 +451,7 @@ const Input = {
     if (!this.hasGadget()) return;
     const me = this.me;
     if (me && (me.gadLeft <= 0 || me.gadT > 0)) return;
+    if (this.ball) return; // no gadgets while holding the ball
     if (this.device === 'mouse') {
       const a = this.mouseAim(ACT.GADGET);
       if (a) { this.queue(ACT.GADGET, 0, a.ang, a.d); return; }
@@ -725,7 +726,7 @@ const Input = {
     const cd = me ? me.gadT || 0 : 0;
     const spec = this.spec(ACT.GADGET);
     const cdT = (spec && spec.cd) || 5;
-    const ok = !!me && left > 0 && cd <= 0;
+    const ok = !!me && left > 0 && cd <= 0 && !this.ball; // greyed out while holding the ball
     ctx.globalAlpha = op * (ok ? 0.95 : 0.6);
     circle(ctx, b.x, b.y, b.r);
     ctx.fillStyle = ok ? (this.gadDown ? '#9dff8a' : '#3fc43a') : 'rgba(50,56,52,0.75)';

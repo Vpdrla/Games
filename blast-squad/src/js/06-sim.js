@@ -323,6 +323,18 @@ class Sim {
   // ---- primitives ----
   doShot(b, s, act, ang, mul) {
     const n = s.n || 1;
+    if (s.wave) {
+      // a wide wave (Poco, Gale's gust, Nita's shockwave): a fan or a row of small shots that share
+      // one hit list, so each part stops at its own wall and nobody is hit twice
+      const W = s.wave, g = { mask: 0, maskD: 0 }, c = Math.cos(ang), sn = Math.sin(ang);
+      for (let i = 0; i < W.n; i++) {
+        const k = W.n > 1 ? i / (W.n - 1) - 0.5 : 0;
+        const a = W.spread ? ang + k * W.spread : ang, off = W.width ? k * W.width : 0;
+        const e = this.spawnShot(b.slot, b.team, s, act, a, b.x - sn * off, b.y + c * off, mul, this._xStun);
+        e.grp = g;
+      }
+      return;
+    }
     if (s.burst > 0) {
       // fired over several ticks from wherever the brawler is, along the original aim
       b.bqN = n; b.bqI = 0; b.bqT = 0; b.bqS = s; b.bqA = ang; b.bqAct = act; b.bqMul = mul; b.bqStun = this._xStun;
@@ -392,7 +404,9 @@ class Sim {
       const L = Math.hypot(tx - b.x, ty - b.y);
       e.range = L;
       e.spd = L / T;
-      e.lob = { tx, ty, T, t: 0 };
+      // fuse: bursts that long after the throw (lying lit on the ground once it lands); br: blast
+      // radius, for the warning drawn around a lit stick
+      e.lob = { tx, ty, T, t: 0, fuse: s.fuse ? Math.max(s.fuse, T) : 0, br: s.blast || 0 };
       e.xslow = this._xSlow;
     }
   }
@@ -531,7 +545,7 @@ class Sim {
     const dist = clamp(d, 0, s.range);
     const o = this.freeSpot(b.x + Math.cos(ang) * dist, b.y + Math.sin(ang) * dist, b.r, this._o2);
     const L = Math.hypot(o.x - b.x, o.y - b.y);
-    this.startJump(b, o.x, o.y, s.T || 0.45 + 0.055 * L, s, act, mul);
+    this.startJump(b, o.x, o.y, s.T || (s.lspd ? Math.max(0.3, L / s.lspd) : 0.45 + 0.055 * L), s, act, mul);
     if (!s.dmg && !s.heal) this.fxn[b.slot * 4 + act]++;
   }
 
@@ -1062,25 +1076,26 @@ class Sim {
     const x0 = s.x, y0 = s.y, x1 = x0 + s.vx * step, y1 = y0 + s.vy * step;
     if (sp.grow) s.r = s.r0 + sp.grow * s.trav;
     if (s.breaks) this.breakAlong(x0, y0, x1, y1, s.r, s.owner, s.act);
-    const tw = rayHit(m, x0, y0, x1, y1, TF_SHOT, this._ray);
+    const tw = sp.thru ? -1 : rayHit(m, x0, y0, x1, y1, TF_SHOT, this._ray); // thru: passes over walls (Poco's Encore, Gale's gust)
+    const G = s.grp; // parts of one wave share who they've hit
     const wtx = this._ray.tx, wty = this._ray.ty;
     const tEnd = tw < 0 ? 1 : tw;
     if (s.dmg > 0) {
       let bt = 2, best = null;
       for (let i = 0; i < B.length; i++) {
         const e = B[i];
-        if (!this.hittable(e) || e.team === s.team || ((s.hitMask >> e.slot) & 1)) continue;
+        if (!this.hittable(e) || e.team === s.team || (((G ? G.mask : s.hitMask) >> e.slot) & 1)) continue;
         const t = segCircle(x0, y0, x1, y1, e.x, e.y, e.r + s.r);
         if (t < 0 || t > tEnd) continue;
         if (e.blockT > 0) { if (t < bt) { bt = t; best = e; } continue; } // destroyed on reaching it, even piercing ones
-        if (s.pierce) { s.hitMask |= 1 << e.slot; this.shotHit(s, e); } else if (t < bt) { bt = t; best = e; }
+        if (s.pierce) { s.hitMask |= 1 << e.slot; if (G) G.mask |= 1 << e.slot; this.shotHit(s, e); } else if (t < bt) { bt = t; best = e; }
       }
       for (let i = 0; i < D.length; i++) {
         const e = D[i];
-        if (e.dead || e.team === s.team || ((s.hitD >> e.owner) & 1)) continue;
+        if (e.dead || e.team === s.team || (((G ? G.maskD : s.hitD) >> e.owner) & 1)) continue;
         const t = segCircle(x0, y0, x1, y1, e.x, e.y, e.r + s.r);
         if (t < 0 || t > tEnd) continue;
-        if (s.pierce) { s.hitD |= 1 << e.owner; this.shotHit(s, e); } else if (t < bt) { bt = t; best = e; }
+        if (s.pierce) { s.hitD |= 1 << e.owner; if (G) G.maskD |= 1 << e.owner; this.shotHit(s, e); } else if (t < bt) { bt = t; best = e; }
       }
       if (best) {
         s.x = x0 + (x1 - x0) * bt;
@@ -1088,6 +1103,7 @@ class Sim {
         s.trav += step * bt;
         if (best.kind === K.BRAWLER && best.blockT > 0) { s.dead = true; this.ev(EV.SHOT_END, s.id, s.x, s.y, 1); return; }
         if (best.kind === K.BRAWLER) s.hitMask |= 1 << best.slot; else s.hitD |= 1 << best.owner;
+        if (G) { if (best.kind === K.BRAWLER) G.mask |= 1 << best.slot; else G.maskD |= 1 << best.owner; }
         this.shotHit(s, best);
         if (s.bnc > 0 && this.bounce(s)) return;
         this.endShot(s, 0);
@@ -1097,10 +1113,11 @@ class Sim {
     if (s.heal > 0) {
       for (let i = 0; i < B.length; i++) {
         const e = B[i];
-        if (!e.alive || e.team !== s.team || ((s.hitMask >> e.slot) & 1) || (e.slot === s.owner && !sp.hself)) continue;
+        if (!e.alive || e.team !== s.team || (((G ? G.mask : s.hitMask) >> e.slot) & 1) || (e.slot === s.owner && !sp.hself)) continue;
         const t = segCircle(x0, y0, x1, y1, e.x, e.y, e.r + s.r);
         if (t < 0 || t > tEnd) continue;
         s.hitMask |= 1 << e.slot;
+        if (G) G.mask |= 1 << e.slot;
         this.heal(e, s.heal, s.owner, s.act);
       }
     }
@@ -1148,6 +1165,8 @@ class Sim {
     const isB = e.kind === K.BRAWLER;
     const dealt = this.hurt(e, dmg, s.owner, s.act, crit, isB && s.act === ACT.ATTACK ? chg : 0);
     if (isB) this.applyMods(e, sp, s.owner, s.act, s.vx, s.vy, s.stun);
+    // carry: the gust takes them along to where it ends, up to that many tiles (Gale's super)
+    if (isB && sp.carry) this.knock(e, s.vx, s.vy, Math.min(sp.carry, Math.max(1, s.range - s.trav)), s.owner, s.act, sp.wallStun);
     if (sp.steal && dealt > 0) this.heal(this.brawlers[s.owner], dealt * sp.steal, s.owner, s.act);
   }
 
@@ -1195,7 +1214,7 @@ class Sim {
     s.x = s.x0 + (L.tx - s.x0) * k;
     s.y = s.y0 + (L.ty - s.y0) * k;
     s.trav = s.range * k;
-    if (k < 1) return;
+    if (k < 1 || L.t < L.fuse - 1e-6) return;
     const sp = s.s, chg = s.act === ACT.ATTACK ? sp.chg || 0 : 0;
     if (sp.breaks) this.breakCircle(s.x, s.y, sp.blast || 1, s.owner, s.act);
     if (sp.blast && (s.dmg > 0 || sp.kb || s.stun)) this.blast(s.owner, s.team, s.act, s.x, s.y, sp.blast, s.dmg, sp, s.stun, chg);
@@ -1645,5 +1664,5 @@ class Sim {
 
 Sim.BOX_HP = 6000; // Showdown power-cube box health
 Sim.AREA_TICK = 0.5; // lasting zones deal damage / heal in ticks of this many seconds
-Sim.INVIS_R = 1.6; // enemies this close see an invisible brawler
+Sim.INVIS_R = 4; // enemies this close see an invisible brawler
 Sim.BEAM_FX = { pk: '', dmg: 0, spd: 0, range: 0, r: 0.1 };

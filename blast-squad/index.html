@@ -352,7 +352,7 @@ const REGEN_DELAY = 3; // s without attacking or taking damage before health reg
 const REGEN_RATE = 0.13; // share of max health regenerated per second
 const RESPAWN_T = 3; // s (3v3 modes with respawn)
 const SPAWN_SHIELD_T = 1.5; // s of spawn protection after (re)spawning
-const REVEAL_R = 2.6; // tiles: an enemy this close sees into your bush
+const REVEAL_R = 2; // tiles: an enemy this close sees into your bush
 const REVEAL_T = 1.0; // s visible after attacking or being hit while in a bush
 const LEVEL_MULT = (lvl) => 1 + 0.1 * (lvl - 1); // health and damage per power level (11 = x2)
 const MAX_POWER = 11;
@@ -360,11 +360,12 @@ const CUBE_HP = 400; // Showdown power cube: +400 max health (original units) ..
 const CUBE_DMG = 0.1; // ... and +10% damage each
 
 // The camera a player sees (and the only part of the world a bot may look at). Height in tiles; the
-// width follows a 16:9 phone in landscape. The player sits CAM_AHEAD of the way down the screen in
-// 3v3 modes (more room towards the enemy), in the middle in Showdown.
-const CAM_H = 16;
+// width follows a 16:9 phone in landscape (wider phones see a little more to the sides). Close in
+// like the original: a 3v3 map about fills the width of a phone. The player sits CAM_AHEAD of the
+// way down the screen in 3v3 modes (more room towards the enemy), in the middle in Showdown.
+const CAM_H = 12;
 const CAM_W = CAM_H * 16 / 9;
-const CAM_AHEAD = 0.62;
+const CAM_AHEAD = 0.68;
 
 // ---- tiles ----
 const TILE = { FLOOR: 0, WALL: 1, STONE: 2, WATER: 3, FENCE: 4, BUSH: 5, BOX: 6, PAD: 7 };
@@ -590,8 +591,8 @@ const BRAWLERS = {
       t: 'shot', n: 4, burst: 0.07, jit: 0.25, dmg: 380, range: 3, spd: 10.87, r: 0.3, chg: 0.095,
     },
     sup: {
-      name: 'Big Drop', text: 'Leaps to a spot and slams down, damaging enemies and breaking walls.',
-      t: 'leap', range: 9, r: 1.7, dmg: 960, breaks: true,
+      name: 'Big Drop', text: 'Leaps to a spot (9 tiles a second) and slams down, knocking enemies back and breaking walls.',
+      t: 'leap', range: 9, lspd: 9, r: 1.7, dmg: 960, kb: 2.6, breaks: true,
     },
     gadgets: [
       { name: 'Body Slam', text: 'Dashes 3 tiles and throws everyone he runs into behind him.', cd: 14, t: 'dash', dist: 3, spd: 12, w: 0.5, throwBack: 3 },
@@ -607,8 +608,8 @@ const BRAWLERS = {
     desc: 'A forest kid who never fights alone: her bear has her back.',
     hp: 4200, speed: 750, reload: 1.1,
     atk: {
-      name: 'Root Wave', text: 'A wide shockwave that pierces through every enemy in its path.',
-      t: 'shot', dmg: 960, range: 6, spd: 9.06, r: 0.8, pierce: true, chg: 0.209,
+      name: 'Root Wave', text: 'A 1.67-tile wide shockwave that pierces through every enemy in its path.',
+      t: 'shot', dmg: 960, range: 6, spd: 9.06, r: 0.25, wave: { n: 3, width: 1.2 }, pierce: true, chg: 0.209,
     },
     sup: {
       name: 'Big Bruno', text: 'Summons Bruno the bear, who chases and mauls nearby enemies.',
@@ -629,12 +630,12 @@ const BRAWLERS = {
     desc: 'A cheerful demolition miner who lobs dynamite over walls.',
     hp: 3000, speed: 800, reload: 1.4,
     atk: {
-      name: 'Fuse Pair', text: 'Lobs 2 sticks of dynamite over walls.',
-      t: 'lob', n: 2, gap: 0.7, T: 0.95, range: 7.33, dmg: 800, blast: 0.95, r: 0.18, chg: 0.125,
+      name: 'Fuse Pair', text: 'Lobs 2 sticks of dynamite over walls. They lie on the ground and blow up 1 second after the throw.',
+      t: 'lob', n: 2, gap: 0.7, T: 0.7, fuse: 1.0, range: 7.33, dmg: 800, blast: 1.5, r: 0.18, chg: 0.125,
     },
     sup: {
-      name: 'Big Barrel', text: 'A huge barrel bomb that knocks enemies back and blows up walls.',
-      t: 'lob', T: 1.1, range: 8.33, dmg: 2200, blast: 2.0, kb: 1.8, breaks: true, r: 0.35,
+      name: 'Big Barrel', text: 'A huge barrel bomb that blows up 1.3 seconds after the throw, knocking enemies back and destroying walls.',
+      t: 'lob', T: 0.9, fuse: 1.3, range: 8.33, dmg: 2200, blast: 2.67, kb: 3, breaks: true, r: 0.35,
     },
     gadgets: [
       { name: 'Spin Cycle', text: 'Spins 20% faster for 2 seconds, tossing dynamite all around.', cd: 12, t: 'buff', what: 'speed', f: 0.2, T: 2, then: [{ t: 'lob', at: 'self', n: 6, ring: 2.2, T: 0.6, dmg: 1200, blast: 0.95, r: 0.18 }] },
@@ -650,12 +651,12 @@ const BRAWLERS = {
     desc: 'A street musician whose songs hurt foes and mend friends.',
     hp: 4000, speed: 750, reload: 1.6,
     atk: {
-      name: 'Sonic Chord', text: 'A very wide sound wave that pierces enemies and heals allies for 200.',
-      t: 'shot', dmg: 760, heal: 200, range: 7, spd: 8.33, r: 0.5, grow: 0.6, pierce: true, chg: 0.25,
+      name: 'Sonic Chord', text: 'A 65° sound wave that pierces enemies and heals allies for 200.',
+      t: 'shot', dmg: 760, heal: 200, range: 7, spd: 8.33, r: 0.35, wave: { n: 11, spread: 1.134 }, pierce: true, chg: 0.25,
     },
     sup: {
-      name: 'Encore', text: 'A huge wave that heals Melody and every ally it passes for 2100.',
-      t: 'shot', dmg: 0, heal: 2100, hself: true, range: 9.33, spd: 16.67, r: 1.0, grow: 0.6, pierce: true,
+      name: 'Encore', text: 'A 65° wave that passes through walls and heals Melody and every ally it reaches for 2100.',
+      t: 'shot', dmg: 0, heal: 2100, hself: true, range: 9.33, spd: 16.67, r: 0.35, wave: { n: 13, spread: 1.134 }, pierce: true, thru: true,
     },
     gadgets: [
       { name: 'Lullaby', text: 'Heals Melody and nearby allies for 700.', cd: 20, t: 'pulse', r: 3.33, heal: 700 },
@@ -672,19 +673,19 @@ const BRAWLERS = {
     hp: 2700, speed: 750, reload: 2.0,
     atk: {
       name: 'Hot Sauce', text: 'Lobs a bottle that leaves a puddle burning 800 a second.',
-      t: 'lob', T: 0.95, range: 7.33, r: 0.2, dmg: 0, area: { r: 1.3, T: 1.6, dps: 800 }, chg: 0.09,
+      t: 'lob', T: 0.95, range: 7.33, r: 0.2, dmg: 0, area: { r: 2, T: 1.9, dps: 800 }, chg: 0.09,
     },
     sup: {
       name: 'Last Call', text: 'Throws 5 bottles in a fan, setting a whole area ablaze.',
-      t: 'lob', n: 5, spread: 0.55, T: 1.0, range: 9.33, r: 0.2, dmg: 0, area: { r: 1.15, T: 2.6, dps: 800 },
+      t: 'lob', n: 5, spread: 0.55, T: 1.0, range: 9.33, r: 0.2, dmg: 0, area: { r: 1.15, T: 3.9, dps: 800 },
     },
     gadgets: [
-      { name: 'Syrup', text: 'Drops a sticky puddle that slows enemies by half.', cd: 18, t: 'area', at: 'self', r: 2, T: 3, slow: 0.5 },
+      { name: 'Syrup', text: 'Drops a big sticky puddle that slows enemies by half for 4 seconds.', cd: 18, t: 'area', at: 'self', r: 3.33, T: 4, slow: 0.5 },
       { name: 'House Special', text: 'Drops a soothing puddle that heals allies 400 a second.', cd: 20, t: 'area', at: 'self', r: 2, T: 3, hps: 400, ak: 'melody.gad' },
     ],
     stars: [
       { name: 'Taste Test', text: 'Heals Sizzle for 243 with every attack.', pass: { atkHeal: 243 } },
-      { name: 'Extra Spicy', text: 'Hot Sauce burns 100 more a second.', patch: { atk: { area: { r: 1.3, T: 1.6, dps: 900 } } } },
+      { name: 'Extra Spicy', text: 'Hot Sauce burns 100 more a second.', patch: { atk: { area: { r: 2, T: 1.9, dps: 900 } } } },
     ],
   },
   gizmo: {
@@ -743,7 +744,7 @@ const BRAWLERS = {
     sup: {
       name: 'Pop-Up', text: 'Leaps away, dropping 4 grenades where she took off.',
       t: 'leap', range: 8.67, away: true,
-      then: [{ t: 'lob', at: 'self', n: 4, ring: 0.9, T: 0.8, dmg: 900, blast: 1.0, r: 0.2, breaks: true }],
+      then: [{ t: 'lob', at: 'self', n: 4, ring: 0.9, T: 0.5, fuse: 0.8, dmg: 900, blast: 2, r: 0.2, breaks: true }],
     },
     gadgets: [
       { name: 'Back Off', text: 'Fires at the nearest enemy, knocking them back.', cd: 18, t: 'shot', seek: true, dmg: 90, range: 8, spd: 15, r: 0.15, kb: 2.5 },
@@ -760,11 +761,11 @@ const BRAWLERS = {
     hp: 4000, speed: 750, reload: 1.2,
     atk: {
       name: 'Snow Flurry', text: 'Throws 6 snowballs in a wide fan.',
-      t: 'shot', n: 6, spread: 0.7, dmg: 300, range: 8.33, spd: 9.7, r: 0.17, chg: 0.0675,
+      t: 'shot', n: 6, spread: 0.524, dmg: 300, range: 8.33, spd: 10.67, r: 0.17, chg: 0.0675,
     },
     sup: {
-      name: 'Gale Wall', text: 'A huge gust that pushes every enemy it passes back.',
-      t: 'shot', dmg: 800, range: 10, spd: 15, r: 1.0, grow: 0.6, pierce: true, kb: 3.2,
+      name: 'Gale Wall', text: 'An 80° gust that passes through walls and carries enemies away (up to 8.33 tiles).',
+      t: 'shot', dmg: 800, range: 10, spd: 15, r: 0.4, wave: { n: 13, spread: 1.396 }, pierce: true, thru: true, carry: 8.33,
     },
     gadgets: [
       { name: 'Whirlwind', text: 'A twister that shoves enemies away for 5 seconds.', cd: 21, t: 'area', at: 'aim', range: 6, r: 1.3, T: 5, push: 3 },
@@ -783,8 +784,8 @@ const BRAWLERS = {
       t: 'dash', dist: 2.67, spd: 9, dmg: 1000, w: 0.5, chg: 0.2125, long: { dist: 4.67, T: 4.5 },
     },
     sup: {
-      name: 'Soul Swarm', text: 'A swarm of bats that pierces enemies and steals their health.',
-      t: 'shot', dmg: 900, range: 10, spd: 10, r: 0.6, grow: 0.08, pierce: true, steal: 1,
+      name: 'Soul Swarm', text: 'A 2.67-tile wide swarm of bats that flies through walls, piercing enemies and stealing their health.',
+      t: 'shot', dmg: 900, range: 10, spd: 9.06, r: 0.92, pierce: true, thru: true, steal: 1,
     },
     gadgets: [
       { name: 'Whirl', text: 'Spins his shovel, hitting every enemy around him for 1000.', cd: 10, t: 'pulse', r: 2, dmg: 1000 },
@@ -822,7 +823,7 @@ const BRAWLERS = {
       t: 'shot', n: 4, spread: 0.36, dmg: 480, ramp: [1, 0.4], range: 9.67, spd: 11.7, r: 0.14, chg: 0.12625,
     },
     sup: {
-      name: 'Fade', text: 'Turns invisible to enemies for 6 seconds. Attacking ends it.',
+      name: 'Fade', text: 'Turns invisible for 6 seconds: only enemies within 4 tiles see him. Attacking ends it.',
       t: 'buff', what: 'invis', T: 6,
     },
     gadgets: [
@@ -1228,7 +1229,7 @@ function parseMap(key) {
       tiles[y * w + x] = MAP_CHARS[c];
       const p = { x: x + 0.5, y: y + 0.5 };
       if (c === '1') spawns[0].push(p);
-      else if (c === '2') spawns[1].push(p);
+      else if (c === '2') (spawns[1] || (spawns[1] = [])).push(p);
       else if (c === 'S') spawns[0].push(p);
       else if (c === 'G') mine = p;
       else if (c === 'O') obj = p;
@@ -1815,6 +1816,18 @@ class Sim {
   // ---- primitives ----
   doShot(b, s, act, ang, mul) {
     const n = s.n || 1;
+    if (s.wave) {
+      // a wide wave (Poco, Gale's gust, Nita's shockwave): a fan or a row of small shots that share
+      // one hit list, so each part stops at its own wall and nobody is hit twice
+      const W = s.wave, g = { mask: 0, maskD: 0 }, c = Math.cos(ang), sn = Math.sin(ang);
+      for (let i = 0; i < W.n; i++) {
+        const k = W.n > 1 ? i / (W.n - 1) - 0.5 : 0;
+        const a = W.spread ? ang + k * W.spread : ang, off = W.width ? k * W.width : 0;
+        const e = this.spawnShot(b.slot, b.team, s, act, a, b.x - sn * off, b.y + c * off, mul, this._xStun);
+        e.grp = g;
+      }
+      return;
+    }
     if (s.burst > 0) {
       // fired over several ticks from wherever the brawler is, along the original aim
       b.bqN = n; b.bqI = 0; b.bqT = 0; b.bqS = s; b.bqA = ang; b.bqAct = act; b.bqMul = mul; b.bqStun = this._xStun;
@@ -1884,7 +1897,9 @@ class Sim {
       const L = Math.hypot(tx - b.x, ty - b.y);
       e.range = L;
       e.spd = L / T;
-      e.lob = { tx, ty, T, t: 0 };
+      // fuse: bursts that long after the throw (lying lit on the ground once it lands); br: blast
+      // radius, for the warning drawn around a lit stick
+      e.lob = { tx, ty, T, t: 0, fuse: s.fuse ? Math.max(s.fuse, T) : 0, br: s.blast || 0 };
       e.xslow = this._xSlow;
     }
   }
@@ -2023,7 +2038,7 @@ class Sim {
     const dist = clamp(d, 0, s.range);
     const o = this.freeSpot(b.x + Math.cos(ang) * dist, b.y + Math.sin(ang) * dist, b.r, this._o2);
     const L = Math.hypot(o.x - b.x, o.y - b.y);
-    this.startJump(b, o.x, o.y, s.T || 0.45 + 0.055 * L, s, act, mul);
+    this.startJump(b, o.x, o.y, s.T || (s.lspd ? Math.max(0.3, L / s.lspd) : 0.45 + 0.055 * L), s, act, mul);
     if (!s.dmg && !s.heal) this.fxn[b.slot * 4 + act]++;
   }
 
@@ -2554,25 +2569,26 @@ class Sim {
     const x0 = s.x, y0 = s.y, x1 = x0 + s.vx * step, y1 = y0 + s.vy * step;
     if (sp.grow) s.r = s.r0 + sp.grow * s.trav;
     if (s.breaks) this.breakAlong(x0, y0, x1, y1, s.r, s.owner, s.act);
-    const tw = rayHit(m, x0, y0, x1, y1, TF_SHOT, this._ray);
+    const tw = sp.thru ? -1 : rayHit(m, x0, y0, x1, y1, TF_SHOT, this._ray); // thru: passes over walls (Poco's Encore, Gale's gust)
+    const G = s.grp; // parts of one wave share who they've hit
     const wtx = this._ray.tx, wty = this._ray.ty;
     const tEnd = tw < 0 ? 1 : tw;
     if (s.dmg > 0) {
       let bt = 2, best = null;
       for (let i = 0; i < B.length; i++) {
         const e = B[i];
-        if (!this.hittable(e) || e.team === s.team || ((s.hitMask >> e.slot) & 1)) continue;
+        if (!this.hittable(e) || e.team === s.team || (((G ? G.mask : s.hitMask) >> e.slot) & 1)) continue;
         const t = segCircle(x0, y0, x1, y1, e.x, e.y, e.r + s.r);
         if (t < 0 || t > tEnd) continue;
         if (e.blockT > 0) { if (t < bt) { bt = t; best = e; } continue; } // destroyed on reaching it, even piercing ones
-        if (s.pierce) { s.hitMask |= 1 << e.slot; this.shotHit(s, e); } else if (t < bt) { bt = t; best = e; }
+        if (s.pierce) { s.hitMask |= 1 << e.slot; if (G) G.mask |= 1 << e.slot; this.shotHit(s, e); } else if (t < bt) { bt = t; best = e; }
       }
       for (let i = 0; i < D.length; i++) {
         const e = D[i];
-        if (e.dead || e.team === s.team || ((s.hitD >> e.owner) & 1)) continue;
+        if (e.dead || e.team === s.team || (((G ? G.maskD : s.hitD) >> e.owner) & 1)) continue;
         const t = segCircle(x0, y0, x1, y1, e.x, e.y, e.r + s.r);
         if (t < 0 || t > tEnd) continue;
-        if (s.pierce) { s.hitD |= 1 << e.owner; this.shotHit(s, e); } else if (t < bt) { bt = t; best = e; }
+        if (s.pierce) { s.hitD |= 1 << e.owner; if (G) G.maskD |= 1 << e.owner; this.shotHit(s, e); } else if (t < bt) { bt = t; best = e; }
       }
       if (best) {
         s.x = x0 + (x1 - x0) * bt;
@@ -2580,6 +2596,7 @@ class Sim {
         s.trav += step * bt;
         if (best.kind === K.BRAWLER && best.blockT > 0) { s.dead = true; this.ev(EV.SHOT_END, s.id, s.x, s.y, 1); return; }
         if (best.kind === K.BRAWLER) s.hitMask |= 1 << best.slot; else s.hitD |= 1 << best.owner;
+        if (G) { if (best.kind === K.BRAWLER) G.mask |= 1 << best.slot; else G.maskD |= 1 << best.owner; }
         this.shotHit(s, best);
         if (s.bnc > 0 && this.bounce(s)) return;
         this.endShot(s, 0);
@@ -2589,10 +2606,11 @@ class Sim {
     if (s.heal > 0) {
       for (let i = 0; i < B.length; i++) {
         const e = B[i];
-        if (!e.alive || e.team !== s.team || ((s.hitMask >> e.slot) & 1) || (e.slot === s.owner && !sp.hself)) continue;
+        if (!e.alive || e.team !== s.team || (((G ? G.mask : s.hitMask) >> e.slot) & 1) || (e.slot === s.owner && !sp.hself)) continue;
         const t = segCircle(x0, y0, x1, y1, e.x, e.y, e.r + s.r);
         if (t < 0 || t > tEnd) continue;
         s.hitMask |= 1 << e.slot;
+        if (G) G.mask |= 1 << e.slot;
         this.heal(e, s.heal, s.owner, s.act);
       }
     }
@@ -2640,6 +2658,8 @@ class Sim {
     const isB = e.kind === K.BRAWLER;
     const dealt = this.hurt(e, dmg, s.owner, s.act, crit, isB && s.act === ACT.ATTACK ? chg : 0);
     if (isB) this.applyMods(e, sp, s.owner, s.act, s.vx, s.vy, s.stun);
+    // carry: the gust takes them along to where it ends, up to that many tiles (Gale's super)
+    if (isB && sp.carry) this.knock(e, s.vx, s.vy, Math.min(sp.carry, Math.max(1, s.range - s.trav)), s.owner, s.act, sp.wallStun);
     if (sp.steal && dealt > 0) this.heal(this.brawlers[s.owner], dealt * sp.steal, s.owner, s.act);
   }
 
@@ -2687,7 +2707,7 @@ class Sim {
     s.x = s.x0 + (L.tx - s.x0) * k;
     s.y = s.y0 + (L.ty - s.y0) * k;
     s.trav = s.range * k;
-    if (k < 1) return;
+    if (k < 1 || L.t < L.fuse - 1e-6) return;
     const sp = s.s, chg = s.act === ACT.ATTACK ? sp.chg || 0 : 0;
     if (sp.breaks) this.breakCircle(s.x, s.y, sp.blast || 1, s.owner, s.act);
     if (sp.blast && (s.dmg > 0 || sp.kb || s.stun)) this.blast(s.owner, s.team, s.act, s.x, s.y, sp.blast, s.dmg, sp, s.stun, chg);
@@ -3137,7 +3157,7 @@ class Sim {
 
 Sim.BOX_HP = 6000; // Showdown power-cube box health
 Sim.AREA_TICK = 0.5; // lasting zones deal damage / heal in ticks of this many seconds
-Sim.INVIS_R = 1.6; // enemies this close see an invisible brawler
+Sim.INVIS_R = 4; // enemies this close see an invisible brawler
 Sim.BEAM_FX = { pk: '', dmg: 0, spd: 0, range: 0, r: 0.1 };
 
 // ===== 07-modes.js =====
@@ -3334,7 +3354,7 @@ const MODES = {
   }),
 
   // Blast Ball: first to 2 goals. Holding the ball, attack kicks it (a tap kicks at the enemy goal)
-  // and super lobs a pass over walls; gadgets still work. After a goal the world freezes for the
+  // and super lobs a pass over walls; gadgets are off while holding it. After a goal the world freezes for the
   // celebration, then everyone and the ball go back to the start. Tied at the end of the clock:
   // sudden-death overtime with every breakable wall gone; still tied, a draw.
   ball: ModeKit.make(MODE.BALL, {
@@ -3359,7 +3379,9 @@ const MODES = {
 
     onAction(sim, b, act, I) {
       const o = sim.ball;
-      if (!o || o.holder !== b.slot || (act !== ACT.ATTACK && act !== ACT.SUPER)) return false;
+      if (!o || o.holder !== b.slot) return false;
+      if (act === ACT.GADGET) return true; // as in the original: no gadgets while holding the ball
+      if (act !== ACT.ATTACK && act !== ACT.SUPER) return false;
       const eg = this.goalCentre(sim, 1 - b.team);
       const ang = I.auto ? Math.atan2(eg.y - b.y, eg.x - b.x) : I.aimA;
       if (act === ACT.ATTACK) sim.kickBall(b, ang, this.kickSpd, 0, 2);
@@ -3610,7 +3632,7 @@ function perceive(sim, slot, P, rng) {
       const rem = Math.hypot(s.lob.tx - s.x, s.lob.ty - s.y) * LOB_JUDGE;
       lob = {
         tx: s.lob.tx + (percNoise(s.id, slot, 1) + percNoise(s.id, slot, 2)) * rem, ty: s.lob.ty + (percNoise(s.id, slot, 3) + percNoise(s.id, slot, 4)) * rem,
-        tLeft: Math.max(0, s.lob.T - s.lob.t), r: s.s && s.s.blast ? s.s.blast : 1,
+        tLeft: Math.max(0, (s.lob.fuse || s.lob.T) - s.lob.t), r: s.s && s.s.blast ? s.s.blast : 1,
       };
     }
     P.shots.push({ id: s.id, x: s.x, y: s.y, ang: s.ang, spd: s.spd, r: s.r, team: s.team, owner: s.owner, lob });
@@ -3701,11 +3723,11 @@ function atkFacts(spec, kitSpeed) {
   const range = spec.range || spec.dist || (spec.r && t === 'pulse' ? spec.r : 0) || 0;
   const lob = t === 'lob' || t === 'leap' || (t === 'deploy') || (t === 'area' && spec.at !== 'self');
   const spd = t === 'shot' ? spec.spd || 12 : t === 'dash' ? spec.spd || 14 : Infinity;
-  const spread = spec.spread || 0;
+  const spread = spec.spread || (spec.wave && spec.wave.spread) || 0;
   // effective range: shotguns want to be close, everything else near max range
   const eff = range * (t === 'shot' && spec.n >= 4 && spread > 0.3 ? 0.68 : t === 'dash' ? 0.9 : 0.93);
   return {
-    t, range, spd, lob, T: spec.T || (lob ? 0.75 : 0), melee: t === 'dash' || t === 'arc' || range < 3.5, spread, n: spec.n || 1, eff, dmg: spec.dmg || 0,
+    t, range, spd, lob, T: spec.T || (lob ? 0.75 : 0), fuse: spec.fuse || 0, melee: t === 'dash' || t === 'arc' || range < 3.5, spread, n: spec.n || 1, eff, dmg: spec.dmg || 0,
     heal: spec.heal || spec.hps || 0, away: !!spec.away, what: spec.what, unit: spec.unit, sp: kitSpeed,
     at: spec.at || '', r: spec.r || 0, cleanse: !!spec.cleanse, burstShot: !!(spec.burst && spec.burst.shot), seek: !!spec.seek, inv: !!spec.inv,
     patchRange: spec.patch && spec.patch.range || 0,
@@ -4157,7 +4179,7 @@ class Mind {
       else if (gad.t === 'deploy') I.wantGadget = target && td < 9;
       else if (gad.t === 'shot' && gad.seek) I.wantGadget = target && td < 3 && danger > 0.5;
       else I.wantGadget = target && td < (gad.range || 6) && r.chance(0.4);
-      I.wantGadget = !!I.wantGadget;
+      I.wantGadget = !!I.wantGadget && !(P.ball && P.ball.holderSlot === me.slot); // no gadgets with the ball
     }
   }
 
@@ -4311,12 +4333,14 @@ class Bot {
         dx = this._fd.x; dy = this._fd.y;
         if (dx === 0 && dy === 0) { dx = I.gx - me.x; dy = I.gy - me.y; }
       } else {
-        // arrived: with enemies on screen people keep shuffling sideways; otherwise mostly stand
-        // (but not out of a bush they're hiding in), staying around their spot
-        if (P.enemies.length && this.p.juke > 0.3 && !me.inBush && I.goal !== 'ambush') {
+        // arrived: with enemies on screen (or just off it), or while cracking a box, people keep
+        // shuffling sideways; otherwise mostly stand (but not out of a bush they're hiding in),
+        // staying around their spot
+        const e = P.enemies[0] || this.recentFoe(P, me) || (I.goal === 'box' ? I.bushShot : null);
+        if (e && this.p.juke > 0.3 && !me.inBush && I.goal !== 'ambush') {
           this.jukeT -= dt;
           if (this.jukeT <= 0) { this.jukeDir = -this.jukeDir; this.jukeT = r.range(0.4, 1.3) / Math.max(0.3, p.juke); this.tel.jukeAt = this.t; }
-          const e = P.enemies[0], ed = Math.hypot(e.x - me.x, e.y - me.y) || 1;
+          const ed = Math.hypot(e.x - me.x, e.y - me.y) || 1;
           dx = (-(e.y - me.y) / ed) * this.jukeDir + (I.gx - me.x) * 0.8; dy = ((e.x - me.x) / ed) * this.jukeDir + (I.gy - me.y) * 0.8;
           want = 0.5;
         } else if (this.t < this.fidgetUntil) {
@@ -4324,7 +4348,13 @@ class Bot {
         } else {
           // standing: now and then a short fidget walk, like a thumb resting on the stick
           want = 0;
-          if (this.t >= this.fidgetNext) { this.fidgetUntil = this.t + r.range(0.2, 0.6); this.fidgetNext = this.fidgetUntil + r.range(2, 5); this.fidgetA = r.range(0, TAU); }
+          // (holding a spot with nothing on screen, people reposition more often)
+          if (this.t >= this.fidgetNext) {
+            const hold = I.goal === 'hold';
+            this.fidgetUntil = this.t + (hold ? r.range(0.3, 0.9) : r.range(0.2, 0.6));
+            this.fidgetNext = this.fidgetUntil + (hold ? r.range(0.4, 1.4) : r.range(2, 5));
+            this.fidgetA = r.range(0, TAU);
+          }
         }
       }
       // carrying gems or retreating: keep away from enemies on screen
@@ -4388,6 +4418,18 @@ class Bot {
     }
     this.mvM = approach(this.mvM, tgtM, dt * 7);
     if (this.mvM < 0.08 && tgtM === 0) this.mvM = 0;
+  }
+
+  // An enemy noticed in the last 2.5 s and still nearby (its last seen spot): someone who just left
+  // the screen keeps a player on their toes.
+  recentFoe(P, me) {
+    let best = null, bt = 2.5;
+    for (const k in this.mind.mem) {
+      const m = this.mind.mem[k];
+      if (!m.noticed || P.t - m.t >= bt || Math.hypot(m.x - me.x, m.y - me.y) > 12) continue;
+      best = m; bt = P.t - m.t;
+    }
+    return best;
   }
 
   // Nearest walkable tile centre to (gx, gy) (goals sometimes land on walls or water).
@@ -4454,13 +4496,13 @@ class Bot {
     const d = Math.hypot(tx - me.x, ty - me.y) || 0.01;
     // lead: aim where it will be, partly (people under-lead). A lob's flight time depends on how far
     // it's thrown (short throws land sooner), and the throw goes to the led spot, not the target.
-    let tf = spec.lob ? spec.T : spec.spd === Infinity ? 0.05 : d / spec.spd;
+    let tf = spec.lob ? Math.max(spec.T, spec.fuse || 0) : spec.spd === Infinity ? 0.05 : d / spec.spd;
     let px = tx, py = ty;
     if (m && key === I.target) {
       px = tx + m.vx * tf * p.lead; py = ty + m.vy * tf * p.lead;
       if (spec.lob && spec.range > 0) {
         for (let i = 0; i < 2; i++) {
-          tf = spec.T * (0.6 + 0.4 * Math.min(1, Math.hypot(px - me.x, py - me.y) / spec.range));
+          tf = Math.max(spec.fuse || 0, spec.T * (0.6 + 0.4 * Math.min(1, Math.hypot(px - me.x, py - me.y) / spec.range)));
           px = tx + m.vx * tf * p.lead; py = ty + m.vy * tf * p.lead;
         }
       }
@@ -4659,10 +4701,10 @@ class Telemetry {
           let nd = 99;
           for (const e of sim.brawlers) if (e.team !== b.team && e.alive && sim.visibleTo(b.team, e)) nd = Math.min(nd, Math.hypot(e.x - b.x, e.y - b.y));
           const D = BRAWLERS[b.bk].atk;
-          const flight = D.t === 'lob' ? D.T || 0.8 : D.t === 'shot' ? nd / (D.spd || 12) : 0.1;
+          const flight = D.t === 'lob' ? Math.max(D.T || 0.8, D.fuse || 0) : D.t === 'shot' ? nd / (D.spd || 12) : 0.1;
           // "multi": anything but one narrow projectile (spreads, bursts, beams, dashes, wide or widening
           // waves, puddles): hitting with those says little about aim
-          const wide = (D.r || 0) >= 0.5 || !!D.grow || !!D.area;
+          const wide = (D.r || 0) >= 0.5 || !!D.grow || !!D.area || !!D.wave;
           this.fires.push({ t, d: nd, flight, hit: false, multi: (D.n || 1) > 1 || D.t === 'beam' || D.t === 'dash' || wide });
           for (const [slot, at] of this.appear) { if (at >= 0) { this.responses.push(t - at); this.appear.set(slot, -1); } }
         } else if (ev[2] === ACT.SUPER && this.supReadyT >= 0) { this.supDelays.push(t - this.supReadyT); this.supReadyT = -1; }
@@ -5148,6 +5190,7 @@ const Input = {
     if (!this.hasGadget()) return;
     const me = this.me;
     if (me && (me.gadLeft <= 0 || me.gadT > 0)) return;
+    if (this.ball) return; // no gadgets while holding the ball
     if (this.device === 'mouse') {
       const a = this.mouseAim(ACT.GADGET);
       if (a) { this.queue(ACT.GADGET, 0, a.ang, a.d); return; }
@@ -5422,7 +5465,7 @@ const Input = {
     const cd = me ? me.gadT || 0 : 0;
     const spec = this.spec(ACT.GADGET);
     const cdT = (spec && spec.cd) || 5;
-    const ok = !!me && left > 0 && cd <= 0;
+    const ok = !!me && left > 0 && cd <= 0 && !this.ball; // greyed out while holding the ball
     ctx.globalAlpha = op * (ok ? 0.95 : 0.6);
     circle(ctx, b.x, b.y, b.r);
     ctx.fillStyle = ok ? (this.gadDown ? '#9dff8a' : '#3fc43a') : 'rgba(50,56,52,0.75)';
@@ -6001,9 +6044,9 @@ const Net = {
 //          speed multiplier from star powers right now*100 (Escape Mode, Shadow Step)]
 //     D   [id, key, owner, x*100, y*100, hp, maxHp, face/64]          b  [x*100, y*100, z*100, holder]
 //     E   [ticks ago, EV.x, ...args] with seq es + index; each event rides in 5 snapshots in a row
-//     S   [ticks since it was at its start, first id, n, key, owner, flags (1 super 2 lob 4 beam 8 breaks),
+//     S   [ticks since it was at its start, first id, n, key, owner, flags (1 super 2 lob 4 beam 8 breaks 16 thru walls),
 //          x0*10, y0*10, then straight: spd*10, range*10, r*100, angles*1000 (one per shot) | lob: T*100, r*100,
-//          tx*10, ty*10 per shot | beam: x1*10, y1*10]   (3 snapshots in a row; a bounce resends the path)
+//          fuse*100 (0: bursts on landing), blast radius*100, tx*10, ty*10 per shot | beam: x1*10, y1*10]   (3 snapshots in a row; a bounce resends the path)
 //     A   [ticks ago, id, key, owner, x*10, y*10, r*10, t left*10, T*10, flags 1 harm 2 heal 4 slow]
 //     P   [ticks ago, id, pick, n, x*10, y*10, (pop to tx*10, ty*10, pop time*100)]
 //   'r' { t:'ids', ids }  { t:'T', k, l: [tile, value, ...] }  { t:'e', k, ev } (goals, rounds)
@@ -6095,6 +6138,13 @@ function syncDataVer() {
 }
 
 // Radius growth per tile of a shot kind ('bk.atk' / 'bk.sup' / 'bk.gad'), from the brawler data.
+function syncWave(pk) {
+  const p = String(pk).split('.'), D = BRAWLERS[p[0]];
+  if (!D) return false;
+  if (p[1] === 'gad') return (D.gadgets || []).some((g) => !!g.wave);
+  const sp = p[1] === 'sup' ? D.sup : D.atk;
+  return !!(sp && sp.wave);
+}
 function syncGrow(pk) {
   const p = String(pk).split('.'), D = BRAWLERS[p[0]];
   if (!D) return 0;
@@ -6210,7 +6260,7 @@ class SyncHost {
       this.cam = cameraRect(sim.map, g.x, g.y, g.team === 1 && !sd, sd, this.cam || {});
       this.camK = sim.tick;
     }
-    return inRect(this.cam, x, y, pad + 3);
+    return inRect(this.cam, x, y, pad + 4); // a wider phone than 16:9 sees up to ~3.5 tiles more to each side
   }
 
   // Shot records for this tick's new shots (a volley shares one record). The friend's own shots are
@@ -6230,12 +6280,12 @@ class SyncHost {
       }
       this.shots.set(e.id, { e, x0: ex0, dead: -1 });
       if (!this.near(ex0, ey0, (range || 0) + 2)) { last = null; continue; }
-      const fl = (e.sup ? 1 : 0) | (e.lob ? 2 : 0) | (e.beam > 0 ? 4 : 0) | (e.breaks ? 8 : 0);
+      const fl = (e.sup ? 1 : 0) | (e.lob ? 2 : 0) | (e.beam > 0 ? 4 : 0) | (e.breaks ? 8 : 0) | (e.s && e.s.thru ? 16 : 0);
       const pk = SyncKeys.enc(e.pk), x0 = sq1(ex0), y0 = sq1(ey0), r = sq2(e.r0 || e.r);
       if (fl & 4) { this.cur.S.push([k0, e.id, 1, pk, e.owner, fl, x0, y0, sq1(e.x), sq1(e.y)]); last = null; continue; }
-      const a = (fl & 2) ? [sq2(e.lob.T), r] : [sq1(e.spd), sq1(range), r];
+      const a = (fl & 2) ? [sq2(e.lob.T), r, sq2(e.lob.fuse), sq2(e.lob.br)] : [sq1(e.spd), sq1(range), r];
       const same = last && last[1] + last[2] === e.id && last[0] === k0 && last[3] === pk && last[4] === e.owner && last[5] === fl && last[6] === x0 && last[7] === y0 &&
-        last[8] === a[0] && last[9] === a[1] && ((fl & 2) || last[10] === a[2]);
+        last[8] === a[0] && last[9] === a[1] && last[10] === a[2] && (!(fl & 2) || last[11] === a[3]);
       if (same) last[2]++;
       else { last = [k0, e.id, 1, pk, e.owner, fl, x0, y0].concat(a); this.cur.S.push(last); }
       if (fl & 2) last.push(sq1(e.lob.tx), sq1(e.lob.ty)); else last.push(Math.round(ang * 1000));
@@ -6251,7 +6301,7 @@ class SyncHost {
       if (e.dead) { if (o.dead < 0) o.dead = k; else if (k - o.dead > 1) this.shots.delete(id); continue; }
       if (e.x0 === o.x0 || e.lob) continue;
       o.x0 = e.x0;
-      this.cur.S.push([k, id, 1, SyncKeys.enc(e.pk), e.owner, (e.sup ? 1 : 0) | (e.breaks ? 8 : 0), sq1(e.x0), sq1(e.y0), sq1(e.spd), sq1(e.range), sq2(e.r0 || e.r), Math.round(e.ang * 1000)]);
+      this.cur.S.push([k, id, 1, SyncKeys.enc(e.pk), e.owner, (e.sup ? 1 : 0) | (e.breaks ? 8 : 0) | (e.s && e.s.thru ? 16 : 0), sq1(e.x0), sq1(e.y0), sq1(e.spd), sq1(e.range), sq2(e.r0 || e.r), Math.round(e.ang * 1000)]);
     }
   }
 
@@ -6806,7 +6856,7 @@ class GuestMatch {
     for (let i = 0; i < n; i++) {
       if (this.shotDone.has(r[1] + i)) continue;
       const s = {
-        id: r[1] + i, kind: K.SHOT, team: ob ? ob.team : -1, owner, pk, sup: !!(fl & 1), breaks: !!(fl & 8),
+        id: r[1] + i, kind: K.SHOT, team: ob ? ob.team : -1, owner, pk, sup: !!(fl & 1), breaks: !!(fl & 8), thru: !!(fl & 16),
         x: x0, y: y0, px: x0, py: y0, x0, y0, ang: 0, vx: 1, vy: 0, spd: 0, range: 0, r: 0.15, trav: 0,
         lob: null, beam: 0, ttl: 0, dead: false, p0: k0 - this.F, endL: 0, wall: 0, s: null,
       };
@@ -6815,15 +6865,16 @@ class GuestMatch {
         s.range = s.trav = s.beam = Math.max(0.01, Math.hypot(s.x - x0, s.y - y0));
         s.ang = Math.atan2(s.y - y0, s.x - x0); s.r = 0.1; s.ttl = 0.15;
       } else if (fl & 2) {
-        const tx = r[10 + i * 2] / 10, ty = r[11 + i * 2] / 10, T = r[8] / 100;
-        s.lob = { tx, ty, T, t: 0 };
+        const tx = r[12 + i * 2] / 10, ty = r[13 + i * 2] / 10, T = r[8] / 100;
+        s.lob = { tx, ty, T, t: 0, fuse: r[10] / 100, br: r[11] / 100 };
         s.r = r[9] / 100;
         s.range = Math.hypot(tx - x0, ty - y0);
         s.spd = s.range / Math.max(0.01, T);
         s.ang = Math.atan2(ty - y0, tx - x0);
       } else {
         s.spd = r[8] / 10; s.range = r[9] / 10; s.r = s.r0 = r[10] / 100;
-        s.grow = syncGrow(pk); // waves that widen as they travel (Melody)
+        s.grow = syncGrow(pk); // shots that widen as they travel
+        if (syncWave(pk)) s.grp = pk + '@' + owner + '@' + k0; // parts of one wave, drawn as one band
         this.path(s, r[11 + i] / 1000, x0, y0, s.range);
       }
       s.vx = Math.cos(s.ang); s.vy = Math.sin(s.ang);
@@ -6842,7 +6893,7 @@ class GuestMatch {
       for (let d = 0.1; d < range + 0.05; d += 0.1) {
         if (tileAt(m, x0 + s.vx * Math.min(d, range), y0 + s.vy * Math.min(d, range)) === TILE.STONE) { s.endL = Math.max(0, d - 0.1); s.wall = 1; break; }
       }
-    } else {
+    } else if (!s.thru) {
       const t = rayHit(m, x0, y0, x0 + s.vx * range, y0 + s.vy * range, TF_SHOT, null);
       if (t >= 0) { s.endL = range * t; s.wall = 1; }
     }
@@ -6870,7 +6921,7 @@ class GuestMatch {
       L.t = Math.max(0, el);
       s.x = s.px = s.x0 + (L.tx - s.x0) * k; s.y = s.py = s.y0 + (L.ty - s.y0) * k;
       s.trav = s.range * k;
-      if (k < 1) return true;
+      if (k < 1 || el < L.fuse) return true; // in flight, or lying lit on the ground
       this.fx([EV.SHOT_END, s.id, L.tx, L.ty, 0]);
       return false;
     }
@@ -8691,7 +8742,9 @@ const Art = (() => {
     if (map.env && ENV[map.env]) return ENV[map.env];
     return ENV[MODE_ENV[mode] || MODE_ENV[(map.modes && map.modes[0]) || 'gem']] || ENV.mine;
   }
-  const MX = 9, MY = 3; // tile layer margin around the map (tiles)
+  // Tile layer margin around the map (tiles). The camera shows CAM_H tiles of height, so MX covers
+  // a 21-wide map on screens up to ~2.6:1; a smaller layer stays at the tile size and blits 1:1.
+  const MX = 5, MY = 3;
   const RAISED = (tt) => tt === TILE.WALL || tt === TILE.STONE || tt === TILE.BOX;
 
   // Pre-renders the flat part of a map (floor, water, pads, mode markings, shadows, the border) in
@@ -10437,7 +10490,10 @@ const View = (() => {
     d.type = type; d.e = e; d.sx = sx; d.sy = sy; d.ys = ys; d.z = 0; d.side = 0; d.a = 1;
     return d;
   };
-  const D_BRAWLER = 1, D_DEPLOY = 2, D_PICKUP = 3, D_BALL = 4, D_SHOT = 5, D_LOB = 6, D_BEAM = 7, D_JUMP = 8;
+  const D_BRAWLER = 1, D_DEPLOY = 2, D_PICKUP = 3, D_BALL = 4, D_SHOT = 5, D_LOB = 6, D_BEAM = 7, D_JUMP = 8, D_WAVE = 9;
+  // the parts of each wave on screen this frame (shots sharing s.grp), drawn as one band
+  const waves = [];
+  let waveN = 0;
 
   // ---- small helpers ----
   const lerpPos = (e, a) => { F.sx = e.px + (e.x - e.px) * a; F.sy = e.py + (e.y - e.py) * a; };
@@ -10767,6 +10823,7 @@ const View = (() => {
   function collect(state, me) {
     const map = state.map, T = F.T, a = F.alpha;
     poolN = 0;
+    waveN = 0;
     for (let i = 0; i < rows.length; i++) if (rows[i]) rows[i].length = 0;
     overlay.length = 0;
     labels.length = 0;
@@ -10863,6 +10920,19 @@ const View = (() => {
         const d = rec(D_LOB, s, x, y, F.sy);
         d.z = 4 * (0.9 + Math.min(2.4, s.range * 0.22)) * k * (1 - k) + 0.25 * (1 - k);
         overlay.push(d);
+      } else if (s.grp) {
+        // part of a wave: gathered with the rest of its wave, drawn as one band above the walls
+        let w = null;
+        for (let j = 0; j < waveN; j++) if (waves[j].g === s.grp) { w = waves[j]; break; }
+        if (!w) {
+          w = waves[waveN] || (waves[waveN] = { g: null, parts: [] });
+          waveN++;
+          w.g = s.grp; w.parts.length = 0;
+          const dw = rec(D_WAVE, s, x, y, F.sy);
+          dw.w = w;
+          overlay.push(dw);
+        }
+        w.parts.push(rec(D_SHOT, s, x, y, F.sy));
       } else bucket(rec(D_SHOT, s, x, y, F.sy));
     }
     for (let i = 0; i < rows.length; i++) {
@@ -10904,6 +10974,60 @@ const View = (() => {
   }
   const nearPt = { x: 0, y: 0 };
 
+  // A wave (Melody's chord, Frost's gust, Bramble's shockwave) as one band through its parts: a part
+  // stopped by a wall is gone, so the band breaks only there.
+  function drawWave(ctx, P, T) {
+    const s0 = P[0].e, st = Art.shotStyle(s0.pk, s0.sup), z = SHOT_Z * T, r = Math.max(2, (s0.r || 0.3) * T);
+    const joined = (i) => i > 0 && P[i].e.id === P[i - 1].e.id + 1;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (let pass = 0; pass < 3; pass++) {
+      const lift = pass ? z : 0, w = pass === 0 ? r * 1.2 : pass === 1 ? r * 1.6 : r * 0.6;
+      ctx.globalAlpha = pass === 0 ? 0.16 : pass === 1 ? 0.55 : 0.95;
+      ctx.strokeStyle = ctx.fillStyle = pass === 0 ? '#000' : pass === 1 ? st[2] : st[1];
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      for (let i = 0; i < P.length; i++) {
+        const d = P[i];
+        if (joined(i)) ctx.lineTo(d.sx, d.sy - lift); else ctx.moveTo(d.sx, d.sy - lift);
+      }
+      ctx.stroke();
+      for (let i = 0; i < P.length; i++) {
+        if (joined(i) || (i + 1 < P.length && joined(i + 1))) continue;
+        ctx.beginPath(); // a lone part: a dot
+        ctx.arc(P[i].sx, P[i].sy - lift, w / 2, 0, TAU);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // A landed stick with a burning fuse: a faint blast circle that firms up as the fuse burns down,
+  // and a flickering spark on the stick.
+  function litFuse(ctx, d, L, T) {
+    const span = Math.max(0.05, L.fuse - L.T), p = clamp(1 - (L.fuse - L.t) / span, 0, 1);
+    const R = (L.br || 1) * T;
+    ctx.beginPath();
+    ctx.arc(d.sx, d.sy, R, 0, TAU);
+    ctx.globalAlpha = 0.08 + 0.17 * p;
+    ctx.fillStyle = '#ff4a2a';
+    ctx.fill();
+    ctx.globalAlpha = 0.35 + 0.4 * p;
+    ctx.lineWidth = Math.max(1.5, T * 0.04);
+    ctx.strokeStyle = '#ff6a3c';
+    ctx.stroke();
+    const f = 0.6 + 0.4 * Math.sin(V.time * 47 + d.e.id * 1.7);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#ffe680';
+    ctx.beginPath();
+    ctx.arc(d.sx + T * 0.14, d.sy - T * 0.2, Math.max(1.5, T * 0.08 * f), 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(d.sx + T * 0.14, d.sy - T * 0.2, Math.max(1, T * 0.035 * f), 0, TAU);
+    ctx.fill();
+  }
+
   function drawThing(ctx, d) {
     const T = F.T;
     switch (d.type) {
@@ -10917,7 +11041,13 @@ const View = (() => {
       case D_PICKUP: Art.pickup(ctx, d.e, d.sx, d.sy, T, V.time); break;
       case D_BALL: Art.ball(ctx, d.sx, d.sy, d.z, T, V.time, ballRoll); break;
       case D_SHOT: Art.shot(ctx, d.e, d.sx, d.sy, SHOT_Z, scrAng(d.e.ang), T, V.time); break;
-      case D_LOB: Art.shot(ctx, d.e, d.sx, d.sy, d.z, scrAng(d.e.ang), T, V.time); break;
+      case D_WAVE: drawWave(ctx, d.w.parts, T); break;
+      case D_LOB: {
+        const L = d.e.lob;
+        if (L && L.fuse > 0 && L.t >= L.T) litFuse(ctx, d, L, T);
+        Art.shot(ctx, d.e, d.sx, d.sy, d.z, scrAng(d.e.ang), T, V.time);
+        break;
+      }
       case D_BEAM: {
         const s = d.e;
         const life = clamp((s.ttl || 0) / 0.15, 0, 1);
@@ -11034,7 +11164,7 @@ const View = (() => {
     const sa = scrAng(ang);
     const col = A.act === ACT.SUPER ? '#ffd23f' : A.act === ACT.GADGET ? '#5dff7a' : '#ffffff';
     const x0 = toSX(wx), y0 = toSY(wy);
-    const fillA = A.act === ACT.ATTACK ? 0.36 : 0.4;
+    const fillA = A.act === ACT.ATTACK ? 0.5 : 0.45;
     ctx.save();
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
@@ -11042,24 +11172,51 @@ const View = (() => {
     if (air && prim !== 'lob' && prim !== 'leap' && prim !== 'deploy' && prim !== 'area') { ctx.restore(); return; }
     const range = s ? s.range || s.dist || 0 : 6;
     const d = clamp(A.d == null ? 1 : A.d, 0, 1);
-    const edge = () => { ctx.globalAlpha = 0.85; ctx.lineWidth = Math.max(1.5, T * 0.05); ctx.strokeStyle = col; ctx.stroke(); };
-    const fill = () => { ctx.globalAlpha = fillA; ctx.fillStyle = col; ctx.fill(); };
-    // straight things stop at the first wall unless they break it
-    const clipLen = (L, mask, breaks) => {
-      if (breaks || !map) return L;
-      const t = rayHit(map, wx, wy, wx + Math.cos(ang) * L, wy + Math.sin(ang) * L, mask, null);
-      return t >= 0 ? Math.max(0.3, L * t) : L;
+    // a dark rim under a bright edge, so the indicator reads on pale sand as well as on grass
+    const edge = () => {
+      ctx.globalAlpha = 0.6; ctx.lineWidth = Math.max(4, T * 0.14); ctx.strokeStyle = 'rgba(10,14,30,0.9)'; ctx.stroke();
+      ctx.globalAlpha = 1; ctx.lineWidth = Math.max(2, T * 0.07); ctx.strokeStyle = col; ctx.stroke();
     };
+    // a dim underlay first: plain white vanishes on pale ground
+    const fill = () => { ctx.globalAlpha = 0.24; ctx.fillStyle = '#0a0e1e'; ctx.fill(); ctx.globalAlpha = fillA; ctx.fillStyle = col; ctx.fill(); };
+    // How far a straight thing goes from (x, y) along angle a before its first wall (unless it breaks
+    // or passes walls). Each ray stops on its own: a wall cuts off only the part of a cone behind it.
+    const thru = s && (s.breaks || s.thru);
+    const rayLen = (x, y, a, L, mask) => {
+      if (thru || !map) return L;
+      const t = rayHit(map, x, y, x + Math.cos(a) * L, y + Math.sin(a) * L, mask, null);
+      return t >= 0 ? Math.max(0.05, L * t) : L;
+    };
+    const clipLen = (L, mask) => rayLen(wx, wy, ang, L, mask);
     const circleAt = (cx, cy, r) => { ctx.beginPath(); ctx.arc(cx, cy, r * T, 0, TAU); fill(); edge(); };
     switch (prim) {
       case 'shot': case 'beam': case 'dash': {
         const n = s ? s.n || 1 : 1;
-        const L = prim === 'dash' ? clipLen(range, TF_MOVE, false) : clipLen(range, TF_SHOT, s && s.breaks);
-        if (prim === 'shot' && n > 1 && s.spread > 0) {
-          const half = s.spread / 2 + Math.atan2(s.r || 0.15, L);
+        const L = prim === 'dash' ? clipLen(range, TF_MOVE) : clipLen(range, TF_SHOT);
+        const wave = s && s.wave;
+        const fanHalf = wave && wave.spread ? wave.spread / 2 : prim === 'shot' && n > 1 && s.spread > 0 ? s.spread / 2 : 0;
+        if (fanHalf > 0) {
+          // a cone: one ray every ~3 degrees, each cut at its own wall
+          const half = fanHalf + Math.atan2(s.r || 0.15, range), steps = Math.max(6, Math.ceil((half * 2) / 0.05));
           ctx.beginPath();
           ctx.moveTo(x0, y0);
-          ctx.arc(x0, y0, L * T, sa - half, sa + half);
+          for (let i = 0; i <= steps; i++) {
+            const a = ang - half + (i / steps) * half * 2, l = rayLen(wx, wy, a, range, TF_SHOT);
+            ctx.lineTo(toSX(wx + Math.cos(a) * l), toSY(wy + Math.sin(a) * l));
+          }
+          ctx.closePath();
+          fill();
+          edge();
+        } else if (wave && wave.width) {
+          // a wide band: parallel lanes, each cut at its own wall
+          const w = wave.width / 2 + (s.r || 0.15), c = Math.cos(ang), sn = Math.sin(ang), steps = Math.max(4, Math.ceil((w * 2) / 0.2));
+          ctx.beginPath();
+          ctx.moveTo(toSX(wx + sn * w), toSY(wy - c * w));
+          for (let i = 0; i <= steps; i++) {
+            const o = w - (i / steps) * w * 2, px = wx + sn * o, py = wy - c * o, l = rayLen(px, py, ang, range, TF_SHOT);
+            ctx.lineTo(toSX(px + c * l), toSY(py + sn * l));
+          }
+          ctx.lineTo(toSX(wx - sn * w), toSY(wy + c * w));
           ctx.closePath();
           fill();
           edge();

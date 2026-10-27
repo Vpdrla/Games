@@ -63,6 +63,14 @@ function sdRows() {
   return g.map((r) => r.join(''));
 }
 A.MAPS.zz_test_sd = { name: 'Test Showdown', modes: ['zz_sd'], full: true, rows: sdRows() };
+// an open 21x21 box with a stone wall (row 8, x 11-19) that covers the right half of a wave fired
+// straight up from (10.5, 13.5)
+A.MAPS.zz_wall = { name: 'Test Wall', modes: ['test'], full: true, rows: (() => {
+  const g = [];
+  for (let y = 0; y < 21; y++) g.push([...Array(21)].map((_, x) => (x === 0 || y === 0 || x === 20 || y === 20 || (y === 8 && x >= 11 && x <= 19) ? 'X' : '.')));
+  g[19][10] = '1'; g[1][10] = '2'; g[16][3] = '"';
+  return g.map((r) => r.join(''));
+})() };
 A.MODES.zz_sd = A.ModeKit.make('zz_sd', {
   poison: { start: 12, shrink: 70, minHalf: 3, dmg: 1000 },
   cap: 200,
@@ -509,8 +517,8 @@ function unitTests() {
         lend = lend.concat(ends);
       }
       check(lend.length === 2 && lend.every((e) => e[4] === 0 && Math.abs(e[3] - (w.y + 2 - qD * pip.range)) < 1e-6), `pip bombs fly over the wall and land on the aim point ${JSON.stringify(lend)} wall ${w.x},${w.y}`);
-      const landT = pip.T * (0.6 + 0.4 * qD);
-      check(Math.abs(landAt - landT) < 2 * DT, `lobs land after their flight time (${landAt.toFixed(3)} s, want ${landT.toFixed(3)} s)`);
+      const landT = Math.max(pip.fuse || 0, pip.T * (0.6 + 0.4 * qD)); // a fuse burst waits for the fuse
+      check(Math.abs(landAt - landT) < 2 * DT, `lobs burst after their flight time or fuse (${landAt.toFixed(3)} s, want ${landT.toFixed(3)} s)`);
       // nova super breaks the wall
       const sim2 = mkSim('test', 'crystal_cove', ['nova', 'dax']);
       const nv = sim2.brawlers[0];
@@ -528,12 +536,12 @@ function unitTests() {
     const m = sim.map, [s, n] = sim.brawlers;
     const open = tiles(m, (t, x, y) => t === TILE.FLOOR && free(m, x + 3.5, y + 0.5) && free(m, x + 1.5, y + 0.5) && A.tileAt(m, x + 0.5, y + 0.5) === TILE.FLOOR && !(A.flagsAt(m, x + 3.5, y + 0.5) & A.TF_BUSH))[5];
     place(sim, s, open.x, open.y);
-    place(sim, n, open.x + 3, open.y);
+    place(sim, n, open.x + 4.6, open.y);
     s.sup = 1; s.supReady = true;
     stepN(sim, 2, (i, k) => (i === 0 && k === 0 ? A.packIn(0, 0, 0, 1, ACT.SUPER, 0) : 0));
-    check(s.invisT > 0 && ((s.vis >> 1) & 1) === 0, 'invisible brawler is hidden from an enemy 3 tiles away');
-    place(sim, n, open.x + 1.2, open.y);
-    check(((s.vis >> 1) & 1) === 1, 'an enemy within 1.6 tiles sees an invisible brawler');
+    check(s.invisT > 0 && ((s.vis >> 1) & 1) === 0, 'invisible brawler is hidden from an enemy 4.6 tiles away');
+    place(sim, n, open.x + 3, open.y);
+    check(((s.vis >> 1) & 1) === 1, 'an enemy within 4 tiles sees an invisible brawler');
     ready(s); unshield(s);
     stepN(sim, 1, [A.packIn(0, 0, 0, 1, ACT.ATTACK, 0), 0]);
     check(s.invisT === 0, 'attacking ends invisibility');
@@ -1269,6 +1277,113 @@ function modeRules() {
       stepN(sim, 30);
       const hits = Math.round((1e6 - e.hp) / (540 * LM));
       check(hits >= 2 && hits <= 3, `a direct Needle Ball hit counts the ball and 1-2 spikes (${hits} hits)`);
+    }
+    { // a wave: a wall stops only the part of it that runs into the wall, and nobody is hit twice
+      const sim = mkSim('test', 'zz_wall', ['melody', 'dax', 'nova'], { teams: [0, 1, 1] });
+      const [m, a, c] = sim.brawlers;
+      for (const e of [a, c]) { unshield(e); e.hp = e.maxHp = 1e6; }
+      place(sim, m, 10.5, 13.5); place(sim, a, 12.5, 7.0); place(sim, c, 8.0, 7.0); ready(m);
+      fire(sim, 0, ACT.ATTACK, -Math.PI / 2, 1);
+      stepN(sim, 40);
+      const hitA = 1e6 - a.hp, hitC = 1e6 - c.hp, one = Math.round(760 * LM);
+      check(hitA === 0 && hitC === one, `Sonic Chord: the enemy behind the wall is safe (${hitA}), the one in the open half is hit once (${hitC} = ${one})`);
+      // Gale Wall goes through walls and carries the enemy behind it away
+      const s2 = mkSim('test', 'zz_wall', ['frost', 'dax'], { star: -1 });
+      const [f, e2] = s2.brawlers;
+      unshield(e2); e2.hp = e2.maxHp = 1e6;
+      place(s2, f, 10.5, 13.5); place(s2, e2, 12.5, 7.0);
+      f.sup = 1; f.supReady = true;
+      fire(s2, 0, ACT.SUPER, -Math.PI / 2, 1);
+      stepN(s2, 45);
+      check(1e6 - e2.hp === Math.round(800 * LM) && e2.y < 5.5, `Gale Wall passes the wall, hits once and carries the enemy away (y ${e2.y.toFixed(2)})`);
+    }
+    { // Dynamike-style fuse: the sticks land, lie lit on the ground and burst 1 s after the throw
+      const sim = mkSim('test', 'zz_wall', ['pip', 'dax'], { star: -1 });
+      const [b, e] = sim.brawlers;
+      unshield(e); e.hp = e.maxHp = 1e6;
+      place(sim, b, 10.5, 15.5); place(sim, e, 10.5, 13.5); ready(b);
+      fire(sim, 0, ACT.ATTACK, -Math.PI / 2, 2 / 7.33);
+      stepN(sim, 22);
+      const lit = sim.shots.filter((s) => s.lob && !s.dead);
+      check(lit.length === 2 && lit.every((s) => s.lob.t >= s.lob.T && s.lob.fuse === 1) && e.hp === 1e6, `Fuse Pair: 0.75 s after a short throw both sticks lie lit on the ground, no damage yet (${lit.length})`);
+      stepN(sim, 10);
+      check(1e6 - e.hp === Math.round(2 * 800 * LM) && !sim.shots.some((s) => s.lob && !s.dead), `Fuse Pair: they burst together 1 s after the throw (${1e6 - e.hp})`);
+      // stepping off a lit stick before it goes off
+      ready(b); e.hp = 1e6; place(sim, e, 10.5, 13.5);
+      fire(sim, 0, ACT.ATTACK, -Math.PI / 2, 2 / 7.33);
+      stepN(sim, 22);
+      place(sim, e, 10.5, 10.0);
+      stepN(sim, 12);
+      check(e.hp === 1e6, 'Fuse Pair: walking away from a lit stick before it bursts avoids the damage');
+      // Big Barrel: 1.3 s fuse, 2.67 blast, knocks back
+      b.sup = 1; b.supReady = true; place(sim, e, 10.5, 11.5); e.hp = 1e6;
+      fire(sim, 0, ACT.SUPER, -Math.PI / 2, 3 / 8.33);
+      stepN(sim, 35);
+      const hp1 = e.hp;
+      stepN(sim, 8);
+      check(hp1 === 1e6 && 1e6 - e.hp === Math.round(2200 * LM) && e.y < 10, `Big Barrel bursts 1.3 s after the throw and knocks back (${hp1 === 1e6}, ${1e6 - e.hp}, y ${e.y.toFixed(2)})`);
+    }
+    { // Big Drop: flies at 9 tiles a second and the landing knocks enemies back 2.6 tiles
+      const sim = mkSim('test', 'zz_wall', ['brick', 'dax'], { star: -1 });
+      const [b, e] = sim.brawlers;
+      unshield(e); e.hp = e.maxHp = 1e6;
+      place(sim, b, 10.5, 17.5); place(sim, e, 10.5, 11.0);
+      b.sup = 1; b.supReady = true;
+      fire(sim, 0, ACT.SUPER, -Math.PI / 2, 6 / 9);
+      stepN(sim, 16);
+      const air = b.jumpT > 0;
+      stepN(sim, 8);
+      const landed = b.jumpT <= 0 && Math.abs(b.y - 11.5) < 0.2;
+      stepN(sim, 20);
+      check(air && landed && 1e6 - e.hp === Math.round(960 * LM) && Math.abs(e.y - (11.0 - 2.6)) < 0.3, `Big Drop: 6 tiles take ~0.67 s, then the slam knocks back (${air}, ${b.y.toFixed(2)}, ${1e6 - e.hp}, enemy y ${e.y.toFixed(2)})`);
+    }
+    { // Soul Swarm: a fixed 2.67-wide swarm that flies through walls
+      const sim = mkSim('test', 'zz_wall', ['shade', 'dax', 'nova'], { teams: [0, 1, 1], star: -1 });
+      const [b, a, c] = sim.brawlers;
+      for (const o of [a, c]) { unshield(o); o.hp = o.maxHp = 1e6; }
+      place(sim, b, 10.5, 13.5); place(sim, a, 11.6, 6.0); place(sim, c, 12.9, 6.0);
+      b.sup = 1; b.supReady = true;
+      fire(sim, 0, ACT.SUPER, -Math.PI / 2, 1);
+      stepN(sim, 40);
+      check(1e6 - a.hp === Math.round(900 * LM) && c.hp === 1e6, `Soul Swarm passes the wall and hits within 1.33 tiles of its line (${1e6 - a.hp}, ${1e6 - c.hp})`);
+    }
+    { // Pop-Up: the grenades left behind burst 0.3 s after they come down, 2 tiles round
+      const sim = mkSim('test', 'zz_wall', ['hawk', 'dax'], { star: -1 });
+      const [b, e] = sim.brawlers;
+      unshield(e); e.hp = e.maxHp = 1e6;
+      place(sim, b, 10.5, 15.5); place(sim, e, 9.0, 15.5);
+      b.sup = 1; b.supReady = true;
+      fire(sim, 0, ACT.SUPER, -Math.PI / 2, 1);
+      stepN(sim, 19);
+      const hp1 = e.hp;
+      stepN(sim, 8);
+      check(hp1 === 1e6 && 1e6 - e.hp === Math.round(4 * 900 * LM), `Pop-Up grenades burst 0.8 s after the leap, all four within reach (${1e6 - e.hp})`);
+    }
+    { // vision: an invisible brawler shows within 4 tiles; one in a bush within 2
+      const sim = mkSim('test', 'zz_wall', ['specter', 'dax'], { star: -1 });
+      const [b, e] = sim.brawlers;
+      b.invisT = 5;
+      place(sim, e, 10.5, 15.5);
+      place(sim, b, 10.5, 12.0);
+      const near = sim.visibleTo(1, b);
+      place(sim, b, 10.5, 11.0);
+      check(near && !sim.visibleTo(1, b), 'Fade: enemies see Specter within 4 tiles (3.5: seen, 4.5: hidden)');
+      b.invisT = 0;
+      place(sim, b, 3.5, 16.5); b.revealT = 0; b.lastAtk = -9;
+      place(sim, e, 3.5, 14.7);
+      const nearB = sim.visibleTo(1, b);
+      place(sim, e, 3.5, 14.2);
+      check(b.inBush && nearB && !sim.visibleTo(1, b), 'a bush hides a brawler from enemies more than 2 tiles away (1.8: seen, 2.3: hidden)');
+    }
+    { // Blast Ball: no gadgets while holding the ball
+      const sim = mkSim('ball', 'pinball_pitch', KEYS.slice(0, 6));
+      const b = sim.brawlers[0], ball = sim.ball;
+      for (const o of sim.brawlers) if (o !== b) place(sim, o, 2.5, o.team ? 3.5 : 29.5);
+      place(sim, b, ball.x + 0.3, ball.y + 0.2);
+      stepN(sim, 2);
+      b.gadT = 0; const left = b.gadLeft;
+      const ev = fire(sim, 0, ACT.GADGET, 0, 1);
+      check(ball.holder === 0 && b.gadLeft === left && evs(ev, EV.FIRE).length === 0, 'Blast Ball: a gadget does nothing while holding the ball');
     }
     { // gear: every gadget and star power index builds a kit (and a missing one is no gear)
       let ok = true;
