@@ -47,7 +47,7 @@ function atkFacts(spec, kitSpeed) {
   return {
     t, range, spd, lob, T: spec.T || (lob ? 0.75 : 0), fuse: spec.fuse || 0, melee: t === 'dash' || t === 'arc' || range < 3.5, spread, n: spec.n || 1, eff, dmg: spec.dmg || 0,
     heal: spec.heal || spec.hps || 0, away: !!spec.away, what: spec.what, unit: spec.unit, sp: kitSpeed,
-    at: spec.at || '', r: spec.r || 0, cleanse: !!spec.cleanse, burstShot: !!(spec.burst && spec.burst.shot), seek: !!spec.seek, inv: !!spec.inv,
+    at: spec.at || '', r: spec.r || 0, cleanse: !!spec.cleanse, ammo: spec.ammo || 0, burstShot: !!(spec.burst && spec.burst.shot), seek: !!spec.seek, inv: !!spec.inv,
     patchRange: spec.patch && spec.patch.range || 0,
   };
 }
@@ -388,22 +388,23 @@ class Mind {
       if (ball.holderSlot !== me.slot) { I.passTo = null; I.clearTo = null; }
       if (ball.holderSlot === me.slot) {
         add('dribble', 1.6, eg.x, eg.y, null, 1.2);
-        // pressed by an enemy: pass to a teammate further up who is in the open (if I think of it)
+        // pressed by an enemy: kick it to a teammate further up who is in the open, along a clear
+        // line (a kick takes an ammo bar), if I think of it
         const dGoal = Math.hypot(eg.x - me.x, eg.y - me.y);
         const press = this.known(true).filter((q) => Math.hypot(q.x - me.x, q.y - me.y) < 3.2).length;
-        if (!I.passTo && press && dGoal > Bot.KICK_RANGE * 0.8 && r.chance(0.2 + p.teamwork * 0.45)) {
+        if (!I.passTo && press && me.ammo >= 1 && dGoal > Bot.KICK_RANGE * 0.8 && r.chance(0.2 + p.teamwork * 0.45)) {
           let best = null, bs = 2;
           for (const a of P.allies) {
             if (!a.alive) continue;
             const da = Math.hypot(a.x - me.x, a.y - me.y), gain = dGoal - Math.hypot(eg.x - a.x, eg.y - a.y);
             const open = !this.known(true).some((q) => Math.hypot(q.x - a.x, q.y - a.y) < 2.2);
-            if (da > 2.5 && da < Bot.PASS_RANGE + 0.5 && open && gain > bs) { bs = gain; best = a; }
+            if (da > 2.5 && da < Bot.PASS_RANGE + 0.5 && open && gain > bs && shotClear(map, me.x, me.y, a.x, a.y)) { bs = gain; best = a; }
           }
           if (best) I.passTo = { x: best.x, y: best.y };
         }
         // swarmed, or pressed while hurt, with nobody to pass to: clear it up the field through an open
         // lane rather than dribble into a knock-out
-        if (!I.passTo && !I.clearTo && (press >= 2 || (press && myHPf < 0.45) || (myHPf < 0.3 && danger > 0.5)) && dGoal > Bot.KICK_RANGE * 0.8 && r.chance(0.25 + p.s * 0.35)) {
+        if (!I.passTo && !I.clearTo && me.ammo >= 1 && (press >= 2 || (press && myHPf < 0.45) || (myHPf < 0.3 && danger > 0.5)) && dGoal > Bot.KICK_RANGE * 0.8 && r.chance(0.25 + p.s * 0.35)) {
           const ga = Math.atan2(eg.y - me.y, eg.x - me.x), foes = this.known(true);
           let best = null, bs = -1e9;
           for (const da of [0, -0.45, 0.45, -0.9, 0.9]) {
@@ -478,7 +479,8 @@ class Mind {
     }
     if (me.gadReady && gad.t !== 'none') {
       // my pet or turret, and how close the nearest enemy I know of is to it
-      const unit = P.deploys.find((d) => d.owner === me.slot);
+      // (unit gadgets work only within 12 tiles of it)
+      const unit = P.deploys.find((d) => d.owner === me.slot && Math.hypot(d.x - me.x, d.y - me.y) < 11.5);
       const foeNearUnit = unit ? Math.min(99, ...this.known(true).map((m) => Math.hypot(m.x - unit.x, m.y - unit.y))) : 99;
       const allyHurt = P.allies.some((a) => a.alive && a.hp / a.maxHp < 0.5 && Math.hypot(a.x - me.x, a.y - me.y) < 3.5);
       if (gad.t === 'heal' || (gad.t === 'pulse' && gad.heal > 0) || (gad.t === 'area' && gad.heal > 0)) I.wantGadget = myHPf < 0.5 || allyHurt;
@@ -491,12 +493,14 @@ class Mind {
       else if (gad.t === 'buff' && gad.what === 'speed') I.wantGadget = target && td < 4;
       else if (gad.t === 'buff') I.wantGadget = target && td < 8 && r.chance(0.5);
       else if (gad.t === 'dash') { I.wantGadget = (myHPf < 0.35 && danger > 0.5) || (target && target.hp / target.maxHp < 0.3 && td < 6) || (gad.dmg === 0 && !gad.inv && target && td < 3); I.gadMode = myHPf < 0.35 ? 'away' : 'target'; } else if (gad.t === 'pulse') I.wantGadget = target && td < (gad.r || gad.range || 2.5);
+      else if (gad.t === 'area' && gad.cleanse) { I.wantGadget = target && td < 6 && danger > 0.7; I.gadMode = 'self'; } // a safe circle to fight in
       else if (gad.t === 'area' && gad.at === 'self') I.wantGadget = target && td < (gad.r || 2) + 1;
       else if (gad.t === 'deploy' && gad.unit === 'plant' && gad.burstShot) I.wantGadget = target && td < 6; // a box that bursts into shots
       else if (gad.t === 'deploy' && gad.unit === 'plant') I.wantGadget = (myHPf < 0.6 && danger > 0.5) || allyHurt; // cover that heals when it breaks
       else if (gad.t === 'deploy') I.wantGadget = target && td < 9;
       else if (gad.t === 'shot' && gad.seek) I.wantGadget = target && td < 3 && danger > 0.5;
       else I.wantGadget = target && td < (gad.range || 6) && r.chance(0.4);
+      if (gad.ammo && me.ammo < gad.ammo) I.wantGadget = false; // it takes an ammo bar (Silver Bullet)
       I.wantGadget = !!I.wantGadget && !(P.ball && P.ball.holderSlot === me.slot); // no gadgets with the ball
     }
   }

@@ -109,7 +109,8 @@ for (const tier of TIERS) {
     for (let i = 0; i < 6; i++) keys.push(A.BRAWLER_KEYS[(g * 7 + i * 4) % A.BRAWLER_KEYS.length]);
     const r = play(MODE_ARG, maps[g % maps.length], 1000 + g, keys.map(() => tier.skill), keys);
     agg.secs.push(r.secs);
-    if (r.result && r.result.reason !== 'time') agg.objective++;
+    // (Gem Rush's 3:30 clock running out with one team holding more gems is decided by gems too)
+    if (r.result && (r.result.reason !== 'time' || (MODE_ARG === 'gem' && r.result.winner >= 0))) agg.objective++;
     r.bots.forEach((b, i) => {
       const T = b.telemetry, R = r.tel[i];
       agg.reacts.push(...T.reacts);

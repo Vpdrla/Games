@@ -122,7 +122,7 @@ sim.rng                        // RNG for gameplay randomness
 - **Brawler (`K.BRAWLER`):**
   - `slot, bk, lvl, gadget, star, name`
   - `hp, maxHp, alive, respawnT, face`
-  - `ammo` (float 0..3), `reload` (s per ammo), `sup` (0..1), `supReady`, `gadLeft`, `gadT` (cooldown)
+  - `ammo` (float 0..`maxAmmo`: 3, Zip 4), `reload` (s per ammo), `sup` (0..1), `supReady`, `gadLeft`, `gadT` (cooldown)
   - `cubes`, `carry` (gems held), `bounty` (stars on the head)
   - `vis` (bit per team that can see it), `inBush`, `revealT`, `quietT` (s since it last attacked or
     was hit), `shieldT`
@@ -148,7 +148,8 @@ sim.rng                        // RNG for gameplay randomness
 - **Ball (`K.BALL`):** `holder` (slot or -1), `vx, vy`, `z` (height, for lobbed passes).
 
 **Combat rules (as in the original):**
-- Each attack uses 1 of 3 ammo bars. Bars reload continuously.
+- Each attack uses 1 of 3 ammo bars (Zip has 4). Bars reload continuously, but not while a super
+  burst is still firing.
 - Main-attack hits on brawlers charge the super. The amount per hit is in the data.
 - Health regenerates at `REGEN_RATE` × max per second after `REGEN_DELAY` s without attacking or being
   hit.
@@ -156,7 +157,12 @@ sim.rng                        // RNG for gameplay randomness
 - Straight shots stop at the first `TF_SHOT` tile (DDA on the centre line). Shots hitting a Showdown
   box damage it; at 0 HP it drops a power cube and turns to floor (`EV.TILE`).
 - Lobs ignore walls. Beams and melee are resolved instantly and clip at the first wall.
-- Supers flagged `breaks` turn `WALL` / `BOX` tiles they touch into `FLOOR` (`EV.TILE`).
+- A straight shot flagged `breaks` destroys the `WALL` / `BOX` tile it reaches (`EV.TILE`) and is
+  spent there, so a burst eats into a wall one tile per shot. With `thru` too (Silver Bullet) it tears
+  through everything on its way. Leaps and lobbed blasts with `breaks` clear their whole circle.
+- Lasting zones tick once a second from the moment they land, a whole second's worth each time
+  (`Sim.AREA_TICK`): a 1.9 s puddle hits twice, a 4.5 s field five times.
+- Showdown boxes have 4500 health, plus 400 per average power level above 1 (8500 at most).
 - Spawn protection lasts `SPAWN_SHIELD_T`.
 
 **Vision:** walls never block sight.
@@ -193,11 +199,11 @@ runs out, the sim calls `thaw(sim)`.
 
 | Mode | Rules |
 |---|---|
-| Gem Rush `gem` | A gem every 7 s from the mine, which waits while 15 gems lie on the ground. 10+ gems held and more than the other team: a 15 s countdown. Respawn 5 s. |
+| Gem Rush `gem` | A gem every 7 s from the mine, which waits while 15 gems lie on the ground or 29 are in play. 10+ gems held and more than the other team: a 15 s countdown. A 3:30 clock on `playT`: then more gems wins, equal is a draw. Respawn 5 s. |
 | Showdown `sd` | 10 solo players with spawn order shuffled by `sim.rng`. No respawn. Boxes drop a power cube; a fallen brawler drops 1 + a third of theirs (at most 5). Poison `{start 30, shrink 100, minHalf 0.5}`. `rankNow(sim)` lists the living by health, then the fallen with the last one down first. |
-| Blast Ball `ball` | While holding the ball, attack kicks it (auto-aim kicks at the enemy goal) and super lobs a pass over walls. A ball entering a goal rect scores; own goals count, without credit. Each goal triggers a 2.5 s freeze, then `resetRound({})`. First to 2 wins. A 150 s clock; a tie goes to 60 s of sudden-death overtime with every breakable wall removed, then a draw. Respawn 5 s. |
+| Blast Ball `ball` | While holding the ball, attack kicks it and uses an ammo bar; a charged super kicks it further and faster and is used up (auto-aim kicks at the enemy goal); gadgets can't be used. A ball entering a goal rect scores; own goals count, without credit. Each goal triggers a 2.5 s freeze, then `resetRound({})`. First to 2 wins. A 150 s clock; a tie goes to 60 s of sudden-death overtime with every breakable wall removed, then a draw. Respawn 5 s. |
 | Knockout `ko` | No respawn. A wiped team loses the round: `EV.ROUND`, a 3 s freeze, then `resetRound({tiles: true})`. First to 2 rounds, at most 5. Poison after 45 s. At 120 s, the team with more brawlers standing (then more health) takes the round. |
-| Bounty `bounty` | Brawlers carry 2 to 7 stars (+1 per takedown). A takedown scores the victim's stars for the killer's team and resets the victim to 2. The centre star at `O` is worth 1. First to 20 stars wins, else the most after 120 s on `playT`. Respawn 3 s. |
+| Bounty `bounty` | Brawlers carry 2 to 7 stars (+1 per takedown). A takedown scores the victim's stars for the killer's team and resets the victim to 2. The blue centre star at `O` is worth 1 and breaks a tie; it passes to the other team when its carrier is taken down (`ms.blue`, `ms.blueSlot`). First to 20 stars wins, else the most after 120 s on `playT` (equal: the blue star's team, or a draw if nobody took it). Respawn 3 s. |
 
 The poison gas (Showdown, Knockout) works as in the original: 20% of max health a second (`pct`),
 5% more for every second after the first 5 in it, and all healing halved while in it.
@@ -210,9 +216,9 @@ Shape of `hud(sim)`:
 | Showdown | `{ mode:'sd', time, alive: n, poison: rect }` |
 | Ball | `{ mode:'ball', time, goals:[a,b], ot: bool }` |
 | Knockout | `{ mode:'ko', time, round, rounds:[a,b], alive:[a,b], poison: rect|null }` |
-| Bounty | `{ mode:'bounty', time, stars:[a,b] }` |
+| Bounty | `{ mode:'bounty', time, stars:[a,b], blue: team holding the blue star or -1 }` |
 
-`time` counts down where the mode has a clock (Showdown and Gem Rush count up).
+`time` counts down where the mode has a clock (Showdown counts up).
 
 ## Bot perception (08-perceive.js)
 
@@ -335,32 +341,37 @@ Currencies: coins, power points (per brawler), gems, credits. Progression follow
 
 Each brawler copies one of the original game's, with its numbers at power 1 as of the September
 2026 balance update: health, movement speed (750 normal / 800 fast / 855 very fast), damage, range,
-reload, super charge per hit (`chg`), gadgets with their cooldowns and star powers. Sources: the
-Brawl Stars wiki, Liquipedia and Brawl Time Ninja (the last lists gadget and star numbers at power
-11; those are halved here). Scaled by `LEVEL_MULT(lvl)` (+10% a level). Gadgets unlock at power 7
+reload, projectile speed and width, super charge per hit (`chg`), gadgets with their cooldowns and
+star powers. Checked in October 2026 against the Brawl Stars Fandom wiki's brawler pages, their
+balance history (which wins where a stat box is behind it) and their mechanic descriptions;
+Liquipedia only breaks ties where those disagree. Scaled by `LEVEL_MULT(lvl)` (+10% a level). Gadgets unlock at power 7
 and star powers at power 9; most brawlers have two of each to pick from.
 
 | Key | Copies | Rarity | Kit (main / super / gadgets / star powers) |
 |---|---|---|---|
-| nova | Shelly | start | 5 shells, 27° / 9 shells, knockback, breaks walls / dash + full reload; 3 narrow long shots / super slows; heal when low |
-| dax | Colt | rare | 6-bullet burst 9 tiles / 12 piercing bullets 11 tiles, breaks walls / 2 slowing shots; piercing wall-breaker / +13% speed; +1 range |
-| brick | El Primo | rare | 4 punches 3 tiles / leap 9 tiles, breaks walls / dash that throws enemies behind; 1 s projectile block / burn on landing; speed after landing |
-| bramble | Nita | rare | wide piercing shockwave 6 tiles / bear pet (4300 hp, 400 every 0.6 s) / bear stun pulse; bear shield / heal each other on hits; faster swipes |
-| melody | Poco | rare | 65° wave that also heals / heal wave 9.33 tiles / heal pulse; cleanse + 4 s stun/slow immunity / more attack healing; super also hurts |
-| sizzle | Barley | rare | lobbed puddle / 5 puddles in a fan / slowing puddle; healing puddle / heal per attack; stronger puddle |
-| pip | Dynamike | super | 2 dynamite sticks / barrel, knockback, breaks walls / spin + dynamite ring; next attack stuns / flung by his own blast; +800 super |
-| gizmo | Jessie | super | orb bouncing to 2 more (-25% each) / turret (5 tiles, 0.3 s) / turret slow pulse; turret fires 2x / hits repair the turret; turret shots bounce |
-| volt | Rico | super | 5 bolts that ricochet off walls / 12 piercing ricochet bolts / box bursting into bolts; splitting bolt / +damage after a bounce; speed when low |
-| hawk | Piper | epic | 360 near to 1800 far / leap away dropping 4 grenades / knock-back shot at the nearest enemy; one longer shot / bonus from bushes; ammo on hit |
-| frost | Gale | epic | 6 snowballs / wide push-back gust / twister / stun when pushed into a wall; snowballs slow |
-| shade | Mortis | mythic | lunge 2.67 tiles (4.67 after 4.5 s without attacking) / life-steal bats / spin; untouchable bat dash / 20% heal on takedown; long lunge sooner |
-| zip | Max | mythic | 4 fast bullets / team +35% speed 4 s / untouchable dash / hits extend the super; reload faster while moving |
-| specter | Leon | legend | 4 blades, stronger up close / invisible 6 s / decoy clone / faster while invisible; heal while invisible |
-| thorn | Spike | legend | ball bursting into 6 fixed-pattern spikes / slowing spike field / spike ring; cactus that heals on breaking / heal in his own field |
+| nova | Shelly | start | 5 shells, 27° / 9 shells, knockback, each breaks the wall it hits / dash + full reload; 3 narrow long shots / super slows; heal when low |
+| dax | Colt | rare | 6 bullets in 2 streams, 9 tiles / 12 big piercing bullets 11 tiles, each breaks a wall tile / 2 slowing long shots; wall-tearing bullet (uses ammo) / +13% speed; +1 range |
+| brick | El Primo | rare | 4 piercing, growing punches 3 tiles / leap 9 tiles at 5.33 tiles/s, knockback, breaks walls / dash throwing enemies 2 tiles behind; 1 s projectile block / burn on landing; speed after landing |
+| bramble | Nita | rare | wide piercing shockwave 6 tiles / bear pet (4300 hp, 400 every 0.6 s, slow) / bear stun pulse after 1 s; bear shield / heal each other on hits; faster swipes |
+| melody | Poco | rare | 65° wave that also heals / heal wave through walls / 3 heal pulses 2 s apart; thrown cleansing circle / more attack healing; super also hurts |
+| sizzle | Barley | rare | lobbed puddle (r 2, 2 ticks) / 5 puddles thrown 0.2 s apart / slowing puddle; healing puddles under the team / heal per attack; stronger puddle |
+| pip | Dynamike | super | 2 sticks, 1 s fuse / barrel, 1.3 s fuse, knockback, breaks walls / spin throwing 20 sticks in a spiral; next attack stuns / flung away from his own blast (3 / 5 tiles); +800 super |
+| gizmo | Jessie | super | orb bouncing up to 6.67 tiles to 2 more (-25% each) / turret (9 tiles, 0.3 s) / turret slow pulse; turret fires 2x / shooting the turret repairs it; turret shots bounce |
+| volt | Rico | super | 5 bolts that ricochet off walls (+1.67 range a bounce) / 12 piercing ricochet bolts / cover box bursting into bolts when destroyed; splitting bolt / +damage after a bounce; speed when low |
+| hawk | Piper | epic | 360 near to 1800 far / 2 s leap away dropping 4 grenades / knock-back shot at an enemy within 7; one homing longer shot / bonus from bushes; ammo on hit |
+| frost | Gale | epic | 6 snowballs / 4-wide push-back gust through walls / twister / stun when pushed into a wall; snowballs slow |
+| shade | Mortis | mythic | lunge 2.67 tiles (4.67 after 4.5 s without attacking) / bats through walls healing the full damage / spin 2.67; bat flight over walls / 20% heal on takedown; long lunge sooner |
+| zip | Max | mythic | 4 ammo bars; 4 fast bullets swept / team +300 speed points 4 s / dash, 0.5 s untouchable / hits extend the super; reload faster while moving |
+| specter | Leon | legend | 4 blades swept, full damage over the first 15% / invisible 6 s / clone with his health that shoots; faster while invisible; heal while invisible |
+| thorn | Spike | legend | ball bursting (1 tile) into 6 fixed-pattern spikes / slowing spike field / row of 5 needles; thrown cactus that heals on breaking / super heals 75% of its damage |
 
-Kit mechanics added for these (see 03-brawlers.js): `ricochet` shots, `long` dash charge,
-`burn`, `throwBack`, `wallStun`, `seek`, `ambush`, `bounceDmg`, `bounce.mul`, `split.fixed`, area
-`push`, pulses `at: 'unit'` and `cleanse`, buffs `unitShield` / `block` / `nextAtk`, deploy units
-`'plant'` with `life` and `burst`, and the passives `speedMul`, `lowSpeed`, `invisSpeed`,
-`lowHeal`, `killHealF`, `dashCharge`, `supExtend`, `dynaJump`. Not copied: hypercharges, Spring
-Ejector, Sneaky Sneakers, Lollipop Drop and Curveball.
+Kit mechanics added for these (see 03-brawlers.js): `ricochet` shots (`gain`), `long` dash charge,
+`burn`, `throwBack`, `wallStun`, `seek`, `ambush`, `bounceDmg`, `bounce.mul` / `bounce.spd`,
+`split.fixed` / `split.blast`, `wave`, `lanes`, `thru`, `carry`, `homing`, `healUnit`, `gchg`,
+spread bursts that sweep, ramp spans, lob `fuse` / `burst` / `spiral`, area `push` / `cleanse` /
+`nostack` / `steal` and `at: 'team'`, pulses `at: 'unit'`, `delay` and `repeat` on any primitive,
+buffs `unitShield` / `block` / `nextAtk` and speed `pts`, deploy units `'plant'` with `life` and
+`burst`, `hpFrom`, `dmgTaken` and pet `shot`, dash `fly` / `invT`, gadget `reqR` / `needTarget` /
+`ammo`, brawler `ammo`, and the passives `speedMul`, `lowSpeed`, `invisSpeed`, `lowHeal`,
+`killHealF`, `dashCharge`, `supExtend`, `dynaJump` / `dynaJumpSup`. Not copied: hypercharges,
+Buffies, Spring Ejector, Sneaky Sneakers, Lollipop Drop and Curveball.
