@@ -21,7 +21,7 @@
 //     E   [ticks ago, EV.x, ...args] with seq es + index; each event rides in 5 snapshots in a row
 //     S   [ticks since it was at its start, first id, n, key, owner, flags (1 super 2 lob 4 beam 8 breaks 16 thru walls),
 //          x0*10, y0*10, then straight: spd*10, range*10, r*100, angles*1000 (one per shot) | lob: T*100, r*100,
-//          fuse*100 (0: bursts on landing), blast radius*100, tx*10, ty*10 per shot | beam: x1*10, y1*10]   (3 snapshots in a row; a bounce resends the path)
+//          fuse*100 (0: bursts on landing), blast radius*100, tx*10, ty*10 per shot | beam: x1*10, y1*10]   (3 snapshots in a row; a bounce or a homing turn resends the path)
 //     A   [ticks ago, id, key, owner, x*10, y*10, r*10, t left*10, T*10, flags 1 harm 2 heal 4 slow]
 //     P   [ticks ago, id, pick, n, x*10, y*10, (pop to tx*10, ty*10, pop time*100)]
 //   'r' { t:'ids', ids }  { t:'T', k, l: [tile, value, ...] }  { t:'e', k, ev } (goals, rounds)
@@ -414,7 +414,7 @@ class GuestState {
         id: i + 1, kind: K.BRAWLER, team: s.team, x: 0, y: 0, px: 0, py: 0, r: BRAWLER_R, dead: false,
         slot: i, bk: s.bk, lvl, gadget: kit.gad ? gad : -1, star, name: s.name || kit.D.name,
         hp, maxHp: hp, hp0: hp, alive: true, respawnT: 0, face: 0,
-        ammo: MAX_AMMO, reload: kit.reload, sup: 0, supReady: false, gadLeft: kit.gad ? 3 : 0, gadT: 0,
+        ammo: kit.ammo, maxAmmo: kit.ammo, reload: kit.reload, sup: 0, supReady: false, gadLeft: kit.gad ? 3 : 0, gadT: 0,
         cubes: 0, carry: 0, bounty: 0,
         vis: 1 << s.team, inBush: false, revealT: 0, quietT: 0, shieldT: 0,
         stunT: 0, slowT: 0, slowF: 0, kbT: 0, kbx: 0, kby: 0, dashT: 0, invisT: 0, speedT: 0, speedF: 0,
@@ -859,16 +859,13 @@ class GuestMatch {
     }
   }
 
-  // Straight path from (x0, y0): where it stops by itself (wall, stone for wall-breakers, full range).
+  // Straight path from (x0, y0): where it stops by itself (the first wall, which a wall-breaker
+  // destroys there; full range). Shots that pass walls (thru) only stop at full range.
   path(s, ang, x0, y0, range) {
     const m = this.state.map;
     s.ang = ang; s.vx = Math.cos(ang); s.vy = Math.sin(ang); s.x0 = x0; s.y0 = y0; s.range = range;
     s.endL = range; s.wall = 0;
-    if (s.breaks) {
-      for (let d = 0.1; d < range + 0.05; d += 0.1) {
-        if (tileAt(m, x0 + s.vx * Math.min(d, range), y0 + s.vy * Math.min(d, range)) === TILE.STONE) { s.endL = Math.max(0, d - 0.1); s.wall = 1; break; }
-      }
-    } else if (!s.thru) {
+    if (!s.thru) {
       const t = rayHit(m, x0, y0, x0 + s.vx * range, y0 + s.vy * range, TF_SHOT, null);
       if (t >= 0) { s.endL = range * t; s.wall = 1; }
     }
@@ -1061,7 +1058,7 @@ class GuestMatch {
     me.lastSeq = m[4];
     let pa = 0, ps = 0, pg = 0;
     for (const p of this.pend) { if (p.act === ACT.ATTACK) pa++; else if (p.act === ACT.SUPER) ps++; else pg++; }
-    me.ammo = Math.max(0, Math.min(MAX_AMMO, m[0] / 100 + el / me.reload) - pa);
+    me.ammo = Math.max(0, Math.min(me.maxAmmo, m[0] / 100 + el / me.reload) - pa);
     me.sup = ps ? 0 : m[1] / 100;
     me.supReady = !ps && !!(r.fl & 2);
     me.gadLeft = Math.max(0, m[2] - pg);

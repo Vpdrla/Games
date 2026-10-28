@@ -70,17 +70,19 @@ const ModeKit = {
 };
 
 const MODES = {
-  // Gem Rush (Gem Grab): the mine spits a gem every 7 s (not while 15 lie around); a team holding
-  // 10+ gems and more than the other starts a 15 s countdown that resets as soon as that stops being
-  // true. The fallen come back after 5 s.
+  // Gem Rush (Gem Grab): the mine spits a gem every 7 s (not while 15 lie around, nor with 29 in
+  // play); a team holding 10+ gems and more than the other starts a 15 s countdown that resets as
+  // soon as that stops being true. 3:30 on the clock: then the team holding more gems wins (equal: a
+  // draw). The fallen come back after 5 s.
   gem: ModeKit.make(MODE.GEM, {
     first: 2, // s until the first gem
     every: 7,
     goal: 10,
     count: 15,
-    loose: 15, // the mine waits while this many gems lie on the ground
+    loose: 15, // the mine waits while this many gems lie on the ground ...
+    inPlay: 29, // ... or while this many are carried or lying around
     respawn: 5,
-    cap: 300, // hidden safety cap: no visible clock, but a match can't run forever
+    len: 210,
 
     init(sim) {
       sim.ms = { gems: [0, 0], mineT: this.first, count: 0, countTeam: -1, spawned: 0 };
@@ -91,9 +93,10 @@ const MODES = {
       ms.mineT -= SIM_DT;
       if (ms.mineT <= 0) {
         ms.mineT += this.every;
-        let loose = 0;
+        let loose = 0, held = 0;
         for (const p of sim.pickups) if (!p.dead && p.pick === PICK.GEM) loose += p.n;
-        if (mine && loose < this.loose) { sim.popPickup(PICK.GEM, 1, mine.x, mine.y, 1.1, 2.1); ms.spawned++; }
+        for (const b of sim.brawlers) held += b.carry;
+        if (mine && loose < this.loose && loose + held < this.inPlay) { sim.popPickup(PICK.GEM, 1, mine.x, mine.y, 1.1, 2.1); ms.spawned++; }
       }
       if (!this.recount(sim) && ms.countTeam >= 0) ms.count -= SIM_DT;
     },
@@ -134,14 +137,13 @@ const MODES = {
     checkEnd(sim) {
       const ms = sim.ms;
       if (ms.countTeam >= 0 && ms.count <= 1e-6) return sim.makeResult(ms.countTeam, 'gems', ms.gems.slice());
-      if (sim.t >= this.cap) return sim.makeResult(ModeKit.leader(ms.gems), 'time', ms.gems.slice());
+      if (sim.playT >= this.len) return sim.makeResult(ModeKit.leader(ms.gems), 'time', ms.gems.slice());
       return null;
     },
 
     hud(sim) {
       const ms = sim.ms;
-      // no visible clock in Gem Rush: time is the elapsed time
-      return { mode: 'gem', time: sim.t, gems: [ms.gems[0], ms.gems[1]], count: ms.countTeam >= 0 ? Math.max(0, Math.ceil(ms.count - 1e-6)) : 0, countTeam: ms.countTeam };
+      return { mode: 'gem', time: Math.max(0, this.len - sim.playT), gems: [ms.gems[0], ms.gems[1]], count: ms.countTeam >= 0 ? Math.max(0, Math.ceil(ms.count - 1e-6)) : 0, countTeam: ms.countTeam };
     },
   }),
 
@@ -190,10 +192,11 @@ const MODES = {
     },
   }),
 
-  // Blast Ball: first to 2 goals. Holding the ball, attack kicks it (a tap kicks at the enemy goal)
-  // and super lobs a pass over walls; gadgets are off while holding it. After a goal the world freezes for the
-  // celebration, then everyone and the ball go back to the start. Tied at the end of the clock:
-  // sudden-death overtime with every breakable wall gone; still tied, a draw.
+  // Blast Ball: first to 2 goals. Holding the ball, attack kicks it and uses an ammo bar; a charged
+  // super kicks it further and faster and is used up (either aimed, or with a tap at the enemy
+  // goal); gadgets are off while holding it. After a goal the world freezes for the celebration,
+  // then everyone and the ball go back to the start. Tied at the end of the clock: sudden-death
+  // overtime with every breakable wall gone; still tied, a draw.
   ball: ModeKit.make(MODE.BALL, {
     respawn: 5,
     len: 150,
@@ -201,7 +204,7 @@ const MODES = {
     goal: 2,
     celebrate: 2.5,
     kickSpd: 14, // rolls about 10 tiles
-    passRange: 8,
+    superKickSpd: 20, // about 15
 
     init(sim) {
       const m = sim.map, o = m.obj || { x: m.w / 2, y: m.h / 2 };
@@ -219,13 +222,17 @@ const MODES = {
       if (!o || o.holder !== b.slot) return false;
       if (act === ACT.GADGET) return true; // as in the original: no gadgets while holding the ball
       if (act !== ACT.ATTACK && act !== ACT.SUPER) return false;
+      if (act === ACT.ATTACK ? b.ammo < 1 || b.atkCd > 0 : !b.supReady) return true; // nothing to kick with
       const eg = this.goalCentre(sim, 1 - b.team);
       const ang = I.auto ? Math.atan2(eg.y - b.y, eg.x - b.x) : I.aimA;
-      if (act === ACT.ATTACK) sim.kickBall(b, ang, this.kickSpd, 0, 2);
-      else {
-        // a lob: about 0.85 s in the air, then a hop and a short roll (~1.55x the flight distance)
-        const d = (I.auto ? 0.85 : clamp(I.aimD, 0.15, 1)) * this.passRange;
-        sim.kickBall(b, ang, d / 1.55, 9, 3);
+      if (act === ACT.ATTACK) {
+        b.ammo -= 1;
+        b.atkCd = 0.3;
+        sim.kickBall(b, ang, this.kickSpd, 0, 2);
+      } else {
+        b.sup = 0;
+        b.supReady = false;
+        sim.kickBall(b, ang, this.superKickSpd, 0, 3);
       }
       b.face = ang;
       b.faceT = 0.25;
@@ -325,8 +332,10 @@ const MODES = {
   }),
 
   // Bounty: everyone wears 2 stars, +1 per takedown (up to 7). Taking someone down scores their
-  // stars for your team and puts them back to 2. The centre star is worth 1. The first team to 20
-  // stars wins, else the most stars after 2 minutes. Respawns take only 3 s here.
+  // stars for your team and puts them back to 2. The blue centre star is worth 1 to the team that
+  // takes it and breaks a tie; it changes hands when its carrier is taken down. The first team to 20
+  // stars wins, else the most stars after 2 minutes (equal: the blue star's team; nobody took it: a
+  // draw). Respawns take only 3 s here.
   bounty: ModeKit.make(MODE.BOUNTY, {
     len: 120,
     base: 2,
@@ -335,18 +344,24 @@ const MODES = {
     respawn: 3,
 
     init(sim) {
-      sim.ms = { stars: [0, 0] };
+      sim.ms = { stars: [0, 0], blue: -1, blueSlot: -1 };
       for (const b of sim.brawlers) b.bounty = this.base;
       const o = sim.map.obj;
       if (o) sim.spawnPickup(PICK.STAR, 1, o.x, o.y, o.x, o.y);
     },
 
     onKill(sim, v, k) {
+      const ms = sim.ms;
       if (k) {
-        sim.ms.stars[k.team] += v.bounty;
+        ms.stars[k.team] += v.bounty;
         k.st.stars += v.bounty;
         // a killer who is down too (a same-tick trade, a turret or pet of the fallen) gets no star
         if (k.alive && k.hp > 0) k.bounty = Math.min(this.max, k.bounty + 1);
+      }
+      // the blue star's carrier went down: it goes to the other team (to the one who took them down)
+      if (ms.blueSlot === v.slot) {
+        ms.blue = k ? k.team : 1 - v.team;
+        ms.blueSlot = k && k.alive && k.hp > 0 ? k.slot : -1;
       }
       v.bounty = this.base;
     },
@@ -355,19 +370,22 @@ const MODES = {
       if (p.pick !== PICK.STAR) return false;
       sim.ms.stars[b.team] += p.n;
       b.st.stars += p.n;
+      sim.ms.blue = b.team; // the tie-breaker, carried by whoever took it (their bounty stays)
+      sim.ms.blueSlot = b.slot;
       return true;
     },
 
     checkEnd(sim) {
-      const s = sim.ms.stars;
+      const ms = sim.ms, s = ms.stars;
       if (s[0] >= this.win || s[1] >= this.win) return sim.makeResult(ModeKit.leader(s), 'stars', s.slice());
       if (sim.playT < this.len) return null;
-      return sim.makeResult(ModeKit.leader(s), 'stars', s.slice());
+      const w = ModeKit.leader(s);
+      return sim.makeResult(w >= 0 ? w : ms.blue, 'stars', s.slice());
     },
 
     hud(sim) {
-      const s = sim.ms.stars;
-      return { mode: 'bounty', time: Math.max(0, this.len - sim.playT), stars: [s[0], s[1]] };
+      const ms = sim.ms, s = ms.stars;
+      return { mode: 'bounty', time: Math.max(0, this.len - sim.playT), stars: [s[0], s[1]], blue: ms.blue };
     },
   }),
 

@@ -10,8 +10,8 @@
 //   - 3v3 win rate per brawler (decided matches) 25-85%
 //   - Showdown wins per brawler 0.1x-5x of the fair share (1 in 10)
 //   - side bias per 3v3 mode: team 0 wins 48-52% of decided matches
-//   - >= 85% of matches end by the objective (gem 'gems', ball 'goals', ko 'rounds', bounty 'stars',
-//     sd 'last')
+//   - >= 85% of matches end by the objective (gem 'gems' or the 3:30 clock with a gem leader, ball
+//     'goals', ko 'rounds', bounty 'stars', sd 'last')
 //   - no NaN, no stuck bots (Bot telemetry.stuck), no exceptions
 //   - speed >= 500x real time per core (sim + bots)
 // Usage: node tools/balance-test.cjs [N=2000] [--quick] [--seed=1] [--workers=4] [--modes=gem,sd,...]
@@ -261,7 +261,8 @@ function mainThread() {
       const rs = ok.filter((r) => r.mode === mode);
       const reasons = {};
       for (const r of rs) reasons[r.reason] = (reasons[r.reason] || 0) + 1;
-      const obj = reasons[OBJECTIVE[mode]] || 0;
+      // a Gem Rush clock running out with one team holding more gems is decided by gems too
+      const obj = (reasons[OBJECTIVE[mode]] || 0) + (mode === 'gem' ? rs.filter((r) => r.reason === 'time' && r.winner >= 0).length : 0);
       objN += obj; objAll += rs.length;
       const secs = rs.map((r) => r.secs).sort((a, b) => a - b), medS = secs.length ? secs[Math.floor(secs.length / 2)] : 0;
       let side = '';

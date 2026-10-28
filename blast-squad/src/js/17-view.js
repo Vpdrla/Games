@@ -937,9 +937,10 @@ const View = (() => {
       let topY = by - nm.height * 0.82;
       // ammo segments (own brawler only)
       if (isMe) {
+        const na = b.maxAmmo || 3; // Zip (Max) has 4 bars
         const ah = Math.max(3, T * 0.12), ay = by + h + Math.max(2, T * 0.04), gap = Math.max(1.5, T * 0.04);
-        const sw = (w - gap * 2) / 3;
-        for (let k = 0; k < 3; k++) {
+        const sw = (w - gap * (na - 1)) / na;
+        for (let k = 0; k < na; k++) {
           const fill = clamp((b.ammo || 0) - k, 0, 1);
           const sx = d.sx - w / 2 + k * (sw + gap);
           roundRect(ctx, sx, ay, sw, ah, ah * 0.4);
@@ -1096,10 +1097,11 @@ const View = (() => {
     const mine = V.team, a = (arr) => arr[mine], b = (arr) => arr[1 - mine];
     switch (hud.mode) {
       case 'gem': {
-        const bw = 64 * u;
-        panel(ctx, cx - bw - 10 * u, y - 3 * u, bw * 2 + 20 * u, h + 6 * u);
-        scoreBox(ctx, cx - bw - 6 * u, y, bw, h, 0, 'gem', a(hud.gems), u);
-        scoreBox(ctx, cx + 6 * u, y, bw, h, 1, 'gem', b(hud.gems), u);
+        const bw = 56 * u, tw = 58 * u;
+        panel(ctx, cx - bw - tw / 2 - 8 * u, y - 3 * u, bw * 2 + tw + 16 * u, h + 6 * u);
+        scoreBox(ctx, cx - tw / 2 - bw - 4 * u, y, bw, h, 0, 'gem', a(hud.gems), u);
+        scoreBox(ctx, cx + tw / 2 + 4 * u, y, bw, h, 1, 'gem', b(hud.gems), u);
+        clock(ctx, cx, y + h / 2, hud.time, u);
         if (hud.countTeam >= 0 && hud.count > 0) {
           const ours = hud.countTeam === mine;
           const pulse = 1 + 0.08 * Math.max(0, Math.sin(V.time * TAU));
@@ -1117,6 +1119,10 @@ const View = (() => {
         scoreBox(ctx, cx + tw / 2 + 4 * u, y, bw, h, 1, ic, b(sc), u);
         clock(ctx, cx, y + h / 2, hud.time, u);
         if (hud.ot) outlineText(ctx, 'OVERTIME', cx, y + h + 12 * u, 12 * u, '#ffd23f');
+        if (hud.blue >= 0) { // Bounty: the blue star (tie-breaker) next to the team that holds it
+          const ours = hud.blue === mine, bx = ours ? cx - tw / 2 - bw - 4 * u : cx + tw / 2 + 4 * u + bw;
+          blueStar(ctx, bx, y + h + 8 * u, 7 * u);
+        }
         break;
       }
       case 'ko': {
@@ -1173,6 +1179,19 @@ const View = (() => {
         clock(ctx, cx, y + h / 2, hud.time, u);
       }
     }
+  }
+  function blueStar(ctx, x, y, r) {
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i & 1 ? r * 0.45 : r;
+      if (i) ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); else ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#4fa8ff';
+    ctx.fill();
+    ctx.lineWidth = Math.max(1, r * 0.22);
+    ctx.strokeStyle = '#0a1e44';
+    ctx.stroke();
   }
   function clock(ctx, x, y, t, u) {
     const low = t <= 10 && t > 0;

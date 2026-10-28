@@ -25,7 +25,7 @@ class Bot {
     this.aimA = 0; this.from = 0; this.to = 0; this.over = 0; this.flickT0 = -9; this.flickDur = 0; this.aimKey = -2;
     this.tapAt = 0; this.aimStopUntil = 0;
     this.aimGoal = 0; this.errOff = 0; this.depthErr = 0; this.corrAt = 0; // the aim's own error, kept until corrected
-    this.prevAmmo = MAX_AMMO; this.ammoAt = 0; // a bar that just refilled is noticed a moment later
+    this.prevAmmo = 3; this.ammoAt = 0; // a bar that just refilled is noticed a moment later
     // paths
     this.flow = null; this.flowKey = -1; this.flowT = -9; this._fd = { x: 0, y: 0, d: 0 };
     this.outPin = null; this.outEmote = null;
@@ -253,13 +253,13 @@ class Bot {
     if (holding) {
       const eg = P.map.goals.find((g) => g.team !== me.team);
       const ks = !I.passTo && !I.clearTo && eg ? this.kickSpot(P, eg) : null;
-      if (I.passTo) { has = true; key = 102; tx = I.passTo.x; ty = I.passTo.y; act = ACT.SUPER; range = Bot.PASS_RANGE; } else if (I.clearTo) { has = true; key = 103; tx = I.clearTo.x; ty = I.clearTo.y; act = ACT.ATTACK; range = Bot.KICK_RANGE; } else if (ks) { has = true; key = 101; tx = ks.x; ty = ks.y; range = Bot.KICK_RANGE; }
+      if (I.passTo) { has = true; key = 102; tx = I.passTo.x; ty = I.passTo.y; act = ACT.ATTACK; range = Bot.KICK_RANGE; } else if (I.clearTo) { has = true; key = 103; tx = I.clearTo.x; ty = I.clearTo.y; act = ACT.ATTACK; range = Bot.KICK_RANGE; } else if (ks) { has = true; key = 101; tx = ks.x; ty = ks.y; range = me.supReady ? Bot.SUPER_KICK_RANGE : Bot.KICK_RANGE; }
     } else {
       const dp = this.deployTarget(P, m && m.noticed && m.seen ? Math.hypot(m.x - me.x, m.y - me.y) : Infinity);
       if (dp) { has = true; key = 104; tx = dp.x; ty = dp.y; } else if (m && m.noticed && m.seen) { has = true; key = I.target; tx = m.x; ty = m.y; } else if (I.bushShot) { has = true; key = 100; tx = I.bushShot.x; ty = I.bushShot.y; }
     }
-    // with the ball only a buff gadget; on a pet or turret only the main attack
-    if (holding) { if (I.wantGadget && me.gadReady && this.kit.gadF.t === 'buff') { act = ACT.GADGET; spec = this.kit.gadF; } } else if (key === 104) { /* main attack */ } else if (I.wantGadget && me.gadReady && this.kit.gadF.t !== 'none') { act = ACT.GADGET; spec = this.kit.gadF; } else if (I.wantSuper && me.supReady) { act = ACT.SUPER; spec = this.kit.supF; }
+    // with the ball no gadget (the original doesn't allow it); on a pet or turret only the main attack
+    if (holding) { /* kicks only */ } else if (key === 104) { /* main attack */ } else if (I.wantGadget && me.gadReady && this.kit.gadF.t !== 'none') { act = ACT.GADGET; spec = this.kit.gadF; } else if (I.wantSuper && me.supReady) { act = ACT.SUPER; spec = this.kit.supF; }
     if (!has) {
       // nothing to shoot: aim drifts where you walk
       this.aimA = wrapAng(this.aimA + angDiff(this.aimA, this.mvA) * 0.1);
@@ -322,12 +322,17 @@ class Bot {
     out.ang = this.aimA;
     if (!range) range = spec.range || this.kit.atkF.range || 1;
     out.d = clamp((dl + (spec.lob ? this.depthErr : 0)) / range, 0.05, 1);
+    if (mode === 'self') out.d = 0.05; // dropped at my feet (a thrown safe circle)
     if (t < this.tapAt) return out;
-    // decide to shoot (a kick: in range, with a clear line to the goal mouth)
+    // decide to shoot (a kick: in range, with a clear line to the goal mouth; a charged super kicks
+    // from further out); a kick or a pass takes an ammo bar
     if (act === 0 && key === 101) {
       if (d > range * lerp(0.85, 1, p.s) || !shotClear(P.map, me.x, me.y, tx, ty)) return out;
-      act = ACT.ATTACK;
-    } else if (act === 0) {
+      if (me.supReady && d > Bot.KICK_RANGE * 0.8) act = ACT.SUPER;
+      else if (me.ammo >= 1 && t >= this.ammoAt) act = ACT.ATTACK;
+      else return out;
+    } else if ((key === 102 || key === 103) && (me.ammo < 1 || t < this.ammoAt)) return out;
+    else if (act === 0) {
       const atk = this.kit.atkF;
       if (me.ammo < 1 || t < this.ammoAt) return out;
       const reach = atk.range * lerp(1.15, 0.98, p.discipline);
@@ -433,7 +438,8 @@ class Bot {
 // Measures one player (bot or human) from the sim and its events, the same way for both, so bot
 // behaviour can be compared with real play (window.__BS.telemetry()).
 Bot.KICK_RANGE = 9; // a kicked ball rolls about 10 tiles (MODES.ball.kickSpd)
-Bot.PASS_RANGE = 8; // MODES.ball.passRange
+Bot.PASS_RANGE = 8; // furthest teammate to kick a pass to
+Bot.SUPER_KICK_RANGE = 14; // a super kick rolls about 15 tiles (MODES.ball.superKickSpd)
 
 class Telemetry {
   constructor(sim, slot) {

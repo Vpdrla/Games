@@ -210,7 +210,7 @@ function pageMain() {
     return { st, local: 0, aim: { act: ACT.SUPER, ang: -1.55, d: 0.75 } };
   };
   SC.bounty = () => {
-    const st = baseState('bounty', 'crystal_cove', { mode: 'bounty', time: 8, stars: [4, 6] });
+    const st = baseState('bounty', 'crystal_cove', { mode: 'bounty', time: 8, stars: [4, 6], blue: 1 });
     const B = st.brawlers;
     B.push(brawler(0, 0, 'hawk', 10.5, 23, { alive: false, respawnT: 2.4 }));
     B.push(brawler(1, 0, 'thorn', 7.4, 19.6, { bounty: 3, face: -1.4 }));

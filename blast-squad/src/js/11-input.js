@@ -461,7 +461,7 @@ const Input = {
     else this.queue(ACT.GADGET, 1, 0, 1);
   },
 
-  superReady() { return !this.me || !!this.me.supReady || this.ball; }, // holding the ball, super passes
+  superReady() { return !this.me || !!this.me.supReady; }, // holding the ball, a charged super kicks it further
   hasGadget() {
     const me = this.me;
     if (!me) return !!(this.data && this.data.gadgets && this.data.gadgets.length);
@@ -656,13 +656,13 @@ const Input = {
   drawAimBtn(ctx, k, me, op) {
     const b = this.btn[k], a = this.st[k], s = this.s, R = this.R;
     const sup = k === 'sup';
-    const ready = sup ? !!(me ? me.supReady : false) || this.ball : true;
+    const ready = sup ? !!(me ? me.supReady : false) : true;
     const charge = sup ? (me ? clamp(me.sup || 0, 0, 1) : 0) : 1;
     const held = a.id !== null;
     const col = sup ? '#ffc21a' : '#ff5a3c';
     const pulse = 0.5 + 0.5 * Math.sin(this.anim * 6);
     // super-ready glow
-    if (sup && ready && !this.ball) {
+    if (sup && ready) {
       ctx.globalAlpha = op * (0.35 + 0.3 * pulse);
       circle(ctx, b.x, b.y, b.r * (1.3 + 0.08 * pulse));
       ctx.fillStyle = 'rgba(255,214,60,0.55)';
