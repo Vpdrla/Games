@@ -11,8 +11,10 @@ const BRAWLER_R = 0.42; // body radius (movement and hit circle)
 const MAX_AMMO = 3;
 const REGEN_DELAY = 3; // s without attacking or taking damage before health regenerates
 const REGEN_RATE = 0.13; // share of max health regenerated per second
-const RESPAWN_T = 3; // s (3v3 modes with respawn)
-const SPAWN_SHIELD_T = 1.5; // s of spawn protection after (re)spawning
+const RESPAWN_T = 5; // s (3v3 modes with respawn; a mode may set its own)
+const SPAWN_SHIELD_T = 3; // s of spawn protection (the white bubble) after (re)spawning
+const SPAWN_LOCK_T = 0.5; // s after a respawn before the brawler can move or act (spawn glow)
+const RESPAWN_AMMO_F = 1 / 3; // share of max ammo after a respawn (one bar of three)
 const REVEAL_R = 2; // tiles: an enemy this close sees into your bush
 const REVEAL_T = 1.0; // s visible after attacking or being hit while in a bush
 const LEVEL_MULT = (lvl) => 1 + 0.1 * (lvl - 1); // health and damage per power level (11 = x2)

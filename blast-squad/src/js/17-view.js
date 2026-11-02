@@ -153,6 +153,7 @@ const View = (() => {
     lastMap = null;
     snap = true;
     spectate = -1;
+    downT = 0;
     tilesCopy = null;
     jumpWas.fill(0);
     dashWas.fill(0);
@@ -251,10 +252,26 @@ const View = (() => {
     drawPoison(ctx, state, hud, map);
     drawLabels(ctx, state);
     FX.drawTexts(ctx, FXV);
+    // down and waiting to come back: after the defeat puff the world goes dark and grey under the HUD
+    downT = me && !me.alive && me.respawnT > 0 ? downT + dt : 0;
+    if (downT > 0.25) drawDown(ctx, Math.min(1, (downT - 0.25) / 0.4));
     if (opts.hud !== false) drawHud(ctx, state, hud, me, opts.safe);
     ctx.globalAlpha = 1;
     if (t0) V.drawMs = performance.now() - t0;
   };
+
+  let downT = 0;
+  function drawDown(ctx, k) {
+    ctx.globalAlpha = k * 0.85;
+    ctx.globalCompositeOperation = 'saturation'; // grey: takes most of the colour out
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(0, 0, V.Wd, V.Hd);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = k * 0.45;
+    ctx.fillStyle = '#05060f';
+    ctx.fillRect(0, 0, V.Wd, V.Hd);
+    ctx.globalAlpha = 1;
+  }
 
   // ---- tile layer ----
   function ensureLayer(map) {
@@ -303,6 +320,20 @@ const View = (() => {
     c.x0 = c.cx - hw; c.x1 = c.cx + hw; c.y0 = c.cy - hh; c.y1 = c.cy + hh;
   }
 
+  // Respawn spots marked on the ground: the team spawn markers in Gem Rush and Bounty, three spots in
+  // the mouth of each goal in Blast Ball, none where nobody comes back.
+  let spotsMap = null, spotsMode = '', spots = [];
+  function spawnSpots(map) {
+    if (spotsMap === map && spotsMode === V.mode) return spots;
+    spotsMap = map; spotsMode = V.mode; spots = [];
+    if (V.mode === 'ball' && typeof ModeKit !== 'undefined') {
+      for (const g of map.goals) for (let i = 0; i < 3; i++) { const p = ModeKit.goalSpot(g, i); spots.push({ x: p.x, y: p.y, team: g.team }); }
+    } else if (V.mode === 'gem' || V.mode === 'bounty') {
+      map.spawns.forEach((list, team) => { for (const p of list) spots.push({ x: p.x, y: p.y, team }); });
+    }
+    return spots;
+  }
+
   // ---- ground: floor layer, water, areas, rings and shadows ----
   function drawGround(ctx, state, map) {
     const L = V.layer, T = F.T;
@@ -331,6 +362,22 @@ const View = (() => {
       if (x < -R || x > V.Wd + R || y < -R || y > V.Hd + R) continue;
       const ob = state.brawlers && state.brawlers[a.owner];
       Art.area(ctx, a, x, y, T, V.time, sideOf(a.team, ob ? ob.slot : -1));
+    }
+    // where each team comes back, marked on the ground as in the original (modes with respawns)
+    const S = spawnSpots(map);
+    for (let i = 0; i < S.length; i++) {
+      const s = S[i], x = toSX(s.x), y = toSY(s.y);
+      if (x < -T || x > V.Wd + T || y < -T || y > V.Hd + T) continue;
+      ctx.globalAlpha = 0.5;
+      ctx.lineWidth = Math.max(1.5, T * 0.06);
+      ctx.strokeStyle = s.team === V.team ? '#5fb0ff' : '#ff6a6a';
+      ctx.beginPath();
+      ctx.ellipse(x, y, T * 0.44, T * 0.31, 0, 0, TAU);
+      ctx.stroke();
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.fill();
+      ctx.globalAlpha = 1;
     }
     // team circles under brawlers (and units), below everything that stands
     const B = state.brawlers || [];
@@ -628,9 +675,15 @@ const View = (() => {
     const moving = (b.mvx || 0) * (b.mvx || 0) + (b.mvy || 0) * (b.mvy || 0) > 0.05;
     let fl = 0;
     if (moving && !(b.stunT > 0)) fl |= Art.F.WALK;
-    if (c && c.hit > 0) fl |= Art.F.FLASH;
+    if ((c && c.hit > 0) || b.spawnT > 0) fl |= Art.F.FLASH; // (just back: glowing white)
     else if (b.slowT > 0) fl |= Art.F.COLD;
     if (b.fireT !== undefined ? b.fireT < 0.12 : c && c.atk > 0.06) fl |= Art.F.ATK;
+    // just back from a defeat: a white glow until the brawler can move
+    if (b.spawnT > 0) {
+      ctx.globalAlpha = 0.7 + 0.3 * Math.sin(V.time * 14);
+      ctx.drawImage(Art.glow('#ffffff', 24), x - T * 1.05, y - T * 1.7, T * 2.1, T * 2.1);
+      ctx.globalAlpha = 1;
+    }
     // super-ready glow behind the body
     if (b.supReady && d.a > 0.45) {
       const p = 0.5 + 0.5 * Math.sin(V.time * 6 + b.slot);
@@ -648,17 +701,18 @@ const View = (() => {
     if (b.invisT > 0 && d.a < 1) ctx.globalAlpha = d.a * (0.8 + 0.2 * Math.sin(V.time * 9));
     Art.brawler(ctx, b.bk, x, y, T, scrAng(face), V.time + b.slot * 0.37, d.side, fl);
     ctx.globalAlpha = 1;
-    // status overlays
+    // status overlays. Shields as in the original: a white bubble can't be hurt at all (spawn
+    // protection), a yellow one takes less damage.
     if (b.shieldT > 0) {
-      const p = 0.5 + 0.5 * Math.sin(V.time * 5);
-      ctx.globalAlpha = 0.28 + 0.1 * p;
-      ctx.fillStyle = '#9ad4ff';
+      const p = 0.5 + 0.5 * Math.sin(V.time * 5), white = b.shieldF >= 1;
+      ctx.globalAlpha = (white ? 0.32 : 0.26) + 0.1 * p;
+      ctx.fillStyle = white ? '#f4f8ff' : '#ffd24a';
       ctx.beginPath();
       ctx.ellipse(x, y - T * 0.62, T * 0.62, T * 0.74, 0, 0, TAU);
       ctx.fill();
       ctx.globalAlpha = 0.85;
       ctx.lineWidth = Math.max(1.5, T * 0.05);
-      ctx.strokeStyle = '#e8f6ff';
+      ctx.strokeStyle = white ? '#ffffff' : '#fff1b0';
       ctx.stroke();
       ctx.globalAlpha = 0.6;
       ctx.fillStyle = '#ffffff';
@@ -1057,8 +1111,8 @@ const View = (() => {
     // respawn countdown / out of the match
     if (me && !me.alive) {
       if (me.respawnT > 0) {
-        outlineText(ctx, 'Respawning in', W / 2, H * 0.5 - 26 * u, 16 * u, '#ffffff');
-        outlineText(ctx, String(Math.ceil(me.respawnT)), W / 2, H * 0.5 + 12 * u, 48 * u, '#ffd23f');
+        outlineText(ctx, 'Respawning in', W / 2, H * 0.5 - 34 * u, 16 * u, '#ffffff');
+        outlineText(ctx, String(Math.ceil(me.respawnT)), W / 2, H * 0.5 + 12 * u, 64 * u, '#ffd23f');
       } else if (!state.over) {
         outlineText(ctx, F.sd ? 'You were knocked out' : 'Out for this round', W / 2, H * 0.62, 16 * u, '#ffffff');
         const s = spectate >= 0 && state.brawlers[spectate] && state.brawlers[spectate].alive ? state.brawlers[spectate] : null;

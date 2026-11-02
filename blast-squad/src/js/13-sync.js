@@ -15,6 +15,7 @@
 //     B   [slot, x*100, y*100, face/64, hp, flags, (jump: T*100, TT*100, x0, y0, x1, y1 *10), (carry, bounty, cubes)]
 //         or [slot, -1, respawnT*10] when down. flags: 1 bush 2 super 4 stun 8 slow 16 shield 32 invisible
 //         64 speed 128 dash 256 knockback 512 jump fields follow 1024 carried items follow
+//         2048 immune (the white bubble) 4096 just back from a defeat (can't move or act yet)
 //     m   [ammo*100, super*100, gadgets left, gadget cooldown*10, last input seq applied, slowF*100, speedF*100,
 //          speed multiplier from star powers right now*100 (Escape Mode, Shadow Step)]
 //     D   [id, key, owner, x*100, y*100, hp, maxHp, face/64]          b  [x*100, y*100, z*100, holder]
@@ -354,7 +355,8 @@ class SyncHost {
       if (b.team !== this.team && !sim.visibleTo(this.team, b)) continue;
       const jump = b.jumpT > 0, ex = b.carry > 0 || b.bounty > 0 || b.cubes > 0;
       const fl = (b.inBush ? 1 : 0) | (b.supReady ? 2 : 0) | (b.stunT > 0 ? 4 : 0) | (b.slowT > 0 ? 8 : 0) | (b.shieldT > 0 ? 16 : 0) | (b.invisT > 0 ? 32 : 0) |
-        (b.speedT > 0 ? 64 : 0) | (b.dashT > 0 ? 128 : 0) | (b.kbT > 0 ? 256 : 0) | (jump ? 512 : 0) | (ex ? 1024 : 0);
+        (b.speedT > 0 ? 64 : 0) | (b.dashT > 0 ? 128 : 0) | (b.kbT > 0 ? 256 : 0) | (jump ? 512 : 0) | (ex ? 1024 : 0) |
+        (b.shieldT > 0 && b.shieldF >= 1 ? 2048 : 0) | (b.spawnT > 0 ? 4096 : 0);
       const a = [b.slot, sq2(b.x), sq2(b.y), sqFace(b.face), Math.ceil(b.hp), fl];
       if (jump) a.push(sq2(b.jumpT), sq2(b.jumpTT), sq1(b.jx0), sq1(b.jy0), sq1(b.jx1), sq1(b.jy1));
       if (ex) a.push(b.carry, b.bounty, b.cubes);
@@ -416,7 +418,7 @@ class GuestState {
         hp, maxHp: hp, hp0: hp, alive: true, respawnT: 0, face: 0,
         ammo: kit.ammo, maxAmmo: kit.ammo, reload: kit.reload, sup: 0, supReady: false, gadLeft: kit.gad ? 3 : 0, gadT: 0,
         cubes: 0, carry: 0, bounty: 0,
-        vis: 1 << s.team, inBush: false, revealT: 0, quietT: 0, shieldT: 0,
+        vis: 1 << s.team, inBush: false, revealT: 0, quietT: 0, shieldT: 0, shieldF: 0, spawnT: 0,
         stunT: 0, slowT: 0, slowF: 0, kbT: 0, kbx: 0, kby: 0, dashT: 0, invisT: 0, speedT: 0, speedF: 0,
         mvx: 0, mvy: 0, lastSeq: 0, st: { kills: 0, deaths: 0, dmg: 0, heal: 0, gems: 0, goals: 0, stars: 0 },
         kit, pk: [s.bk, s.bk + '.atk', s.bk + '.sup', s.bk + '.gad'], speed: kit.speed * (1 + (kit.pass.speedMul || 0)),
@@ -620,7 +622,7 @@ class GuestMatch {
   // ---- own brawler: prediction and reconciliation ----
   control(s) {
     const r = s && s.B[this.local];
-    return !!r && !r.dead && !(r.fl & (4 | 128 | 256 | 512)) && s.f <= 0;
+    return !!r && !r.dead && !(r.fl & (4 | 128 | 256 | 512 | 4096)) && s.f <= 0;
   }
   moveSpeed(s) {
     const r = s.B[this.local], m = s.me || [];
@@ -712,7 +714,8 @@ class GuestMatch {
       const range = (s.range || s.dist || 0) + 1;
       let bd = range * range, tg = null;
       for (const e of this.state.brawlers) {
-        if (!e.alive || e.team === me.team || !((e.vis >> me.team) & 1)) continue;
+        // (like the host's auto-aim: not at a white bubble)
+        if (!e.alive || e.team === me.team || (e.shieldT > 0 && e.shieldF >= 1) || !((e.vis >> me.team) & 1)) continue;
         const d2 = dist2(me.x, me.y, e.x, e.y);
         if (d2 < bd) { bd = d2; tg = e; }
       }
@@ -1020,6 +1023,8 @@ class GuestMatch {
     b.hp = r.hp; b.cubes = r.cubes; b.maxHp = b.hp0 + r.cubes * CUBE_HP; b.carry = r.carry; b.bounty = r.bounty;
     b.inBush = !!on(1); b.supReady = !!on(2); b.sup = b.supReady ? 1 : b.slot === this.local ? b.sup : 0;
     b.stunT = on(4); b.slowT = on(8); b.shieldT = on(16); b.invisT = on(32); b.speedT = on(64); b.dashT = on(128); b.kbT = on(256);
+    b.shieldF = on(2048) ? 1 : b.shieldT ? 0.5 : 0; // only immune or not matters here (the bubble's colour)
+    b.spawnT = on(4096) * SPAWN_LOCK_T;
     if (fl & 512) { b.jumpT = r.jumpT; b.jumpTT = r.jumpTT; b.jx0 = r.jx0; b.jy0 = r.jy0; b.jx1 = r.jx1; b.jy1 = r.jy1; } else b.jumpT = 0;
   }
 

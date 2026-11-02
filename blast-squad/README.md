@@ -49,7 +49,7 @@ phone layout; Settings has a left-handed layout and the button size (S to XL).
 | --- | --- | --- |
 | **Gem Rush** | 3v3 | A mine spawns a gem every 7 s (not while 15 lie around). Hold 10+ gems as a team, and more than the enemy, for a 15 s countdown. Dying drops your gems; respawn in 5 s. |
 | **Showdown** | 10, every player for themselves | Break boxes for power cubes (+400 health and +10% damage each). A fallen player drops 1 cube plus a third of theirs (at most 5). The poison gas takes 20% of max health a second (more the longer you stay) and halves healing. Last one standing wins; placement decides the trophies. |
-| **Blast Ball** | 3v3 | First to 2 goals. Pick the ball up by touching it, kick it or pass it. Tied after 2:30, sudden-death overtime with the walls removed. Respawn in 5 s. |
+| **Blast Ball** | 3v3 | First to 2 goals. Pick the ball up by touching it, kick it or pass it. Tied after 2:30, sudden-death overtime with the walls removed. Respawn in 7 s, inside your own goal. |
 | **Knockout** | 3v3 | Best of 3 rounds with no respawns. Poison closes in if a round drags on. |
 | **Bounty** | 3v3 | Everyone wears stars (2, up to 7 for a hot streak). Take someone down to score their stars. First to 20 stars, or the most after 2 minutes, wins. Respawn in 3 s. |
 
@@ -225,7 +225,7 @@ follow the genre's best-known game.
 | --- | --- |
 | 젬 러시 (젬 그랩) | 3대3. 젬 10개 이상을 들고 15초 버티면 승리합니다. 바닥에 젬이 15개 깔려 있으면 광산이 멈춥니다. 부활 5초. |
 | 쇼다운 | 10명 개인전. 상자를 부숴 파워 큐브(체력 +400, 피해 +10%)를 모으세요. 쓰러진 브롤러는 큐브 1개 + 가진 큐브의 1/3(최대 5개)을 떨어뜨립니다. 독가스는 초당 최대 체력의 20%를 깎고(오래 머물수록 더 아픔) 회복을 절반으로 줄입니다. |
-| 블래스트 볼 (브롤 볼) | 3대3. 먼저 2골을 넣으면 승리합니다. 2분 30초가 지나도 동점이면 벽이 사라진 연장전(골든 골)을 합니다. 부활 5초. |
+| 블래스트 볼 (브롤 볼) | 3대3. 먼저 2골을 넣으면 승리합니다. 2분 30초가 지나도 동점이면 벽이 사라진 연장전(골든 골)을 합니다. 부활 7초, 자기 팀 골대 안에서. |
 | 녹아웃 | 3대3. 부활 없는 3판 2선승제입니다. |
 | 바운티 | 3대3. 머리 위의 별(2~7개)을 쓰러뜨려 빼앗습니다. 먼저 20개, 또는 2분 뒤 별이 많은 팀이 이깁니다. 부활 3초. |
 

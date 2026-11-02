@@ -176,7 +176,7 @@ function pageMain() {
     const B = st.brawlers;
     B.push(brawler(0, 0, 'zip', 10.5, 9.4, { face: -1.4, mvx: 0.2, mvy: -3, speedT: 2, speedF: 0.5 }));
     B.push(brawler(1, 0, 'frost', 6.2, 12.5, { face: -1.0, slowT: 0 }));
-    B.push(brawler(2, 0, 'bramble', 15.0, 13.0, { face: -1.7 }));
+    B.push(brawler(2, 0, 'bramble', 15.0, 13.0, { face: -1.7, spawnT: 0.3, shieldT: 2.6, shieldF: 1 })); // just back: white glow and bubble
     B.push(brawler(3, 1, 'shade', 9.0, 4.3, { face: 1.5, dashT: 0.2, mvy: 6 }));
     B.push(brawler(4, 1, 'hawk', 14.2, 3.2, { face: 2.4, slowT: 1.5, slowF: 0.3 }));
     B.push(brawler(5, 1, 'specter', 4.5, 7.4, { face: 0.5, hp: 1200 }));

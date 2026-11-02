@@ -1219,7 +1219,7 @@ function modeRules() {
       const n = sim.pickups.filter((q) => q.pick === A.PICK.GEM).length;
       check(n === 15 && sim.ms.spawned === 0, `no new gems while 15 lie on the ground (${n}, spawned ${sim.ms.spawned})`);
     }
-    { // respawn times: 5 s in Gem Rush and Blast Ball, 3 s in Bounty
+    { // respawn times: 5 s in Gem Rush, 7 s in Blast Ball, 3 s in Bounty
       const t = {};
       for (const [mode, map] of [['gem', 'crystal_cove'], ['ball', 'pinball_pitch'], ['bounty', 'snake_meadow']]) {
         const sim = mkSim(mode, map, KEYS.slice(0, 6));
@@ -1228,7 +1228,7 @@ function modeRules() {
         stepN(sim, 1);
         t[mode] = Math.round(v.respawnT * 10) / 10;
       }
-      check(t.gem === 5 && t.ball === 5 && t.bounty === 3, `respawn in ${JSON.stringify(t)}`);
+      check(t.gem === 5 && t.ball === 7 && t.bounty === 3, `respawn in ${JSON.stringify(t)}`);
     }
     { // Bounty: 20 stars wins at once
       const sim = mkSim('bounty', 'snake_meadow', KEYS.slice(0, 6));
@@ -1391,6 +1391,7 @@ function modeRules() {
     { // vision: an invisible brawler shows within 4 tiles; one in a bush within 2
       const sim = mkSim('test', 'zz_wall', ['specter', 'dax'], { star: -1 });
       const [b, e] = sim.brawlers;
+      unshield(b); // (the spawn bubble shows everywhere)
       b.invisT = 5;
       place(sim, e, 10.5, 15.5);
       place(sim, b, 10.5, 12.0);
@@ -1566,6 +1567,7 @@ function modeRules() {
       check(b.y < 7.5 && free(sim.map, b.x, b.y), `Bat Form flies over the wall and lands on open ground (y ${b.y.toFixed(2)})`);
       const s2 = mkSim('test', 'zz_wall', ['hawk', 'dax'], { gadget: 0 });
       const [p, q] = s2.brawlers;
+      unshield(q); // (auto-aim passes over a brawler under spawn protection)
       place(s2, p, 10.5, 15.5); place(s2, q, 10.5, 6.5);
       let ev = fire(s2, 0, ACT.GADGET, 0, 1);
       const far = evs(ev, EV.FIRE).length;
@@ -1615,6 +1617,59 @@ function modeRules() {
       sim.playT = 121;
       stepN(sim, 1);
       check(took && moved && sim.over && sim.result.winner === 1, `Bounty: the blue star counts 1, moves to the team that takes its carrier down, and wins a tie (${took}, ${moved}, ${sim.result && sim.result.winner})`);
+    }
+
+    // ---- defeat and respawn, from the patch notes (November 2026) ----
+    { // coming back: a third of the ammo, 0.5 s without moving or acting, 3 s of protection
+      const sim = mkSim('gem', 'crystal_cove', KEYS.slice(0, 6));
+      const v = sim.brawlers[3];
+      const start = sim.brawlers.every((b) => b.ammo === b.maxAmmo && b.spawnT === 0);
+      unshield(v); sim.hurt(v, 1e7, 0, 1, 0, 0);
+      stepN(sim, 1);
+      for (let n = 0; !v.alive && n < 30 * 6; n++) stepN(sim, 1);
+      const back = { ammo: v.ammo, lock: v.spawnT, sh: v.shieldT, x: v.x, y: v.y };
+      // stick and attack button held through the lock: nothing happens
+      const ev = stepN(sim, 12, (i) => (i === v.slot ? A.packIn(Math.PI / 2, 1, 0, 1, ACT.ATTACK, 1) : 0));
+      const still = Math.hypot(v.x - back.x, v.y - back.y) < 1e-9 && !evs(ev, EV.FIRE).some((e) => e[1] === v.slot);
+      stepN(sim, 12, (i) => (i === v.slot ? A.packIn(Math.PI / 2, 1, 0, 1, 0, 0) : 0));
+      const moves = Math.hypot(v.x - back.x, v.y - back.y) > 0.1;
+      check(start && Math.abs(back.ammo - v.maxAmmo / 3) < 1e-9 && Math.abs(back.lock - 0.5) < 0.04 && Math.abs(back.sh - 3) < 0.04 && still && moves,
+        `a respawn brings a third of the ammo (${back.ammo.toFixed(2)}), 0.5 s without moving or attacking (${back.lock.toFixed(2)} s, still ${still}, then moves ${moves}) and a 3 s shield (${back.sh.toFixed(2)})`);
+    }
+    { // spawn protection: no damage or stun, auto-aim passes over it, it shows in a bush; an attack ends it
+      const sim = mkSim('test', 'zz_wall', ['nova', 'dax'], { star: -1 });
+      const [b, e] = sim.brawlers;
+      place(sim, b, 3.5, 16.5); place(sim, e, 3.5, 10.5); // b in the bush, e 6 tiles off
+      const seen = sim.visibleTo(1, b), aimed = !!sim.autoTarget(e, 9);
+      const hp = b.hp;
+      sim.hurt(b, 1000, e.slot, 1, 0, 0); sim.stun(b, 1, e.slot, 1);
+      const safe = b.hp === hp && b.stunT === 0;
+      ready(b);
+      fire(sim, 0, ACT.ATTACK, -Math.PI / 2, 1);
+      const off = b.shieldT === 0 && !b.spawnSh;
+      const s2 = mkSim('test', 'zz_wall', ['nova', 'dax'], { star: -1 });
+      const [b2, e2] = s2.brawlers;
+      place(s2, b2, 3.5, 16.5); place(s2, e2, 3.5, 10.5);
+      unshield(b2); s2.updateVision();
+      const hidden = !s2.visibleTo(1, b2);
+      place(s2, b2, 10.5, 15.5); place(s2, e2, 10.5, 9.5); // in the open, 6 tiles apart
+      const aimed2 = !!s2.autoTarget(e2, 9);
+      check(seen && !aimed && safe && off && hidden && aimed2, `spawn protection: no damage or stun, not auto-aimed, seen in a bush; an attack ends it (${seen}, ${!aimed}, ${safe}, ${off}, hidden after ${hidden}, aimed after ${aimed2})`);
+    }
+    { // Blast Ball: everyone starts, comes back and kicks off inside the goal their team defends
+      const sim = mkSim('ball', 'pinball_pitch', KEYS.slice(0, 6));
+      const inGoal = (b) => { const g = sim.map.goals.find((q) => q.team === b.team); return b.x >= g.x0 && b.x <= g.x1 && b.y >= g.y0 && b.y <= g.y1; };
+      const start = sim.brawlers.every(inGoal);
+      const v = sim.brawlers[4];
+      unshield(v); sim.hurt(v, 1e7, 0, 1, 0, 0);
+      stepN(sim, 1);
+      const wait = v.respawnT;
+      for (let n = 0; !v.alive && n < 30 * 8; n++) stepN(sim, 1);
+      const back = v.alive && inGoal(v) && Math.abs(v.ammo - v.maxAmmo / 3) < 1e-9;
+      v.ammo = 0;
+      sim.resetRound({});
+      const kick = sim.brawlers.every((b) => inGoal(b) && b.ammo === b.maxAmmo && b.spawnT === 0);
+      check(start && Math.abs(wait - 7) < 0.04 && back && kick, `Blast Ball: start, respawn (after ${wait.toFixed(1)} s) and kickoff inside the defended goal, full ammo at a kickoff (${start}, ${back}, ${kick})`);
     }
     { // gear: every gadget and star power index builds a kit (and a missing one is no gear)
       let ok = true;
