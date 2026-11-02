@@ -350,8 +350,10 @@ const BRAWLER_R = 0.42; // body radius (movement and hit circle)
 const MAX_AMMO = 3;
 const REGEN_DELAY = 3; // s without attacking or taking damage before health regenerates
 const REGEN_RATE = 0.13; // share of max health regenerated per second
-const RESPAWN_T = 3; // s (3v3 modes with respawn)
-const SPAWN_SHIELD_T = 1.5; // s of spawn protection after (re)spawning
+const RESPAWN_T = 5; // s (3v3 modes with respawn; a mode may set its own)
+const SPAWN_SHIELD_T = 3; // s of spawn protection (the white bubble) after (re)spawning
+const SPAWN_LOCK_T = 0.5; // s after a respawn before the brawler can move or act (spawn glow)
+const RESPAWN_AMMO_F = 1 / 3; // share of max ammo after a respawn (one bar of three)
 const REVEAL_R = 2; // tiles: an enemy this close sees into your bush
 const REVEAL_T = 1.0; // s visible after attacking or being hit while in a bush
 const LEVEL_MULT = (lvl) => 1 + 0.1 * (lvl - 1); // health and damage per power level (11 = x2)
@@ -1587,7 +1589,7 @@ class Sim {
   visibleTo(team, e) { return e.kind === K.BRAWLER ? ((e.vis >> team) & 1) === 1 : true; }
   setInput(slot, w) { this.inputs[slot] = w >>> 0; }
   dmgMul(b) { return LEVEL_MULT(b.lvl) * (1 + CUBE_DMG * b.cubes); }
-  canAct(b) { return b.alive && b.stunT <= 0 && b.kbT <= 0 && b.dashT <= 0 && b.jumpT <= 0; }
+  canAct(b) { return b.alive && b.stunT <= 0 && b.kbT <= 0 && b.dashT <= 0 && b.jumpT <= 0 && b.spawnT <= 0; }
   hittable(b) { return b.alive && b.jumpT <= 0; }
 
   newBrawler(slot, c) {
@@ -1602,7 +1604,7 @@ class Sim {
       hp, maxHp: hp, alive: true, respawnT: 0, face: 0,
       ammo: kit.ammo, maxAmmo: kit.ammo, reload: kit.reload, sup: 0, supReady: false, gadLeft: kit.gad ? 3 : 0, gadT: 0,
       cubes: 0, carry: 0, bounty: 0,
-      vis: 0, inBush: false, revealT: 0, quietT: 0, shieldT: 0,
+      vis: 0, inBush: false, revealT: 0, quietT: 0, shieldT: 0, spawnT: 0,
       stunT: 0, slowT: 0, slowF: 0, kbT: 0, kbx: 0, kby: 0, dashT: 0,
       invisT: 0, speedT: 0, speedF: 0,
       mvx: 0, mvy: 0, lastSeq: 0,
@@ -1621,17 +1623,21 @@ class Sim {
     };
   }
 
-  // (Re)places a brawler at the mode's spawn point with full health and ammo. Super charge and
-  // gadget uses carry over, as in the original.
-  spawn(b, re) {
+  // (Re)places a brawler at the mode's spawn point with full health. Super charge and gadget uses
+  // carry over, as in the original. Coming back after a defeat (re) gives a third of the ammo and
+  // SPAWN_LOCK_T without moving or acting; the match start and round resets (round: Knockout
+  // rounds, Blast Ball kickoffs) start with full ammo and no lock.
+  spawn(b, re, round) {
     const p = this.mode.spawnPoint(this, b);
+    const back = re && !round;
     b.x = b.px = p.x;
     b.y = b.py = p.y;
     b.alive = true;
     b.respawnT = 0;
     b.hp = b.maxHp;
-    b.ammo = b.maxAmmo;
+    b.ammo = back ? b.maxAmmo * RESPAWN_AMMO_F : b.maxAmmo;
     this.clearStatus(b);
+    b.spawnT = back ? SPAWN_LOCK_T : 0;
     b.shieldT = SPAWN_SHIELD_T;
     b.shieldF = 1;
     b.spawnSh = true;
@@ -1649,7 +1655,7 @@ class Sim {
     b.mvx = b.mvy = 0; b.nxStun = b.nxSlow = 0; b.atkCd = 0; b.faceT = 0;
     b.poisAcc = 0.5; b.regenAcc = 0; b.passAcc = 0; b.killer = -1; b.dying = false;
     b.nxN = 0; b.atkT = -99; b.burnT = 0; b.burnAcc = 0; b.blockT = 0; b.ccT = 0; b.kbStun = 0; b.speedSrc = -1;
-    b.poisN = 0; b.inPois = false;
+    b.poisN = 0; b.inPois = false; b.spawnT = 0;
   }
 
   // ================= step =================
@@ -1714,7 +1720,7 @@ class Sim {
       b.kbT = Math.max(0, b.kbT - dt);
       if (b.kbT <= 0) b.kbStun = 0;
     } else if (b.dashT > 0) this.stepDash(b);
-    else if (b.stunT <= 0 && I.mvM > 0) {
+    else if (b.stunT <= 0 && b.spawnT <= 0 && I.mvM > 0) {
       let k = b.speed * dt;
       const pass = b.kit.pass;
       if (b.slowT > 0) k *= 1 - b.slowF;
@@ -1834,7 +1840,8 @@ class Sim {
     let bd = R * R, found = false;
     for (let i = 0; i < B.length; i++) {
       const e = B[i];
-      if (!e.alive || e.team === b.team || !((e.vis >> b.team) & 1)) continue;
+      // (never at a brawler under spawn protection, as in the original)
+      if (!e.alive || e.team === b.team || e.spawnSh || !((e.vis >> b.team) & 1)) continue;
       const d2 = dist2(b.x, b.y, e.x, e.y);
       if (d2 < bd) { bd = d2; tg.x = e.x; tg.y = e.y; found = true; }
     }
@@ -3066,6 +3073,7 @@ class Sim {
       if (b.invisT > 0) b.invisT = Math.max(0, b.invisT - dt);
       if (b.speedT > 0) { b.speedT -= dt; if (b.speedT <= 0) { b.speedT = 0; b.speedF = 0; } }
       if (b.shieldT > 0) { b.shieldT -= dt; if (b.shieldT <= 0) { b.shieldT = 0; b.shieldF = 0; b.spawnSh = false; } }
+      if (b.spawnT > 0) b.spawnT = Math.max(0, b.spawnT - dt);
       if (b.faceT > 0) b.faceT = Math.max(0, b.faceT - dt);
       if (b.atkCd > 0) b.atkCd = Math.max(0, b.atkCd - dt);
       if (b.gadT > 0) b.gadT = Math.max(0, b.gadT - dt);
@@ -3172,13 +3180,15 @@ class Sim {
 
   // ---- 10. vision ----
   // Walls never block sight. Hidden from a team: in a bush (and not revealed) unless one of its
-  // living members is within REVEAL_R, or invisible unless one is within INVIS_R.
+  // living members is within REVEAL_R, or invisible unless one is within INVIS_R. A brawler under
+  // spawn protection is always seen.
   updateVision() {
     const B = this.brawlers, m = this.map, all = (1 << this.nTeams) - 1;
     for (let i = 0; i < B.length; i++) {
       const b = B[i];
       if (!b.alive) { b.inBush = false; b.vis = 1 << b.team; continue; }
       b.inBush = inBushAt(m, b.x, b.y);
+      if (b.spawnSh) { b.vis = all; continue; } // the spawn bubble shows even in a bush
       const bush = b.inBush && b.revealT <= 0, inv = b.invisT > 0 && b.revealT <= 0; // hit while invisible: seen for a moment
       if (!bush && !inv) { b.vis = all; continue; }
       const R = inv ? Sim.INVIS_R : REVEAL_R, R2 = R * R;
@@ -3250,7 +3260,7 @@ class Sim {
     for (const b of this.brawlers) {
       if (opts.resetSuper) { b.sup = 0; b.supReady = false; }
       b.carry = 0;
-      this.spawn(b, true);
+      this.spawn(b, true, true);
     }
     this.roundT0 = this.t;
     this.poisonStage = 0;
@@ -3381,6 +3391,13 @@ const ModeKit = {
   },
 
   make(key, hooks) { return Object.assign({}, ModeKit.base, { key }, hooks); },
+
+  // The i-th (0-2) of three spots side by side across the mouth of a goal, up to 1.5 tiles apart
+  // (Blast Ball spawns; the view marks them on the ground).
+  goalSpot(g, i) {
+    const gap = Math.min(1.5, (g.x1 - g.x0 - 1) / 2);
+    return { x: (g.x0 + g.x1) / 2 + (i - 1) * gap, y: (g.y0 + g.y1) / 2 };
+  },
 
   // Index of b among its team's slots (0 for the lowest slot).
   teamIndex(sim, b) {
@@ -3546,9 +3563,10 @@ const MODES = {
   // super kicks it further and faster and is used up (either aimed, or with a tap at the enemy
   // goal); gadgets are off while holding it. After a goal the world freezes for the celebration,
   // then everyone and the ball go back to the start. Tied at the end of the clock: sudden-death
-  // overtime with every breakable wall gone; still tied, a draw.
+  // overtime with every breakable wall gone; still tied, a draw. As in the original, the fallen are
+  // back after 7 s, and everyone starts and comes back inside the goal their team defends.
   ball: ModeKit.make(MODE.BALL, {
-    respawn: 5,
+    respawn: 7,
     len: 150,
     otLen: 60,
     goal: 2,
@@ -3565,6 +3583,13 @@ const MODES = {
     goalCentre(sim, team) {
       const g = sim.map.goals.find((q) => q.team === team);
       return g ? { x: (g.x0 + g.x1) / 2, y: (g.y0 + g.y1) / 2 } : { x: sim.map.w / 2, y: team === 1 ? 0 : sim.map.h };
+    },
+
+    spawnPoint(sim, b) {
+      const g = sim.map.goals.find((q) => q.team === b.team);
+      if (!g) return ModeKit.spawnPoint(sim, b);
+      const p = ModeKit.goalSpot(g, ModeKit.teamIndex(sim, b) % 3);
+      return sim.freeSpot(p.x, p.y, BRAWLER_R, { x: 0, y: 0 });
     },
 
     onAction(sim, b, act, I) {
@@ -3803,6 +3828,7 @@ function perceive(sim, slot, P, rng) {
   m.ammo = me.ammo; m.sup = me.sup; m.supReady = me.supReady; m.gadLeft = me.gadLeft; m.gadReady = me.gadLeft > 0 && me.gadT <= 0 && me.gadget >= 0; m.gadget = me.gadget; // own loadout
   m.carry = me.carry; m.cubes = me.cubes; m.alive = me.alive; m.respawnT = me.respawnT; m.inBush = me.inBush;
   m.invis = me.invisT > 0; m.stunned = me.stunT > 0; m.face = me.face; m.lvl = me.lvl; m.shield = me.shieldT > 0; m.bounty = me.bounty;
+  m.spawning = me.spawnT > 0; // just back: can't move or act yet
   P.frozen = sim.freezeT > 0; // the GOAL / ROUND banner is up: nothing moves
   P.allies.length = 0;
   P.enemies.length = 0;
@@ -3822,7 +3848,8 @@ function perceive(sim, slot, P, rng) {
       P.allies.push(a);
     } else if (b.alive && sim.visibleTo(me.team, b) && inRect(cam, b.x, b.y, 0.3)) {
       seen[b.slot] = 1;
-      P.enemies.push({ slot: b.slot, team: b.team, bk: b.bk, x: b.x, y: b.y, hp: b.hp, maxHp: b.maxHp, carry: b.carry, cubes: b.cubes, inBush: b.inBush, bounty: b.bounty, lvl: b.lvl, shield: b.shieldT > 0 });
+      // immune: the white bubble (spawn protection) a player sees on screen
+      P.enemies.push({ slot: b.slot, team: b.team, bk: b.bk, x: b.x, y: b.y, hp: b.hp, maxHp: b.maxHp, carry: b.carry, cubes: b.cubes, inBush: b.inBush, bounty: b.bounty, lvl: b.lvl, shield: b.shieldT > 0, immune: b.shieldT > 0 && b.shieldF >= 1 });
     }
   }
   // shots: enemy projectiles on screen (a lob's bottle; where it lands is judged from its shadow, more
@@ -3991,7 +4018,7 @@ class Mind {
     for (const e of P.enemies) {
       seenNow.add(e.slot);
       let m = this.mem[e.slot];
-      if (!m) m = this.mem[e.slot] = { x: e.x, y: e.y, vx: 0, vy: 0, t: t, first: t, noticeAt: 0, noticed: false, seen: false, hp: e.hp, maxHp: e.maxHp, bk: e.bk, carry: 0, inBush: false, team: e.team, bounty: 0 };
+      if (!m) m = this.mem[e.slot] = { x: e.x, y: e.y, vx: 0, vy: 0, t: t, first: t, noticeAt: 0, noticed: false, seen: false, hp: e.hp, maxHp: e.maxHp, bk: e.bk, carry: 0, inBush: false, team: e.team, bounty: 0, immune: false };
       if (!m.seen) {
         // a new sighting: notice it after a reaction time (slower when busy with another target)
         if (!m.noticed || t - m.t > 1.2) {
@@ -4011,7 +4038,7 @@ class Mind {
           m.vy = lerp(m.vy, (e.y - m.y) / dt, k);
         }
       }
-      m.x = e.x; m.y = e.y; m.t = t; m.seen = true; m.hp = e.hp; m.maxHp = e.maxHp; m.carry = e.carry; m.inBush = e.inBush; m.bk = e.bk; m.team = e.team; m.bounty = e.bounty || 0;
+      m.x = e.x; m.y = e.y; m.t = t; m.seen = true; m.hp = e.hp; m.maxHp = e.maxHp; m.carry = e.carry; m.inBush = e.inBush; m.bk = e.bk; m.team = e.team; m.bounty = e.bounty || 0; m.immune = !!e.immune;
       if (!m.noticed && t >= m.noticeAt) m.noticed = true;
     }
     for (const k in this.mem) {
@@ -4101,6 +4128,7 @@ class Mind {
       if (d < atk.range) sc += 0.4;
       if (m.slot === this.lastTarget) sc += 0.35 + stress * 0.4;
       if (P.ball && P.ball.holderSlot === m.slot) sc += 0.6;
+      if (m.immune) sc -= 1.5; // a white bubble can't be hurt yet
       sc += r.range(-0.15, 0.15) * (1 - p.s);
       if (sc > best) { best = sc; target = m; }
     }
@@ -4699,7 +4727,7 @@ class Bot {
       // nothing to shoot: aim drifts where you walk
       this.aimA = wrapAng(this.aimA + angDiff(this.aimA, this.mvA) * 0.1);
       out.ang = this.aimA; out.d = 1;
-      if (act && (act === ACT.GADGET ? I.gadMode : I.superMode) === 'self') { out.act = act; this.fired(act, false); }
+      if (act && !me.spawning && (act === ACT.GADGET ? I.gadMode : I.superMode) === 'self') { out.act = act; this.fired(act, false); }
       return out;
     }
     const d = Math.hypot(tx - me.x, ty - me.y) || 0.01;
@@ -4758,7 +4786,9 @@ class Bot {
     if (!range) range = spec.range || this.kit.atkF.range || 1;
     out.d = clamp((dl + (spec.lob ? this.depthErr : 0)) / range, 0.05, 1);
     if (mode === 'self') out.d = 0.05; // dropped at my feet (a thrown safe circle)
-    if (t < this.tapAt) return out;
+    if (t < this.tapAt || me.spawning) return out;
+    // a white bubble (spawn protection): keep the aim on it, but there's nothing to gain from a shot yet
+    if (m && key === I.target && m.immune && mode === 'target') return out;
     // decide to shoot (a kick: in range, with a clear line to the goal mouth; a charged super kicks
     // from further out); a kick or a pass takes an ammo bar
     if (act === 0 && key === 101) {
@@ -6255,6 +6285,7 @@ const Net = {
 //     B   [slot, x*100, y*100, face/64, hp, flags, (jump: T*100, TT*100, x0, y0, x1, y1 *10), (carry, bounty, cubes)]
 //         or [slot, -1, respawnT*10] when down. flags: 1 bush 2 super 4 stun 8 slow 16 shield 32 invisible
 //         64 speed 128 dash 256 knockback 512 jump fields follow 1024 carried items follow
+//         2048 immune (the white bubble) 4096 just back from a defeat (can't move or act yet)
 //     m   [ammo*100, super*100, gadgets left, gadget cooldown*10, last input seq applied, slowF*100, speedF*100,
 //          speed multiplier from star powers right now*100 (Escape Mode, Shadow Step)]
 //     D   [id, key, owner, x*100, y*100, hp, maxHp, face/64]          b  [x*100, y*100, z*100, holder]
@@ -6594,7 +6625,8 @@ class SyncHost {
       if (b.team !== this.team && !sim.visibleTo(this.team, b)) continue;
       const jump = b.jumpT > 0, ex = b.carry > 0 || b.bounty > 0 || b.cubes > 0;
       const fl = (b.inBush ? 1 : 0) | (b.supReady ? 2 : 0) | (b.stunT > 0 ? 4 : 0) | (b.slowT > 0 ? 8 : 0) | (b.shieldT > 0 ? 16 : 0) | (b.invisT > 0 ? 32 : 0) |
-        (b.speedT > 0 ? 64 : 0) | (b.dashT > 0 ? 128 : 0) | (b.kbT > 0 ? 256 : 0) | (jump ? 512 : 0) | (ex ? 1024 : 0);
+        (b.speedT > 0 ? 64 : 0) | (b.dashT > 0 ? 128 : 0) | (b.kbT > 0 ? 256 : 0) | (jump ? 512 : 0) | (ex ? 1024 : 0) |
+        (b.shieldT > 0 && b.shieldF >= 1 ? 2048 : 0) | (b.spawnT > 0 ? 4096 : 0);
       const a = [b.slot, sq2(b.x), sq2(b.y), sqFace(b.face), Math.ceil(b.hp), fl];
       if (jump) a.push(sq2(b.jumpT), sq2(b.jumpTT), sq1(b.jx0), sq1(b.jy0), sq1(b.jx1), sq1(b.jy1));
       if (ex) a.push(b.carry, b.bounty, b.cubes);
@@ -6656,7 +6688,7 @@ class GuestState {
         hp, maxHp: hp, hp0: hp, alive: true, respawnT: 0, face: 0,
         ammo: kit.ammo, maxAmmo: kit.ammo, reload: kit.reload, sup: 0, supReady: false, gadLeft: kit.gad ? 3 : 0, gadT: 0,
         cubes: 0, carry: 0, bounty: 0,
-        vis: 1 << s.team, inBush: false, revealT: 0, quietT: 0, shieldT: 0,
+        vis: 1 << s.team, inBush: false, revealT: 0, quietT: 0, shieldT: 0, shieldF: 0, spawnT: 0,
         stunT: 0, slowT: 0, slowF: 0, kbT: 0, kbx: 0, kby: 0, dashT: 0, invisT: 0, speedT: 0, speedF: 0,
         mvx: 0, mvy: 0, lastSeq: 0, st: { kills: 0, deaths: 0, dmg: 0, heal: 0, gems: 0, goals: 0, stars: 0 },
         kit, pk: [s.bk, s.bk + '.atk', s.bk + '.sup', s.bk + '.gad'], speed: kit.speed * (1 + (kit.pass.speedMul || 0)),
@@ -6860,7 +6892,7 @@ class GuestMatch {
   // ---- own brawler: prediction and reconciliation ----
   control(s) {
     const r = s && s.B[this.local];
-    return !!r && !r.dead && !(r.fl & (4 | 128 | 256 | 512)) && s.f <= 0;
+    return !!r && !r.dead && !(r.fl & (4 | 128 | 256 | 512 | 4096)) && s.f <= 0;
   }
   moveSpeed(s) {
     const r = s.B[this.local], m = s.me || [];
@@ -6952,7 +6984,8 @@ class GuestMatch {
       const range = (s.range || s.dist || 0) + 1;
       let bd = range * range, tg = null;
       for (const e of this.state.brawlers) {
-        if (!e.alive || e.team === me.team || !((e.vis >> me.team) & 1)) continue;
+        // (like the host's auto-aim: not at a white bubble)
+        if (!e.alive || e.team === me.team || (e.shieldT > 0 && e.shieldF >= 1) || !((e.vis >> me.team) & 1)) continue;
         const d2 = dist2(me.x, me.y, e.x, e.y);
         if (d2 < bd) { bd = d2; tg = e; }
       }
@@ -7260,6 +7293,8 @@ class GuestMatch {
     b.hp = r.hp; b.cubes = r.cubes; b.maxHp = b.hp0 + r.cubes * CUBE_HP; b.carry = r.carry; b.bounty = r.bounty;
     b.inBush = !!on(1); b.supReady = !!on(2); b.sup = b.supReady ? 1 : b.slot === this.local ? b.sup : 0;
     b.stunT = on(4); b.slowT = on(8); b.shieldT = on(16); b.invisT = on(32); b.speedT = on(64); b.dashT = on(128); b.kbT = on(256);
+    b.shieldF = on(2048) ? 1 : b.shieldT ? 0.5 : 0; // only immune or not matters here (the bubble's colour)
+    b.spawnT = on(4096) * SPAWN_LOCK_T;
     if (fl & 512) { b.jumpT = r.jumpT; b.jumpTT = r.jumpTT; b.jx0 = r.jx0; b.jy0 = r.jy0; b.jx1 = r.jx1; b.jy1 = r.jy1; } else b.jumpT = 0;
   }
 
@@ -10388,7 +10423,8 @@ const FX = (() => {
         case EV.RESPAWN: {
           const b = bs[ev[1]];
           const col = b ? (side(b) === 0 ? '#7ac8ff' : '#ff8a8a') : '#fff';
-          this.column(ev[2], ev[3], col);
+          this.column(ev[2], ev[3], '#ffffff'); // comes back in a white light
+          this.flash(ev[2], ev[3], 0.8, 0.9, '#ffffff', 0.3);
           this.ring(ev[2], ev[3], 1.2, col, 0.5, 0.12);
           this.stars(ev[2], ev[3], 0.3, 8, '#ffffff', 0.5);
           break;
@@ -10803,6 +10839,7 @@ const View = (() => {
     lastMap = null;
     snap = true;
     spectate = -1;
+    downT = 0;
     tilesCopy = null;
     jumpWas.fill(0);
     dashWas.fill(0);
@@ -10901,10 +10938,26 @@ const View = (() => {
     drawPoison(ctx, state, hud, map);
     drawLabels(ctx, state);
     FX.drawTexts(ctx, FXV);
+    // down and waiting to come back: after the defeat puff the world goes dark and grey under the HUD
+    downT = me && !me.alive && me.respawnT > 0 ? downT + dt : 0;
+    if (downT > 0.25) drawDown(ctx, Math.min(1, (downT - 0.25) / 0.4));
     if (opts.hud !== false) drawHud(ctx, state, hud, me, opts.safe);
     ctx.globalAlpha = 1;
     if (t0) V.drawMs = performance.now() - t0;
   };
+
+  let downT = 0;
+  function drawDown(ctx, k) {
+    ctx.globalAlpha = k * 0.85;
+    ctx.globalCompositeOperation = 'saturation'; // grey: takes most of the colour out
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(0, 0, V.Wd, V.Hd);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = k * 0.45;
+    ctx.fillStyle = '#05060f';
+    ctx.fillRect(0, 0, V.Wd, V.Hd);
+    ctx.globalAlpha = 1;
+  }
 
   // ---- tile layer ----
   function ensureLayer(map) {
@@ -10953,6 +11006,20 @@ const View = (() => {
     c.x0 = c.cx - hw; c.x1 = c.cx + hw; c.y0 = c.cy - hh; c.y1 = c.cy + hh;
   }
 
+  // Respawn spots marked on the ground: the team spawn markers in Gem Rush and Bounty, three spots in
+  // the mouth of each goal in Blast Ball, none where nobody comes back.
+  let spotsMap = null, spotsMode = '', spots = [];
+  function spawnSpots(map) {
+    if (spotsMap === map && spotsMode === V.mode) return spots;
+    spotsMap = map; spotsMode = V.mode; spots = [];
+    if (V.mode === 'ball' && typeof ModeKit !== 'undefined') {
+      for (const g of map.goals) for (let i = 0; i < 3; i++) { const p = ModeKit.goalSpot(g, i); spots.push({ x: p.x, y: p.y, team: g.team }); }
+    } else if (V.mode === 'gem' || V.mode === 'bounty') {
+      map.spawns.forEach((list, team) => { for (const p of list) spots.push({ x: p.x, y: p.y, team }); });
+    }
+    return spots;
+  }
+
   // ---- ground: floor layer, water, areas, rings and shadows ----
   function drawGround(ctx, state, map) {
     const L = V.layer, T = F.T;
@@ -10981,6 +11048,22 @@ const View = (() => {
       if (x < -R || x > V.Wd + R || y < -R || y > V.Hd + R) continue;
       const ob = state.brawlers && state.brawlers[a.owner];
       Art.area(ctx, a, x, y, T, V.time, sideOf(a.team, ob ? ob.slot : -1));
+    }
+    // where each team comes back, marked on the ground as in the original (modes with respawns)
+    const S = spawnSpots(map);
+    for (let i = 0; i < S.length; i++) {
+      const s = S[i], x = toSX(s.x), y = toSY(s.y);
+      if (x < -T || x > V.Wd + T || y < -T || y > V.Hd + T) continue;
+      ctx.globalAlpha = 0.5;
+      ctx.lineWidth = Math.max(1.5, T * 0.06);
+      ctx.strokeStyle = s.team === V.team ? '#5fb0ff' : '#ff6a6a';
+      ctx.beginPath();
+      ctx.ellipse(x, y, T * 0.44, T * 0.31, 0, 0, TAU);
+      ctx.stroke();
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.fill();
+      ctx.globalAlpha = 1;
     }
     // team circles under brawlers (and units), below everything that stands
     const B = state.brawlers || [];
@@ -11278,9 +11361,15 @@ const View = (() => {
     const moving = (b.mvx || 0) * (b.mvx || 0) + (b.mvy || 0) * (b.mvy || 0) > 0.05;
     let fl = 0;
     if (moving && !(b.stunT > 0)) fl |= Art.F.WALK;
-    if (c && c.hit > 0) fl |= Art.F.FLASH;
+    if ((c && c.hit > 0) || b.spawnT > 0) fl |= Art.F.FLASH; // (just back: glowing white)
     else if (b.slowT > 0) fl |= Art.F.COLD;
     if (b.fireT !== undefined ? b.fireT < 0.12 : c && c.atk > 0.06) fl |= Art.F.ATK;
+    // just back from a defeat: a white glow until the brawler can move
+    if (b.spawnT > 0) {
+      ctx.globalAlpha = 0.7 + 0.3 * Math.sin(V.time * 14);
+      ctx.drawImage(Art.glow('#ffffff', 24), x - T * 1.05, y - T * 1.7, T * 2.1, T * 2.1);
+      ctx.globalAlpha = 1;
+    }
     // super-ready glow behind the body
     if (b.supReady && d.a > 0.45) {
       const p = 0.5 + 0.5 * Math.sin(V.time * 6 + b.slot);
@@ -11298,17 +11387,18 @@ const View = (() => {
     if (b.invisT > 0 && d.a < 1) ctx.globalAlpha = d.a * (0.8 + 0.2 * Math.sin(V.time * 9));
     Art.brawler(ctx, b.bk, x, y, T, scrAng(face), V.time + b.slot * 0.37, d.side, fl);
     ctx.globalAlpha = 1;
-    // status overlays
+    // status overlays. Shields as in the original: a white bubble can't be hurt at all (spawn
+    // protection), a yellow one takes less damage.
     if (b.shieldT > 0) {
-      const p = 0.5 + 0.5 * Math.sin(V.time * 5);
-      ctx.globalAlpha = 0.28 + 0.1 * p;
-      ctx.fillStyle = '#9ad4ff';
+      const p = 0.5 + 0.5 * Math.sin(V.time * 5), white = b.shieldF >= 1;
+      ctx.globalAlpha = (white ? 0.32 : 0.26) + 0.1 * p;
+      ctx.fillStyle = white ? '#f4f8ff' : '#ffd24a';
       ctx.beginPath();
       ctx.ellipse(x, y - T * 0.62, T * 0.62, T * 0.74, 0, 0, TAU);
       ctx.fill();
       ctx.globalAlpha = 0.85;
       ctx.lineWidth = Math.max(1.5, T * 0.05);
-      ctx.strokeStyle = '#e8f6ff';
+      ctx.strokeStyle = white ? '#ffffff' : '#fff1b0';
       ctx.stroke();
       ctx.globalAlpha = 0.6;
       ctx.fillStyle = '#ffffff';
@@ -11707,8 +11797,8 @@ const View = (() => {
     // respawn countdown / out of the match
     if (me && !me.alive) {
       if (me.respawnT > 0) {
-        outlineText(ctx, 'Respawning in', W / 2, H * 0.5 - 26 * u, 16 * u, '#ffffff');
-        outlineText(ctx, String(Math.ceil(me.respawnT)), W / 2, H * 0.5 + 12 * u, 48 * u, '#ffd23f');
+        outlineText(ctx, 'Respawning in', W / 2, H * 0.5 - 34 * u, 16 * u, '#ffffff');
+        outlineText(ctx, String(Math.ceil(me.respawnT)), W / 2, H * 0.5 + 12 * u, 64 * u, '#ffd23f');
       } else if (!state.over) {
         outlineText(ctx, F.sd ? 'You were knocked out' : 'Out for this round', W / 2, H * 0.62, 16 * u, '#ffffff');
         const s = spectate >= 0 && state.brawlers[spectate] && state.brawlers[spectate].alive ? state.brawlers[spectate] : null;

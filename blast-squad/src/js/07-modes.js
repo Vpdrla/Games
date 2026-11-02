@@ -32,6 +32,13 @@ const ModeKit = {
 
   make(key, hooks) { return Object.assign({}, ModeKit.base, { key }, hooks); },
 
+  // The i-th (0-2) of three spots side by side across the mouth of a goal, up to 1.5 tiles apart
+  // (Blast Ball spawns; the view marks them on the ground).
+  goalSpot(g, i) {
+    const gap = Math.min(1.5, (g.x1 - g.x0 - 1) / 2);
+    return { x: (g.x0 + g.x1) / 2 + (i - 1) * gap, y: (g.y0 + g.y1) / 2 };
+  },
+
   // Index of b among its team's slots (0 for the lowest slot).
   teamIndex(sim, b) {
     let i = 0;
@@ -196,9 +203,10 @@ const MODES = {
   // super kicks it further and faster and is used up (either aimed, or with a tap at the enemy
   // goal); gadgets are off while holding it. After a goal the world freezes for the celebration,
   // then everyone and the ball go back to the start. Tied at the end of the clock: sudden-death
-  // overtime with every breakable wall gone; still tied, a draw.
+  // overtime with every breakable wall gone; still tied, a draw. As in the original, the fallen are
+  // back after 7 s, and everyone starts and comes back inside the goal their team defends.
   ball: ModeKit.make(MODE.BALL, {
-    respawn: 5,
+    respawn: 7,
     len: 150,
     otLen: 60,
     goal: 2,
@@ -215,6 +223,13 @@ const MODES = {
     goalCentre(sim, team) {
       const g = sim.map.goals.find((q) => q.team === team);
       return g ? { x: (g.x0 + g.x1) / 2, y: (g.y0 + g.y1) / 2 } : { x: sim.map.w / 2, y: team === 1 ? 0 : sim.map.h };
+    },
+
+    spawnPoint(sim, b) {
+      const g = sim.map.goals.find((q) => q.team === b.team);
+      if (!g) return ModeKit.spawnPoint(sim, b);
+      const p = ModeKit.goalSpot(g, ModeKit.teamIndex(sim, b) % 3);
+      return sim.freeSpot(p.x, p.y, BRAWLER_R, { x: 0, y: 0 });
     },
 
     onAction(sim, b, act, I) {
