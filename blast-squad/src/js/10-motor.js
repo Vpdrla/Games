@@ -264,7 +264,7 @@ class Bot {
       // nothing to shoot: aim drifts where you walk
       this.aimA = wrapAng(this.aimA + angDiff(this.aimA, this.mvA) * 0.1);
       out.ang = this.aimA; out.d = 1;
-      if (act && (act === ACT.GADGET ? I.gadMode : I.superMode) === 'self') { out.act = act; this.fired(act, false); }
+      if (act && !me.spawning && (act === ACT.GADGET ? I.gadMode : I.superMode) === 'self') { out.act = act; this.fired(act, false); }
       return out;
     }
     const d = Math.hypot(tx - me.x, ty - me.y) || 0.01;
@@ -323,7 +323,9 @@ class Bot {
     if (!range) range = spec.range || this.kit.atkF.range || 1;
     out.d = clamp((dl + (spec.lob ? this.depthErr : 0)) / range, 0.05, 1);
     if (mode === 'self') out.d = 0.05; // dropped at my feet (a thrown safe circle)
-    if (t < this.tapAt) return out;
+    if (t < this.tapAt || me.spawning) return out;
+    // a white bubble (spawn protection): keep the aim on it, but there's nothing to gain from a shot yet
+    if (m && key === I.target && m.immune && mode === 'target') return out;
     // decide to shoot (a kick: in range, with a clear line to the goal mouth; a charged super kicks
     // from further out); a kick or a pass takes an ammo bar
     if (act === 0 && key === 101) {

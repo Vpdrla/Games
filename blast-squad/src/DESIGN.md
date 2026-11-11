@@ -163,13 +163,28 @@ sim.rng                        // RNG for gameplay randomness
 - Lasting zones tick once a second from the moment they land, a whole second's worth each time
   (`Sim.AREA_TICK`): a 1.9 s puddle hits twice, a 4.5 s field five times.
 - Showdown boxes have 4500 health, plus 400 per average power level above 1 (8500 at most).
-- Spawn protection lasts `SPAWN_SHIELD_T`.
+
+**Defeat and respawn** (the original's patch notes):
+- The fallen come back after the mode's `respawn` (`RESPAWN_T` = 5 s; Blast Ball 7 s, Bounty 3 s),
+  at the team's spawn markers. In Blast Ball everyone starts, comes back and kicks off inside the goal
+  their team defends (`ModeKit.goalSpot`).
+- Super charge and gadget uses carry over.
+- A brawler back from a defeat has a third of its ammo (`RESPAWN_AMMO_F`). For `SPAWN_LOCK_T`
+  (`spawnT`) it can neither move nor act, and it glows white.
+- The match start and round resets (Knockout rounds, Blast Ball kickoffs) give full ammo and no lock.
+- Spawn protection (`spawnSh`): `SPAWN_SHIELD_T` of full immunity, which blocks damage, stuns,
+  slows and knockback. It ends early on any attack, super or gadget. Auto-aim passes over it, and the
+  white bubble is seen even in a bush.
+- The view draws immune shields as a white bubble and damage-reduction shields as yellow. It marks
+  the respawn spots on the ground. While the local brawler waits to come back, the world turns dark
+  and grey under the countdown.
 
 **Vision:** walls never block sight.
 - A brawler in a bush is seen only by its own team, plus any team that has a living member within
   `REVEAL_R`.
 - Attacking or being hit reveals it for `REVEAL_T`.
 - Invisible brawlers are seen by enemies only within 4 tiles.
+- A brawler under spawn protection is seen by everyone.
 - `vis` bits are recomputed every tick, and vision is shared within a team.
 
 **Result** (`sim.result` when `sim.over`):
@@ -201,7 +216,7 @@ runs out, the sim calls `thaw(sim)`.
 |---|---|
 | Gem Rush `gem` | A gem every 7 s from the mine, which waits while 15 gems lie on the ground or 29 are in play. 10+ gems held and more than the other team: a 15 s countdown. A 3:30 clock on `playT`: then more gems wins, equal is a draw. Respawn 5 s. |
 | Showdown `sd` | 10 solo players with spawn order shuffled by `sim.rng`. No respawn. Boxes drop a power cube; a fallen brawler drops 1 + a third of theirs (at most 5). Poison `{start 30, shrink 100, minHalf 0.5}`. `rankNow(sim)` lists the living by health, then the fallen with the last one down first. |
-| Blast Ball `ball` | While holding the ball, attack kicks it and uses an ammo bar; a charged super kicks it further and faster and is used up (auto-aim kicks at the enemy goal); gadgets can't be used. A ball entering a goal rect scores; own goals count, without credit. Each goal triggers a 2.5 s freeze, then `resetRound({})`. First to 2 wins. A 150 s clock; a tie goes to 60 s of sudden-death overtime with every breakable wall removed, then a draw. Respawn 5 s. |
+| Blast Ball `ball` | While holding the ball, attack kicks it and uses an ammo bar; a charged super kicks it further and faster and is used up (auto-aim kicks at the enemy goal); gadgets can't be used. A ball entering a goal rect scores; own goals count, without credit. Each goal triggers a 2.5 s freeze, then `resetRound({})`. First to 2 wins. A 150 s clock; a tie goes to 60 s of sudden-death overtime with every breakable wall removed, then a draw. Everyone (re)spawns inside the goal their team defends. Respawn 7 s. |
 | Knockout `ko` | No respawn. A wiped team loses the round: `EV.ROUND`, a 3 s freeze, then `resetRound({tiles: true})`. First to 2 rounds, at most 5. Poison after 45 s. At 120 s, the team with more brawlers standing (then more health) takes the round. |
 | Bounty `bounty` | Brawlers carry 2 to 7 stars (+1 per takedown). A takedown scores the victim's stars for the killer's team and resets the victim to 2. The blue centre star at `O` is worth 1 and breaks a tie; it passes to the other team when its carrier is taken down (`ms.blue`, `ms.blueSlot`). First to 20 stars wins, else the most after 120 s on `playT` (equal: the blue star's team, or a draw if nobody took it). Respawn 3 s. |
 

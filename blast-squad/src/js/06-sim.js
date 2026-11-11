@@ -71,7 +71,7 @@ class Sim {
   visibleTo(team, e) { return e.kind === K.BRAWLER ? ((e.vis >> team) & 1) === 1 : true; }
   setInput(slot, w) { this.inputs[slot] = w >>> 0; }
   dmgMul(b) { return LEVEL_MULT(b.lvl) * (1 + CUBE_DMG * b.cubes); }
-  canAct(b) { return b.alive && b.stunT <= 0 && b.kbT <= 0 && b.dashT <= 0 && b.jumpT <= 0; }
+  canAct(b) { return b.alive && b.stunT <= 0 && b.kbT <= 0 && b.dashT <= 0 && b.jumpT <= 0 && b.spawnT <= 0; }
   hittable(b) { return b.alive && b.jumpT <= 0; }
 
   newBrawler(slot, c) {
@@ -86,7 +86,7 @@ class Sim {
       hp, maxHp: hp, alive: true, respawnT: 0, face: 0,
       ammo: kit.ammo, maxAmmo: kit.ammo, reload: kit.reload, sup: 0, supReady: false, gadLeft: kit.gad ? 3 : 0, gadT: 0,
       cubes: 0, carry: 0, bounty: 0,
-      vis: 0, inBush: false, revealT: 0, quietT: 0, shieldT: 0,
+      vis: 0, inBush: false, revealT: 0, quietT: 0, shieldT: 0, spawnT: 0,
       stunT: 0, slowT: 0, slowF: 0, kbT: 0, kbx: 0, kby: 0, dashT: 0,
       invisT: 0, speedT: 0, speedF: 0,
       mvx: 0, mvy: 0, lastSeq: 0,
@@ -105,17 +105,21 @@ class Sim {
     };
   }
 
-  // (Re)places a brawler at the mode's spawn point with full health and ammo. Super charge and
-  // gadget uses carry over, as in the original.
-  spawn(b, re) {
+  // (Re)places a brawler at the mode's spawn point with full health. Super charge and gadget uses
+  // carry over, as in the original. Coming back after a defeat (re) gives a third of the ammo and
+  // SPAWN_LOCK_T without moving or acting; the match start and round resets (round: Knockout
+  // rounds, Blast Ball kickoffs) start with full ammo and no lock.
+  spawn(b, re, round) {
     const p = this.mode.spawnPoint(this, b);
+    const back = re && !round;
     b.x = b.px = p.x;
     b.y = b.py = p.y;
     b.alive = true;
     b.respawnT = 0;
     b.hp = b.maxHp;
-    b.ammo = b.maxAmmo;
+    b.ammo = back ? b.maxAmmo * RESPAWN_AMMO_F : b.maxAmmo;
     this.clearStatus(b);
+    b.spawnT = back ? SPAWN_LOCK_T : 0;
     b.shieldT = SPAWN_SHIELD_T;
     b.shieldF = 1;
     b.spawnSh = true;
@@ -133,7 +137,7 @@ class Sim {
     b.mvx = b.mvy = 0; b.nxStun = b.nxSlow = 0; b.atkCd = 0; b.faceT = 0;
     b.poisAcc = 0.5; b.regenAcc = 0; b.passAcc = 0; b.killer = -1; b.dying = false;
     b.nxN = 0; b.atkT = -99; b.burnT = 0; b.burnAcc = 0; b.blockT = 0; b.ccT = 0; b.kbStun = 0; b.speedSrc = -1;
-    b.poisN = 0; b.inPois = false;
+    b.poisN = 0; b.inPois = false; b.spawnT = 0;
   }
 
   // ================= step =================
@@ -198,7 +202,7 @@ class Sim {
       b.kbT = Math.max(0, b.kbT - dt);
       if (b.kbT <= 0) b.kbStun = 0;
     } else if (b.dashT > 0) this.stepDash(b);
-    else if (b.stunT <= 0 && I.mvM > 0) {
+    else if (b.stunT <= 0 && b.spawnT <= 0 && I.mvM > 0) {
       let k = b.speed * dt;
       const pass = b.kit.pass;
       if (b.slowT > 0) k *= 1 - b.slowF;
@@ -318,7 +322,8 @@ class Sim {
     let bd = R * R, found = false;
     for (let i = 0; i < B.length; i++) {
       const e = B[i];
-      if (!e.alive || e.team === b.team || !((e.vis >> b.team) & 1)) continue;
+      // (never at a brawler under spawn protection, as in the original)
+      if (!e.alive || e.team === b.team || e.spawnSh || !((e.vis >> b.team) & 1)) continue;
       const d2 = dist2(b.x, b.y, e.x, e.y);
       if (d2 < bd) { bd = d2; tg.x = e.x; tg.y = e.y; found = true; }
     }
@@ -1550,6 +1555,7 @@ class Sim {
       if (b.invisT > 0) b.invisT = Math.max(0, b.invisT - dt);
       if (b.speedT > 0) { b.speedT -= dt; if (b.speedT <= 0) { b.speedT = 0; b.speedF = 0; } }
       if (b.shieldT > 0) { b.shieldT -= dt; if (b.shieldT <= 0) { b.shieldT = 0; b.shieldF = 0; b.spawnSh = false; } }
+      if (b.spawnT > 0) b.spawnT = Math.max(0, b.spawnT - dt);
       if (b.faceT > 0) b.faceT = Math.max(0, b.faceT - dt);
       if (b.atkCd > 0) b.atkCd = Math.max(0, b.atkCd - dt);
       if (b.gadT > 0) b.gadT = Math.max(0, b.gadT - dt);
@@ -1656,13 +1662,15 @@ class Sim {
 
   // ---- 10. vision ----
   // Walls never block sight. Hidden from a team: in a bush (and not revealed) unless one of its
-  // living members is within REVEAL_R, or invisible unless one is within INVIS_R.
+  // living members is within REVEAL_R, or invisible unless one is within INVIS_R. A brawler under
+  // spawn protection is always seen.
   updateVision() {
     const B = this.brawlers, m = this.map, all = (1 << this.nTeams) - 1;
     for (let i = 0; i < B.length; i++) {
       const b = B[i];
       if (!b.alive) { b.inBush = false; b.vis = 1 << b.team; continue; }
       b.inBush = inBushAt(m, b.x, b.y);
+      if (b.spawnSh) { b.vis = all; continue; } // the spawn bubble shows even in a bush
       const bush = b.inBush && b.revealT <= 0, inv = b.invisT > 0 && b.revealT <= 0; // hit while invisible: seen for a moment
       if (!bush && !inv) { b.vis = all; continue; }
       const R = inv ? Sim.INVIS_R : REVEAL_R, R2 = R * R;
@@ -1734,7 +1742,7 @@ class Sim {
     for (const b of this.brawlers) {
       if (opts.resetSuper) { b.sup = 0; b.supReady = false; }
       b.carry = 0;
-      this.spawn(b, true);
+      this.spawn(b, true, true);
     }
     this.roundT0 = this.t;
     this.poisonStage = 0;

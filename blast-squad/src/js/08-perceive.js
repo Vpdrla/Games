@@ -43,6 +43,7 @@ function perceive(sim, slot, P, rng) {
   m.ammo = me.ammo; m.sup = me.sup; m.supReady = me.supReady; m.gadLeft = me.gadLeft; m.gadReady = me.gadLeft > 0 && me.gadT <= 0 && me.gadget >= 0; m.gadget = me.gadget; // own loadout
   m.carry = me.carry; m.cubes = me.cubes; m.alive = me.alive; m.respawnT = me.respawnT; m.inBush = me.inBush;
   m.invis = me.invisT > 0; m.stunned = me.stunT > 0; m.face = me.face; m.lvl = me.lvl; m.shield = me.shieldT > 0; m.bounty = me.bounty;
+  m.spawning = me.spawnT > 0; // just back: can't move or act yet
   P.frozen = sim.freezeT > 0; // the GOAL / ROUND banner is up: nothing moves
   P.allies.length = 0;
   P.enemies.length = 0;
@@ -62,7 +63,8 @@ function perceive(sim, slot, P, rng) {
       P.allies.push(a);
     } else if (b.alive && sim.visibleTo(me.team, b) && inRect(cam, b.x, b.y, 0.3)) {
       seen[b.slot] = 1;
-      P.enemies.push({ slot: b.slot, team: b.team, bk: b.bk, x: b.x, y: b.y, hp: b.hp, maxHp: b.maxHp, carry: b.carry, cubes: b.cubes, inBush: b.inBush, bounty: b.bounty, lvl: b.lvl, shield: b.shieldT > 0 });
+      // immune: the white bubble (spawn protection) a player sees on screen
+      P.enemies.push({ slot: b.slot, team: b.team, bk: b.bk, x: b.x, y: b.y, hp: b.hp, maxHp: b.maxHp, carry: b.carry, cubes: b.cubes, inBush: b.inBush, bounty: b.bounty, lvl: b.lvl, shield: b.shieldT > 0, immune: b.shieldT > 0 && b.shieldF >= 1 });
     }
   }
   // shots: enemy projectiles on screen (a lob's bottle; where it lands is judged from its shadow, more

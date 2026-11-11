@@ -104,7 +104,7 @@ class Mind {
     for (const e of P.enemies) {
       seenNow.add(e.slot);
       let m = this.mem[e.slot];
-      if (!m) m = this.mem[e.slot] = { x: e.x, y: e.y, vx: 0, vy: 0, t: t, first: t, noticeAt: 0, noticed: false, seen: false, hp: e.hp, maxHp: e.maxHp, bk: e.bk, carry: 0, inBush: false, team: e.team, bounty: 0 };
+      if (!m) m = this.mem[e.slot] = { x: e.x, y: e.y, vx: 0, vy: 0, t: t, first: t, noticeAt: 0, noticed: false, seen: false, hp: e.hp, maxHp: e.maxHp, bk: e.bk, carry: 0, inBush: false, team: e.team, bounty: 0, immune: false };
       if (!m.seen) {
         // a new sighting: notice it after a reaction time (slower when busy with another target)
         if (!m.noticed || t - m.t > 1.2) {
@@ -124,7 +124,7 @@ class Mind {
           m.vy = lerp(m.vy, (e.y - m.y) / dt, k);
         }
       }
-      m.x = e.x; m.y = e.y; m.t = t; m.seen = true; m.hp = e.hp; m.maxHp = e.maxHp; m.carry = e.carry; m.inBush = e.inBush; m.bk = e.bk; m.team = e.team; m.bounty = e.bounty || 0;
+      m.x = e.x; m.y = e.y; m.t = t; m.seen = true; m.hp = e.hp; m.maxHp = e.maxHp; m.carry = e.carry; m.inBush = e.inBush; m.bk = e.bk; m.team = e.team; m.bounty = e.bounty || 0; m.immune = !!e.immune;
       if (!m.noticed && t >= m.noticeAt) m.noticed = true;
     }
     for (const k in this.mem) {
@@ -214,6 +214,7 @@ class Mind {
       if (d < atk.range) sc += 0.4;
       if (m.slot === this.lastTarget) sc += 0.35 + stress * 0.4;
       if (P.ball && P.ball.holderSlot === m.slot) sc += 0.6;
+      if (m.immune) sc -= 1.5; // a white bubble can't be hurt yet
       sc += r.range(-0.15, 0.15) * (1 - p.s);
       if (sc > best) { best = sc; target = m; }
     }

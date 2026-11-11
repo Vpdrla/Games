@@ -322,7 +322,8 @@ const FX = (() => {
         case EV.RESPAWN: {
           const b = bs[ev[1]];
           const col = b ? (side(b) === 0 ? '#7ac8ff' : '#ff8a8a') : '#fff';
-          this.column(ev[2], ev[3], col);
+          this.column(ev[2], ev[3], '#ffffff'); // comes back in a white light
+          this.flash(ev[2], ev[3], 0.8, 0.9, '#ffffff', 0.3);
           this.ring(ev[2], ev[3], 1.2, col, 0.5, 0.12);
           this.stars(ev[2], ev[3], 0.3, 8, '#ffffff', 0.5);
           break;
