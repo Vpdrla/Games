@@ -424,20 +424,53 @@ const Meta = (() => {
     return { mode, map: ev.map, seed, slots, localSlot: 0, friendly: false, event: ev.id };
   }
 
-  // Friend battle. opts: { mode, map, hostBk, guestBk, sameTeam, hostLvl, guestLvl }. The host is
-  // slot 0; the guest is slot 1 (same team) or slot 3 (other team) in 3v3, slot 1 in Showdown.
+  // A friendly room's slots, as in the original's friendly games: 'host', 'guest', 'bot' or 'empty' for
+  // each place (3v3: 0-2 blue, 3-5 red; Showdown: 10 places). The default: your friend with you (or
+  // against you) and bots everywhere else.
+  function friendLayout(mode, sameTeam, fill) {
+    const size = MODE_INFO[mode].teams * MODE_INFO[mode].size;
+    const lay = new Array(size).fill(fill === false ? 'empty' : 'bot');
+    lay[0] = 'host';
+    lay[mode === MODE.SHOWDOWN || sameTeam ? 1 : 3] = 'guest';
+    return lay;
+  }
+  // A layout from the network or the room: exactly one host and one guest, the rest bots or empty.
+  function layoutOk(mode, lay) {
+    if (!MODE_INFO[mode] || !Array.isArray(lay) || lay.length !== MODE_INFO[mode].teams * MODE_INFO[mode].size) return false;
+    if (!lay.every((k) => k === 'host' || k === 'guest' || k === 'bot' || k === 'empty')) return false;
+    return lay.filter((k) => k === 'host').length === 1 && lay.filter((k) => k === 'guest').length === 1;
+  }
+  // Why a room can't start yet ('' when it can): each team needs someone (Showdown: two players).
+  function layoutWhy(mode, lay) {
+    if (!layoutOk(mode, lay)) return 'Pick the teams';
+    if (mode === MODE.SHOWDOWN) return lay.filter((k) => k !== 'empty').length >= 2 ? '' : 'Add a bot or two';
+    const half = lay.length / 2, n0 = lay.slice(0, half).filter((k) => k !== 'empty').length, n1 = lay.slice(half).filter((k) => k !== 'empty').length;
+    return !n0 ? 'The blue team is empty' : !n1 ? 'The red team is empty' : '';
+  }
+
+  // Friend battle. opts: { mode, map, hostBk, guestBk, sameTeam, layout, hostLvl, guestLvl }. The
+  // layout says who plays where (friendLayout); empty places are left out of the match, so it can be
+  // 1v1, 2v1 and so on. Showdown players are each their own team.
   function friendlyCfg(opts) {
-    const mode = opts.mode, size = MODE_INFO[mode].teams * MODE_INFO[mode].size;
+    const mode = opts.mode, sd = mode === MODE.SHOWDOWN;
     const seed = (Math.random() * 0x7fffffff) | 0;
     const rng = new RNG(seed ^ 0x2545f491);
-    const guestSlot = mode === MODE.SHOWDOWN ? 1 : opts.sameTeam ? 1 : 3;
+    const lay = layoutOk(mode, opts.layout) ? opts.layout : friendLayout(mode, opts.sameTeam);
+    const half = lay.length / 2;
     const slots = [];
     const guestBk = BRAWLER_KEYS.includes(opts.guestBk) ? opts.guestBk : 'nova'; // never trust a key from the network
     const taken = new Set([opts.hostBk, guestBk]);
-    for (let i = 0; i < size; i++) {
-      const team = mode === MODE.SHOWDOWN ? i : (i < 3 ? 0 : 1);
-      if (i === 0) slots.push(Object.assign(localSlot(team, owned(opts.hostBk) ? opts.hostBk : S().sel), { ctrl: 'local' }));
-      else if (i === guestSlot) {
+    let hostSlot = 0, guestSlot = 1;
+    for (let i = 0; i < lay.length; i++) {
+      const k = lay[i];
+      if (!sd && i === half) taken.clear(); // teammates differ; enemies may mirror you
+      if (k === 'empty') continue;
+      const team = sd ? slots.length : i < half ? 0 : 1;
+      if (k === 'host') {
+        hostSlot = slots.length;
+        slots.push(Object.assign(localSlot(team, owned(opts.hostBk) ? opts.hostBk : S().sel), { ctrl: 'local' }));
+      } else if (k === 'guest') {
+        guestSlot = slots.length;
         const lvl = clamp(opts.guestLvl | 0 || 1, 1, MAX_POWER);
         // gear index from the network: an index this brawler has, else none (true: an older build's "the first")
         const gi = (v, list) => (v === true ? 0 : Number.isInteger(v) && v >= 0 && v < list.length ? v : -1);
@@ -445,7 +478,7 @@ const Meta = (() => {
         slots.push({ team, bk: guestBk, lvl, gadget: lvl >= GADGET_LVL ? gi(opts.guestGad, GD.gadgets) : -1, star: lvl >= STAR_LVL ? gi(opts.guestStar, GD.stars) : -1, name: String(opts.guestName || 'Friend').slice(0, 16), icon: guestBk, tro: opts.guestTro | 0, ctrl: 'remote', profile: null });
       } else slots.push(botSlot(rng, team, mode, opts.map, 300, Math.max(1, Math.round(((opts.hostLvl || 1) + (opts.guestLvl || 1)) / 2)), taken));
     }
-    return { mode, map: opts.map, seed, slots, localSlot: 0, guestSlot, friendly: true };
+    return { mode, map: opts.map, seed, slots, localSlot: hostSlot, guestSlot, friendly: true };
   }
 
   // ---- results ----
@@ -538,6 +571,6 @@ const Meta = (() => {
     RARITIES, ROAD, PASS, PASS_TIER_XP, UP_COINS, UP_PP, CREDIT_COST, GADGET_LVL, STAR_LVL, NEWBIE_TOTAL, DAILY_WIN_DROPS,
     owned, bState, totalTrophies, upgradeCost, upgrade, gearCost, buyGear, setGear, buyBrawler, creditCost, select,
     roadState, claimRoad, passState, claimPass, pendingDrops, openDrop, shop, buy, quests, daily,
-    events, matchCfg, friendlyCfg, botProfile, applyResult, trophyDelta, mapsFor, grant,
+    events, matchCfg, friendlyCfg, friendLayout, layoutOk, layoutWhy, botProfile, applyResult, trophyDelta, mapsFor, grant,
   };
 })();

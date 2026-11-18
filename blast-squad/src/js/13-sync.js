@@ -1144,12 +1144,19 @@ class GuestMatch {
 // brawler, power, trophies), start (host), run the match on both phones, tear everything down.
 const Friend = {
   token: null, link: null, role: '', phase: '', st: null, opts: null, hello: null, sync: null, guest: null, pend: [], guestIn: false,
+  sentBk: '',
 
   wire() {
     UI.onFriendHost = (o) => this.host(o);
     UI.onFriendJoin = (code) => this.join(code);
     UI.onFriendStart = () => this.start();
     UI.onFriendLeave = () => this.leave();
+    // the room, as in the original's friendly games (host only): tap a place to add or take away a
+    // bot or move a player to the other team; change the mode and the map; fill or clear all bots
+    UI.onFriendSlot = (i) => this.slot(i);
+    UI.onFriendMode = () => this.cycleMode();
+    UI.onFriendMap = () => this.cycleMap();
+    UI.onFriendBots = (on) => this.allBots(on);
   },
 
   mine() {
@@ -1170,16 +1177,97 @@ const Friend = {
       setTimeout(() => l.close('bye'), bye ? 400 : 0);
     }
     this.token = null; this.link = null; this.role = ''; this.phase = ''; this.hello = null; this.sync = null; this.guest = null; this.pend = []; this.guestIn = false;
+    this.sentBk = '';
+    UI.home = null;
   },
 
-  show() { if (this.phase === 'lobby') UI.friendLobby(this.st); },
+  // The room screen. While it is up, the menus (brawler picker and so on) come back to it, and a
+  // brawler picked there is told to the friend.
+  show() {
+    if (this.phase !== 'lobby') return;
+    UI.home = () => this.show();
+    if (this.link && this.sentBk && this.sentBk !== this.myBk()) this.sendHello();
+    this.check();
+    UI.friendLobby(this.st);
+  },
+  myBk() { return BRAWLERS[SAVE.sel] ? SAVE.sel : 'nova'; },
+  sendHello() {
+    const hi = this.mine();
+    if (this.role === 'host') Object.assign(hi, { mode: this.st.mode, map: this.st.map, sameTeam: !!this.opts.sameTeam, layout: this.st.layout });
+    this.sentBk = hi.bk;
+    this.link.send(hi);
+  },
+  // Host: the Start button is live when the friend is in the room and both teams have someone.
+  check() {
+    const st = this.st;
+    if (this.role !== 'host' || !st.layout) return;
+    st.why = Meta.layoutWhy(st.mode, st.layout);
+    st.canStart = !!this.hello && this.guestIn && !st.why;
+  },
+  // Host: the room changed; tell the friend and redraw.
+  lay() {
+    if (this.role !== 'host' || this.phase !== 'lobby') return;
+    if (this.link && !this.link.closed) this.link.send({ t: 'lay', mode: this.st.mode, map: this.st.map, layout: this.st.layout });
+    if (typeof Sound !== 'undefined') Sound.play('click');
+    this.show();
+  },
+  slot(i) {
+    const st = this.st, L = st && st.layout;
+    if (this.role !== 'host' || this.phase !== 'lobby' || !L || !(i >= 0 && i < L.length)) return;
+    const k = L[i];
+    if (k === 'bot') L[i] = 'empty';
+    else if (k === 'empty') L[i] = 'bot';
+    else if (st.mode !== MODE.SHOWDOWN) {
+      // a player moves to the other team: into an empty place there, else a bot's
+      const half = L.length / 2, o0 = i < half ? half : 0, other = L.slice(o0, o0 + half);
+      let j = other.indexOf('empty');
+      if (j < 0) j = other.indexOf('bot');
+      if (j < 0) return;
+      L[i] = L[o0 + j]; L[o0 + j] = k;
+    } else return;
+    this.lay();
+  },
+  allBots(on) {
+    const L = this.st && this.st.layout;
+    if (this.role !== 'host' || !L) return;
+    for (let i = 0; i < L.length; i++) if (L[i] === 'bot' || L[i] === 'empty') L[i] = on ? 'bot' : 'empty';
+    this.lay();
+  },
+  cycleMode() {
+    const st = this.st;
+    if (this.role !== 'host' || this.phase !== 'lobby') return;
+    const ms = Object.keys(MODE_INFO).filter((m) => Meta.mapsFor(m).length);
+    const mode = ms[(ms.indexOf(st.mode) + 1) % ms.length] || st.mode, maps = Meta.mapsFor(mode);
+    // keep who is with whom; bots stay on unless every free place was empty
+    const L = st.layout || [], half = L.length / 2;
+    const same = mode === MODE.SHOWDOWN || st.mode === MODE.SHOWDOWN ? !!this.opts.sameTeam : (L.indexOf('host') < half) === (L.indexOf('guest') < half);
+    const fill = L.some((k) => k === 'bot') || !L.some((k) => k === 'empty');
+    let lay = Meta.friendLayout(mode, same, fill);
+    if (mode !== MODE.SHOWDOWN && st.mode !== MODE.SHOWDOWN && L.indexOf('host') >= half) {
+      // the host was on red: mirror the teams
+      const h = lay.length / 2;
+      lay = lay.slice(h).concat(lay.slice(0, h));
+    }
+    st.mode = mode; st.map = maps[Math.floor(Math.random() * maps.length)]; st.layout = lay;
+    this.opts.mode = mode; this.opts.map = st.map;
+    this.lay();
+  },
+  cycleMap() {
+    const st = this.st;
+    if (this.role !== 'host' || this.phase !== 'lobby') return;
+    const maps = Meta.mapsFor(st.mode);
+    if (maps.length < 2) return;
+    st.map = maps[(maps.indexOf(st.map) + 1) % maps.length];
+    this.opts.map = st.map;
+    this.lay();
+  },
 
   host(opts) {
     if (!Net.supported()) { UI.toast('Friendly battles need WebRTC, which this browser lacks'); return; }
     this.reset(true);
     const tok = this.token = Net.token();
     this.role = 'host'; this.phase = 'lobby'; this.opts = opts;
-    this.st = { role: 'host', code: '', status: 'Creating a room...', friend: null, mode: opts.mode, map: opts.map, sameTeam: !!opts.sameTeam, canStart: false };
+    this.st = { role: 'host', code: '', status: 'Creating a room...', friend: null, mode: opts.mode, map: opts.map, sameTeam: !!opts.sameTeam, canStart: false, layout: Meta.friendLayout(opts.mode, !!opts.sameTeam), why: '' };
     this.show();
     Net.hostRoom(tok, (code) => { if (tok !== this.token) return; this.st.code = code; this.st.status = 'Waiting for your friend...'; this.show(); }, { timeout: SYNC_GONE })
       .then((link) => { if (tok !== this.token) { link.close(); return; } this.connected(link); })
@@ -1191,7 +1279,7 @@ const Friend = {
     this.reset(true);
     const tok = this.token = Net.token();
     this.role = 'guest'; this.phase = 'lobby';
-    this.st = { role: 'guest', code, status: 'Connecting...', friend: null, mode: '', map: '', sameTeam: true, canStart: false };
+    this.st = { role: 'guest', code, status: 'Connecting...', friend: null, mode: '', map: '', sameTeam: true, canStart: false, layout: null, why: '' };
     this.show();
     Net.joinRoom(code, tok, { timeout: SYNC_GONE })
       .then((link) => { if (tok !== this.token) { link.close(); return; } this.connected(link); })
@@ -1209,9 +1297,7 @@ const Friend = {
     this.link = link;
     link.listen((m) => this.onMsg(m));
     link.onclose = (why) => this.onClose(why);
-    const hi = this.mine();
-    if (this.role === 'host') Object.assign(hi, { mode: this.opts.mode, map: this.opts.map, sameTeam: !!this.opts.sameTeam });
-    link.send(hi);
+    this.sendHello();
     this.st.status = this.role === 'host' ? 'Connected' : 'Connected. Waiting for your friend to start...';
     this.show();
   },
@@ -1220,19 +1306,28 @@ const Friend = {
     switch (m.t) {
       case 'hello': {
         if (m.v !== NET_PROTO || m.dv !== syncDataVer()) { UI.toast('Your friend has a different version of the game. Both of you should reload.'); this.leave(); UI.open('friends'); return; }
+        const first = !this.hello; // later hellos: the friend picked another brawler in the room
         this.hello = m;
-        this.st.friend = { name: String(m.name || 'Friend').slice(0, 16), bk: BRAWLER_KEYS.includes(m.bk) ? m.bk : 'nova' };
-        if (this.role === 'guest') { this.st.mode = syncOwn(MODE_INFO, m.mode) ? m.mode : 'gem'; this.st.map = syncOwn(MAPS, m.map) ? m.map : ''; this.st.sameTeam = !!m.sameTeam; }
-        else { this.st.canStart = true; this.st.status = 'Ready!'; }
-        if (typeof Sound !== 'undefined') Sound.play('confirm');
+        this.st.friend = { name: String(m.name || 'Friend').slice(0, 16), bk: BRAWLER_KEYS.includes(m.bk) ? m.bk : 'nova', lvl: clamp(m.lvl | 0, 1, MAX_POWER) };
+        if (this.role === 'guest') {
+          this.st.mode = syncOwn(MODE_INFO, m.mode) ? m.mode : 'gem'; this.st.map = syncOwn(MAPS, m.map) ? m.map : ''; this.st.sameTeam = !!m.sameTeam;
+          this.st.layout = Meta.layoutOk(this.st.mode, m.layout) ? m.layout.slice() : Meta.friendLayout(this.st.mode, this.st.sameTeam);
+        } else if (first) { this.guestIn = true; this.st.status = 'Ready!'; }
+        if (first && typeof Sound !== 'undefined') Sound.play('confirm');
         this.show();
         return;
       }
+      case 'lay': // the host changed the room
+        if (this.role !== 'guest' || (this.phase !== 'lobby' && this.phase !== 'post') || !syncOwn(MODE_INFO, m.mode) || !syncOwn(MAPS, m.map) || !Meta.layoutOk(m.mode, m.layout)) return;
+        this.st.mode = m.mode; this.st.map = m.map; this.st.layout = m.layout.slice();
+        this.show();
+        return;
       case 'start': if (this.role === 'guest' && this.phase === 'lobby' && m.cfg) this.startGuest(m.cfg); return;
       case 'room': // the guest is back in the room after a match
         if (this.role !== 'host') return;
         this.guestIn = true;
-        if (this.phase === 'lobby') { this.st.canStart = true; this.st.status = 'Ready!'; this.show(); }
+        if (this.link) this.link.send({ t: 'lay', mode: this.st.mode, map: this.st.map, layout: this.st.layout }); // what changed while they were away
+        if (this.phase === 'lobby') { this.st.status = 'Ready!'; this.show(); }
         return;
       case 'bye': this.peerLeft(); return;
     }
@@ -1261,15 +1356,16 @@ const Friend = {
   // Host: Start pressed.
   start() {
     if (this.role !== 'host' || !this.hello || this.phase !== 'lobby' || !this.st.canStart) return;
-    const s = SAVE, o = this.opts, h = this.hello;
-    const hostBk = Meta.owned(o.hostBk) ? o.hostBk : s.sel;
+    const s = SAVE, o = this.opts, h = this.hello, st = this.st;
+    const hostBk = Meta.owned(s.sel) ? s.sel : o.hostBk; // the brawler picked now, in the room
     const cfg = Meta.friendlyCfg({
-      mode: o.mode, map: o.map, sameTeam: !!o.sameTeam, hostBk, hostLvl: (s.brawlers[hostBk] || { lvl: 1 }).lvl,
+      mode: st.mode, map: st.map, sameTeam: !!o.sameTeam, layout: st.layout, hostBk, hostLvl: (s.brawlers[hostBk] || { lvl: 1 }).lvl,
       guestBk: this.st.friend.bk, guestLvl: clamp(h.lvl | 0, 1, MAX_POWER), guestName: this.st.friend.name, guestTro: h.tro | 0,
       guestGad: h.gad, guestStar: h.star,
     });
     this.link.send({ t: 'start', cfg });
     this.phase = 'vs';
+    UI.home = null;
     this.guestIn = false; this.st.canStart = false;
     if (typeof Sound !== 'undefined') Sound.init();
     UI.showVs(cfg, () => {
@@ -1285,12 +1381,13 @@ const Friend = {
   // Guest: the host started.
   startGuest(cfg0) {
     const ok = cfg0 && syncOwn(MODE_INFO, cfg0.mode) && syncOwn(MAPS, cfg0.map) && Array.isArray(cfg0.slots) &&
-      cfg0.slots.length === MODE_INFO[cfg0.mode].teams * MODE_INFO[cfg0.mode].size && (cfg0.guestSlot | 0) === cfg0.guestSlot &&
-      cfg0.guestSlot > 0 && cfg0.guestSlot < cfg0.slots.length && cfg0.slots.every((s) => s && BRAWLER_KEYS.includes(s.bk));
+      cfg0.slots.length >= 2 && cfg0.slots.length <= MODE_INFO[cfg0.mode].teams * MODE_INFO[cfg0.mode].size && (cfg0.guestSlot | 0) === cfg0.guestSlot &&
+      cfg0.guestSlot >= 0 && cfg0.guestSlot < cfg0.slots.length && cfg0.slots.every((s) => s && BRAWLER_KEYS.includes(s.bk) && (s.team | 0) === s.team && s.team >= 0 && s.team < 10);
     if (!ok) { UI.toast('Could not start the battle'); this.leave(); UI.open('friends'); return; }
     // friendly no matter what the host's message says: a friend's phone can't change your trophies
     const cfg = Object.assign({}, cfg0, { localSlot: cfg0.guestSlot, friendly: true });
     this.phase = 'vs';
+    UI.home = null;
     if (typeof Sound !== 'undefined') Sound.init();
     UI.showVs(cfg, () => {
       if (this.phase !== 'vs' || !this.link) return;
@@ -1322,10 +1419,7 @@ const Friend = {
     if (this.role === 'guest') {
       this.link.send({ t: 'room' });
       this.st.status = 'Waiting for your friend to start...';
-    } else {
-      this.st.canStart = this.guestIn;
-      this.st.status = this.guestIn ? 'Ready!' : 'Waiting for your friend to come back...';
-    }
+    } else this.st.status = this.guestIn ? 'Ready!' : 'Waiting for your friend to come back...';
     this.show();
   },
 };

@@ -4,11 +4,15 @@
 // Data comes only from Meta / SAVE / BRAWLERS; pictures from Art. The game wires the hooks:
 //   UI.onPlay(event, bk)  UI.onFriendHost(opts)  UI.onFriendJoin(code)  UI.onFriendStart()
 //   UI.onFriendLeave()  UI.onSettings(settings)
+//   friendly room (host): UI.onFriendSlot(i)  UI.onFriendMode()  UI.onFriendMap()  UI.onFriendBots(on)
+// UI.home: where the menus go back to (the lobby, or the friendly room while one is open).
 const UI = (() => {
   const U = {
     screen: '', panelName: '', panelArg: null,
     onPlay: null, onFriendHost: null, onFriendJoin: null, onFriendStart: null, onFriendLeave: null, onSettings: null,
+    onFriendSlot: null, onFriendMode: null, onFriendMap: null, onFriendBots: null, home: null,
   };
+  const goHome = () => (U.home || U.showLobby)();
   const snd = (name, o) => { if (typeof Sound !== 'undefined' && Sound.play) Sound.play(name, o); };
   const MODE_ICON = { gem: 'gem', sd: 'skull', ball: 'ball', ko: 'bolt', bounty: 'star', test: 'skull' };
   const RAR_COL = (r) => (RARITY[r] ? RARITY[r].color : '#9fb4c8');
@@ -89,7 +93,7 @@ const UI = (() => {
   let heroRaf = 0, heroT = 0, heroLast = 0;
   function heroLoop(ts) {
     heroRaf = 0;
-    if (U.screen !== 'lobby') return;
+    if (U.screen !== 'lobby' && U.screen !== 'room') return;
     const c = $('herocv');
     if (!c) return;
     const dt = heroLast ? Math.min(0.05, (ts - heroLast) / 1000) : 0;
@@ -99,12 +103,19 @@ const UI = (() => {
     if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
     const x = c.getContext('2d');
     x.clearRect(0, 0, w, h);
-    // podium
-    x.fillStyle = 'rgba(10,4,30,0.45)';
-    x.beginPath(); x.ellipse(w / 2, h * 0.8, w * 0.32, h * 0.09, 0, 0, TAU); x.fill();
-    x.strokeStyle = 'rgba(255,210,63,0.6)'; x.lineWidth = 3 * dpr; x.stroke();
-    if (typeof Art !== 'undefined') {
-      try { Art.brawler(x, S().sel, w / 2, h * 0.8, h * 0.42, Math.PI / 2 + Math.sin(heroT * 0.7) * 0.6, heroT, 0, 0); } catch (e) { /* ignore */ }
+    // podiums: you in the middle; in a friendly room your friend stands beside you (as in the
+    // original's team lobby), on your side if they are with you
+    const list = U.screen === 'room' && U.heroes ? U.heroes : [S().sel];
+    const one = list.length < 2 || !list[1];
+    for (let k = 0; k < list.length; k++) {
+      if (!list[k]) continue;
+      const cx = one ? w / 2 : w * (k === 0 ? 0.36 : 0.74), sc = one || k === 0 ? 1 : 0.8;
+      x.fillStyle = 'rgba(10,4,30,0.45)';
+      x.beginPath(); x.ellipse(cx, h * 0.8, w * (one ? 0.32 : 0.2) * sc, h * 0.09 * sc, 0, 0, TAU); x.fill();
+      x.strokeStyle = k === 0 ? 'rgba(255,210,63,0.6)' : U.heroFoe ? 'rgba(255,90,90,0.7)' : 'rgba(80,170,255,0.7)'; x.lineWidth = 3 * dpr; x.stroke();
+      if (typeof Art !== 'undefined') {
+        try { Art.brawler(x, list[k], cx, h * 0.8, h * 0.42 * sc, Math.PI / 2 + Math.sin(heroT * 0.7 + k * 1.3) * 0.6, heroT + k * 0.4, 0, 0); } catch (e) { /* ignore */ }
+      }
     }
     heroRaf = requestAnimationFrame(heroLoop);
   }
@@ -175,16 +186,17 @@ const UI = (() => {
     P.innerHTML = `<div class="ph"><button class="back o" data-back>◀</button><div class="tl o">${esc(title)}</div>${curHtml()}</div><div class="pb">${body}</div>`;
     show('panel');
     paint(P);
-    bind(P, '[data-back]', () => ((opts && opts.back) || U.showLobby)());
+    bind(P, '[data-back]', () => ((opts && opts.back) || goHome)());
     return P;
   }
   U.open = (name, arg) => {
     U.panelName = name; U.panelArg = arg;
     const f = PANELS[name];
-    if (f) f(arg); else U.showLobby();
+    if (f) f(arg); else goHome();
   };
   U.refresh = () => {
     if (U.screen === 'lobby') U.showLobby();
+    else if (U.screen === 'room') goHome();
     else if (U.screen === 'panel' && PANELS[U.panelName]) PANELS[U.panelName](U.panelArg);
   };
 
@@ -260,7 +272,7 @@ const UI = (() => {
         </div></div>`;
       const P = panel(D.name, body, { back: () => U.open('brawlers') });
       bind(P, '[data-up]', () => { if (Meta.upgrade(bk)) { snd('levelUp'); U.toast(`${D.name} is now power ${Meta.bState(bk).lvl}!`); } PANELS.brawler(bk); });
-      bind(P, '[data-sel]', () => { Meta.select(bk); U.showLobby(); });
+      bind(P, '[data-sel]', () => { Meta.select(bk); goHome(); });
       bind(P, '[data-unlock]', () => { if (Meta.buyBrawler(bk)) { snd('unlock'); U.toast(`${D.name} unlocked!`); } PANELS.brawler(bk); });
       // data-buy / data-eq: "gadget:1", "star:0" (one of each can be equipped; tapping the equipped one takes it off)
       bind(P, '[data-buy]', (b) => { const [k, i] = b.dataset.buy.split(':'); if (Meta.buyGear(bk, k, +i)) { snd('buy'); } PANELS.brawler(bk); });
@@ -328,7 +340,7 @@ const UI = (() => {
           <div class="set"><span>Your friend plays</span><span><button class="btn g o" data-ft="1">With you</button> <button class="btn dark o" data-ft="0">Against you</button></span></div>
           <div><button class="btn y o" data-host>Create room</button></div></div>
         <div class="card rows"><div class="o">Join a friend</div><div class="set"><input class="nm" id="fcode" maxlength="6" placeholder="ROOM CODE" autocomplete="off"><button class="btn b o" data-join>Join</button></div></div>
-        <div class="card muted" style="font-size:.72em;font-family:system-ui,sans-serif;font-weight:700">Friendly battles connect the two phones directly. AI brawlers fill the other slots. No trophies are won or lost.</div>
+        <div class="card muted" style="font-size:.72em;font-family:system-ui,sans-serif;font-weight:700">Friendly battles connect the two phones directly. In the room the host can add or take away bots, move players between teams and change the mode and map. No trophies are won or lost.</div>
       </div>`;
       const P = panel('Friends', body);
       let fm = evs[0] || 'gem', ft = true;
@@ -507,19 +519,73 @@ const UI = (() => {
   U.hidePause = () => show('pause', false);
   U.hideAll = () => { hideScreens(); show('modal', false); U.screen = ''; };
 
-  // ---- friend lobby (state from the network layer) ----
-  // state: { role: 'host' | 'guest', code, status, friend: { name, bk } | null, mode, map, sameTeam, canStart }
+  // ---- friendly room (state from the network layer) ----
+  // Laid out like the lobby, as the original's friendly games are: your brawler (tap it to pick
+  // another) with your friend beside you, the event on the right with a big PLAY under it, and the
+  // two teams' places on the left. The host taps an empty place to add a bot, a bot to take it away,
+  // or a player to send them to the other team; Showdown has ten places and no teams.
+  // state: { role: 'host' | 'guest', code, status, friend: { name, bk, lvl } | null, mode, map,
+  //          layout: ['host' | 'guest' | 'bot' | 'empty', ...] | null, canStart, why }
   U.friendLobby = (state) => {
-    const mi = MODE_INFO[state.mode] || { name: '', color: '#888' };
-    const body = `<div class="rows">
-      <div class="card" style="text-align:center"><div class="muted" style="font-size:.8em">${state.role === 'host' ? 'Room code - tell it to your friend' : 'Room'}</div><div class="o" style="font-size:2.4em;letter-spacing:.2em">${esc(state.code || '------')}</div></div>
-      <div class="card set"><span>${esc(mi.name)} · ${esc(mapName(state.map))}</span><span>${state.sameTeam ? 'Same team' : 'Opponents'}</span></div>
-      <div class="card set"><span>${state.friend ? `${pcv(state.friend.bk, 2.2)} ${esc(state.friend.name)}` : 'Waiting for your friend...'}</span><span class="muted" id="fstatus">${esc(state.status || '')}</span></div>
-      ${state.role === 'host' ? `<div><button class="btn y o" data-fs ${state.canStart ? '' : 'disabled'}>Start</button></div>` : ''}
-    </div>`;
-    const P = panel('Friendly battle', body, { back: () => { if (U.onFriendLeave) U.onFriendLeave(); U.showLobby(); } });
-    U.panelName = '';
-    bind(P, '[data-fs]', () => { if (U.onFriendStart) U.onFriendStart(); });
+    hideScreens();
+    U.screen = 'room';
+    const s = S(), host = state.role === 'host', me = host ? 'host' : 'guest';
+    const mine = s.brawlers[s.sel] || { lvl: 1 };
+    const mi = MODE_INFO[state.mode] || { name: state.mode ? state.mode : '...', color: '#666' };
+    const L = state.layout, sd = state.mode === MODE.SHOWDOWN;
+    const half = L ? L.length / 2 : 3;
+    const teamOf = (k) => (L && !sd ? (L.indexOf(k) < half ? 0 : 1) : 0);
+    const fr = state.friend;
+    U.heroes = [s.sel, fr ? fr.bk : null];
+    U.heroFoe = !!(L && !sd && teamOf('host') !== teamOf('guest'));
+    const place = (k, i) => {
+      const tap = host ? `data-slot="${i}"` : 'disabled';
+      if (k === me) return `<button class="rslot you" ${tap}>${pcv(s.sel, 2.6)}<div class="pn o">${esc(s.name)}</div><div class="o lv">P${mine.lvl}</div></button>`;
+      if (k === 'host' || k === 'guest') {
+        return fr ? `<button class="rslot pl" ${tap}>${pcv(fr.bk, 2.6)}<div class="pn o">${esc(fr.name)}</div><div class="o lv">P${fr.lvl || 1}</div></button>`
+          : `<button class="rslot pl wait" ${tap}><div class="o big">…</div><div class="pn o">Friend</div></button>`;
+      }
+      if (k === 'bot') return `<button class="rslot bot" ${tap}><div class="o big">🤖</div><div class="pn o">BOT</div></button>`;
+      return `<button class="rslot empty" ${tap}><div class="o big">+</div><div class="pn o">${host ? 'Add bot' : 'Empty'}</div></button>`;
+    };
+    let teams = '';
+    if (L && sd) teams = `<div class="rteam sd">${L.map(place).join('')}</div>`;
+    else if (L) {
+      const row = (t) => `<div class="rlab o">${t ? 'RED TEAM' : 'BLUE TEAM'}</div><div class="rteam t${t}">${L.slice(t * half, t * half + half).map((k, j) => place(k, t * half + j)).join('')}</div>`;
+      teams = row(0) + row(1);
+    } else teams = '<div class="muted o">Waiting for the room...</div>';
+    const El = el('lobby');
+    El.innerHTML = `
+      <div class="top">
+        <button class="back o" data-rback>◀</button>
+        <div class="o" style="font-size:1.1em">FRIENDLY GAME</div>
+        <div class="pill o rcode">${host ? 'CODE' : 'ROOM'} <b>${esc(state.code || '------')}</b></div>
+        <span class="muted o" id="fstatus" style="font-size:.8em">${esc(state.status || '')}</span>
+      </div>
+      <div class="rteams">${teams}${host && L ? `<div class="rbots"><button class="btn dark o" data-bots="1">Fill bots</button><button class="btn dark o" data-bots="0">No bots</button></div>` : ''}</div>
+      <button class="hero" data-pick><canvas id="herocv"></canvas><div class="hn o">${esc(brName(s.sel).toUpperCase())}${fr ? ` <span style="opacity:.7">&amp; ${esc(brName(fr.bk).toUpperCase())}</span>` : ''}</div><div class="hi"><span class="lvl o">POWER ${mine.lvl}</span><span class="pill o">Tap to change</span></div></button>
+      <div class="right">
+        <div class="evc">
+          <button class="eh o" data-rmode style="background:${mi.color};width:100%"><span>${icv(MODE_ICON[state.mode] || 'star', 1.3)} ${esc(mi.name)}</span><span style="font-size:.8em">${host ? '⟳' : ''}</span></button>
+          <button class="eb" data-rmap style="width:100%"><span>${esc(mapName(state.map))}</span><span class="muted">${host ? 'Change ⟳' : ''}</span></button>
+        </div>
+        ${host ? `<button class="btn y o" id="play" data-fs ${state.canStart ? '' : 'disabled'}>PLAY</button><div class="muted o" style="font-size:.75em;min-height:1em">${esc(state.canStart ? '' : state.why || (fr ? '' : 'Waiting for your friend...'))}</div>`
+          : '<div class="pill o" style="font-size:1.05em;padding:.5em 1em">Waiting for the host to start</div>'}
+        <div class="muted" style="font-size:.65em;font-family:system-ui,sans-serif;font-weight:700">Friendly game · no trophies</div>
+      </div>`;
+    show('lobby');
+    paint(El);
+    bind(El, '[data-rback]', () => { if (U.onFriendLeave) U.onFriendLeave(); U.showLobby(); });
+    bind(El, '[data-fs]', () => { if (U.onFriendStart) U.onFriendStart(); });
+    bind(El, '[data-pick]', () => U.open('brawlers'));
+    if (host) {
+      bind(El, '[data-slot]', (b) => { if (U.onFriendSlot) U.onFriendSlot(+b.dataset.slot); });
+      bind(El, '[data-bots]', (b) => { if (U.onFriendBots) U.onFriendBots(b.dataset.bots === '1'); });
+      bind(El, '[data-rmode]', () => { if (U.onFriendMode) U.onFriendMode(); });
+      bind(El, '[data-rmap]', () => { if (U.onFriendMap) U.onFriendMap(); });
+    }
+    heroLast = 0;
+    if (!heroRaf && typeof requestAnimationFrame !== 'undefined') heroRaf = requestAnimationFrame(heroLoop);
   };
   U.friendStatus = (text) => { const s = $('fstatus'); if (s) s.textContent = text; else U.toast(text); };
 
