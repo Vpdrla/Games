@@ -77,7 +77,7 @@ fast). Power levels add 10% health and damage each, as in the original.
 | Gizmo | Super Rare | Jessie | Bouncing orbs and a rapid-fire turret |
 | Volt | Super Rare | Rico | Bolts that ricochet off walls |
 | Hawk | Epic | Piper | Sniper (harder hits from further away) who escapes by leaping |
-| Frost | Epic | Gale | Snowball fan and a push-back wind |
+| Frost | Epic | Gale | A straight row of snowballs and a push-back wind |
 | Shade | Mythic | Mortis | Dashing assassin; the lunge grows after a rest; life-stealing bats |
 | Zip | Mythic | Max | Fast skirmisher with a team speed boost |
 | Specter | Legendary | Leon | Blades that hit harder up close, and invisibility |

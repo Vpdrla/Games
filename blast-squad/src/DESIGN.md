@@ -370,12 +370,12 @@ and star powers at power 9; most brawlers have two of each to pick from.
 | bramble | Nita | rare | wide piercing shockwave 6 tiles / bear pet (4300 hp, 400 every 0.6 s, slow) / bear stun pulse after 1 s; bear shield / heal each other on hits; faster swipes |
 | melody | Poco | rare | 65° wave that also heals / heal wave through walls / 3 heal pulses 2 s apart; thrown cleansing circle / more attack healing; super also hurts |
 | sizzle | Barley | rare | lobbed puddle (r 2, 2 ticks) / 5 puddles thrown 0.2 s apart / slowing puddle; healing puddles under the team / heal per attack; stronger puddle |
-| pip | Dynamike | super | 2 sticks, 1 s fuse / barrel, 1.3 s fuse, knockback, breaks walls / spin throwing 20 sticks in a spiral; next attack stuns / flung away from his own blast (3 / 5 tiles); +800 super |
+| pip | Dynamike | super | 2 sticks, 1.45 s fuse (they land first) / barrel, 1.7 s fuse, knockback, breaks walls / spin throwing 20 sticks in a spiral; next attack stuns / flung away from his own blast (3 / 5 tiles); +800 super |
 | gizmo | Jessie | super | orb bouncing up to 6.67 tiles to 2 more (-25% each) / turret (9 tiles, 0.3 s) / turret slow pulse; turret fires 2x / shooting the turret repairs it; turret shots bounce |
 | volt | Rico | super | 5 bolts that ricochet off walls (+1.67 range a bounce) / 12 piercing ricochet bolts / cover box bursting into bolts when destroyed; splitting bolt / +damage after a bounce; speed when low |
 | hawk | Piper | epic | 360 near to 1800 far / 2 s leap away dropping 4 grenades / knock-back shot at an enemy within 7; one homing longer shot / bonus from bushes; ammo on hit |
-| frost | Gale | epic | 6 snowballs / 4-wide push-back gust through walls / twister / stun when pushed into a wall; snowballs slow |
-| shade | Mortis | mythic | lunge 2.67 tiles (4.67 after 4.5 s without attacking) / bats through walls healing the full damage / spin 2.67; bat flight over walls / 20% heal on takedown; long lunge sooner |
+| frost | Gale | epic | 6 small snowballs side by side, a straight 2-wide line / 4-wide push-back gust through walls / twister / stun when pushed into a wall; snowballs slow |
+| shade | Mortis | mythic | fast lunge 2.67 tiles (the attack becomes a 4.67 lunge after 4.5 s without attacking) / bats through walls healing the full damage / spin 2.67; bat flight over walls / 20% heal on takedown; long lunge sooner |
 | zip | Max | mythic | 4 ammo bars; 4 fast bullets swept / team +300 speed points 4 s / dash, 0.5 s untouchable / hits extend the super; reload faster while moving |
 | specter | Leon | legend | 4 blades swept, full damage over the first 15% / invisible 6 s / clone with his health that shoots; faster while invisible; heal while invisible |
 | thorn | Spike | legend | ball bursting (1 tile) into 6 fixed-pattern spikes / slowing spike field / row of 5 needles; thrown cactus that heals on breaking / super heals 75% of its damage |

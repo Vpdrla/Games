@@ -160,12 +160,12 @@ const BRAWLERS = {
     desc: 'A cheerful demolition miner who lobs dynamite over walls.',
     hp: 3000, speed: 800, reload: 1.4,
     atk: {
-      name: 'Fuse Pair', text: 'Lobs 2 sticks of dynamite over walls. They lie on the ground and blow up 1 second after the throw.',
-      t: 'lob', n: 2, gap: 0.7, T: 0.7, fuse: 1.0, range: 7.33, dmg: 800, blast: 1.5, r: 0.18, chg: 0.125,
+      name: 'Fuse Pair', text: 'Lobs 2 sticks of dynamite over walls. They land and blow up a moment later, 1.45 seconds after the throw.',
+      t: 'lob', n: 2, gap: 0.7, T: 1.16, fuse: 1.45, range: 7.33, dmg: 800, blast: 1.5, r: 0.18, chg: 0.125,
     },
     sup: {
-      name: 'Big Barrel', text: 'A huge barrel bomb that blows up 1.3 seconds after the throw, knocking enemies back and destroying walls.',
-      t: 'lob', T: 0.9, fuse: 1.3, range: 7.33, dmg: 2200, blast: 2.67, kb: 3, breaks: true, r: 0.35,
+      name: 'Big Barrel', text: 'A huge barrel bomb that blows up 1.7 seconds after the throw, knocking enemies back and destroying walls.',
+      t: 'lob', T: 1.38, fuse: 1.7, range: 7.33, dmg: 2200, blast: 2.67, kb: 3, breaks: true, r: 0.35,
     },
     gadgets: [
       { name: 'Spin Cycle', text: 'Spins 20% faster for 2 seconds, tossing 20 sticks in a widening spiral (75% stronger). No attacks meanwhile.', cd: 12, t: 'buff', what: 'speed', f: 0.2, T: 2,
@@ -291,12 +291,12 @@ const BRAWLERS = {
     desc: 'A grumpy snow-cone vendor who blows enemies away.',
     hp: 4000, speed: 750, reload: 1.2,
     atk: {
-      name: 'Snow Flurry', text: 'Throws 6 snowballs in a wide fan.',
-      t: 'shot', n: 6, spread: 0.524, dmg: 300, range: 8.33, spd: 10.67, r: 0.17, chg: 0.0675,
+      name: 'Snow Flurry', text: 'Throws 6 small snowballs side by side in a straight line, 2 tiles wide.',
+      t: 'shot', lanes: { n: 6, width: 1.76 }, dmg: 300, range: 8.33, spd: 10, r: 0.12, chg: 0.0675,
     },
     sup: {
       name: 'Gale Wall', text: 'A 4-tile wide gust that passes through walls and carries enemies away (up to 8.33 tiles).',
-      t: 'shot', dmg: 800, range: 10, spd: 15, r: 0.3, wave: { n: 9, width: 3.4 }, pierce: true, thru: true, carry: 8.33,
+      t: 'shot', dmg: 800, range: 10, spd: 16.67, r: 0.3, wave: { n: 9, width: 3.4 }, pierce: true, thru: true, carry: 8.33,
     },
     gadgets: [
       { name: 'Whirlwind', text: 'A twister, 2 tiles round, that shoves enemies away for 5 seconds.', cd: 21, t: 'area', at: 'aim', range: 6, r: 2, T: 5, push: 3 },
@@ -312,7 +312,7 @@ const BRAWLERS = {
     hp: 4000, speed: 855, reload: 2.4,
     atk: {
       name: 'Night Lunge', text: 'Dashes 2.67 tiles, striking every enemy in the way. After 4.5 s without attacking it reaches 4.67.',
-      t: 'dash', dist: 2.67, spd: 9, dmg: 1000, w: 0.5, chg: 0.2125, long: { dist: 4.67, T: 4.5 },
+      t: 'dash', dist: 2.67, spd: 12.6, dmg: 1000, w: 0.5, chg: 0.2125, long: { dist: 4.67, T: 4.5 },
     },
     sup: {
       name: 'Soul Swarm', text: 'A 2.67-tile wide swarm of bats that flies through walls; each enemy brawler it hits heals Shade for the full damage.',

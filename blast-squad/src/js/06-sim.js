@@ -6,6 +6,11 @@
 // dmgBy[slot * 4 + act] damage dealt to enemy brawlers, per action (0 other, 1 attack, 2 super,
 // 3 gadget). Box tiles show up in EV.HIT with the id -1 - tileIndex.
 
+// How far an attack reaches right now: a charged dash attack (Shade's lunge, after s.long.T without
+// attacking) becomes the long one, so its aim, auto-aim and indicator all reach s.long.dist.
+function atkLong(b, s, t) { return !!(s && s.long) && t - b.atkT >= s.long.T - ((b.kit && b.kit.pass && b.kit.pass.dashCharge) || 0); }
+function atkReach(b, s, t) { return s ? (atkLong(b, s, t) ? s.long.dist : s.range || s.dist || 0) : 0; }
+
 class Sim {
   constructor(cfg) {
     this.cfg = cfg;
@@ -239,7 +244,8 @@ class Sim {
       if (s.ammo && b.ammo < s.ammo) return false; // uses an ammo bar (Silver Bullet)
       if (s.needTarget && !this.autoTarget(b, (s.range || 1) - 1)) return false; // only with an enemy that close (Auto Aimer)
     }
-    const range = s.range || s.dist || 0;
+    const long = act === ACT.ATTACK && atkLong(b, s, this.t);
+    const range = long ? s.long.dist : s.range || s.dist || 0;
     let ang, d;
     if (I.auto || s.seek) { // seek: fires at the nearest enemy whatever the aim (Auto Aimer)
       const tg = range > 0 ? this.autoTarget(b, range) : null;
@@ -255,7 +261,7 @@ class Sim {
       b.atkCd = s.cd || (s.burst ? (s.n - 1) * s.burst + 0.15 : 0.3);
       if (s === kit.nxAtk) b.nxN--;
       // a dash attack goes further after a while without attacking (the charge bar)
-      b.dashLong = !!s.long && this.t - b.atkT >= s.long.T - (kit.pass.dashCharge || 0);
+      b.dashLong = long;
       b.atkT = this.t;
     } else if (act === ACT.SUPER) {
       b.sup = 0;
