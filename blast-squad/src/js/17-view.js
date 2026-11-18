@@ -786,7 +786,7 @@ const View = (() => {
     ctx.lineCap = 'round';
     const prim = s ? s.t : 'shot';
     if (air && prim !== 'lob' && prim !== 'leap' && prim !== 'deploy' && prim !== 'area') { ctx.restore(); return; }
-    const range = s ? s.range || s.dist || 0 : 6;
+    const range = !s ? 6 : A.act === ACT.ATTACK && state.t != null ? atkReach(me, s, state.t) : s.range || s.dist || 0;
     const d = clamp(A.d == null ? 1 : A.d, 0, 1);
     // a dark rim under a bright edge, so the indicator reads on pale sand as well as on grass
     const edge = () => {
@@ -823,9 +823,9 @@ const View = (() => {
           ctx.closePath();
           fill();
           edge();
-        } else if (wave && wave.width) {
-          // a wide band: parallel lanes, each cut at its own wall
-          const w = wave.width / 2 + (s.r || 0.15), c = Math.cos(ang), sn = Math.sin(ang), steps = Math.max(4, Math.ceil((w * 2) / 0.2));
+        } else if ((wave && wave.width) || (s && s.lanes && s.lanes.width)) {
+          // a wide band (a wave's row, or side-by-side lanes like Frost's snowballs): each cut at its own wall
+          const w = ((wave && wave.width) || s.lanes.width) / 2 + (s.r || 0.15), c = Math.cos(ang), sn = Math.sin(ang), steps = Math.max(4, Math.ceil((w * 2) / 0.2));
           ctx.beginPath();
           ctx.moveTo(toSX(wx + sn * w), toSY(wy - c * w));
           for (let i = 0; i <= steps; i++) {

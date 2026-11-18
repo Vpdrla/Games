@@ -69,6 +69,26 @@ button{font:inherit;color:inherit;appearance:none;-webkit-appearance:none;border
 .evc .eb{background:rgba(10,4,30,.55);padding:.3em .6em;font-size:.78em;display:flex;justify-content:space-between}
 #play{font-size:1.9em;padding:.35em 1.5em;border-radius:.6em}
 .mmode{width:1.4em;height:1.4em;display:inline-block;vertical-align:-.3em}
+/* friendly room: the lobby with the two teams' places on the left */
+.rcode b{letter-spacing:.15em;color:var(--yellow);margin-left:.3em}
+.rteams{position:absolute;left:calc(env(safe-area-inset-left) + .8em);top:3.9em;bottom:.8em;display:flex;flex-direction:column;justify-content:center;gap:.3em;max-width:34vw}
+.rlab{font-size:.68em;opacity:.85}
+.rteam{display:flex;gap:.35em;flex-wrap:wrap}
+.rteam.sd{max-width:17em}
+.rslot{position:relative;width:4.3em;height:5em;border-radius:.6em;border:.14em solid var(--line);box-shadow:0 .16em 0 var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.05em;font-size:.72em;overflow:hidden;padding:0}
+.rteam.sd .rslot{width:3.6em;height:4.3em;font-size:.62em}
+.rslot canvas{border-radius:.4em}
+.rslot .pn{max-width:95%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.85em}
+.rslot .lv{font-size:.75em;opacity:.85}
+.rslot .big{font-size:1.8em;line-height:1.1}
+.rteam.t0 .rslot{background:linear-gradient(#3d9bff,#1f4fb0)}
+.rteam.t1 .rslot{background:linear-gradient(#ff6a6a,#a8182a)}
+.rteam.sd .rslot{background:linear-gradient(#5bd16a,#2a7a3a)}
+.rteam .rslot.empty{background:rgba(10,4,30,.45);border-style:dashed;opacity:.8}
+.rteam .rslot.you{outline:.14em solid var(--yellow);outline-offset:-.3em}
+.rslot.wait{opacity:.7}
+.rbots{display:flex;gap:.4em;margin-top:.3em;font-size:.72em}
+.rbots .btn{padding:.3em .7em}
 
 /* panels */
 #panel{pointer-events:auto;flex-direction:column;background:linear-gradient(#2a1569,#14102e)}
