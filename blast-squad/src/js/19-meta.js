@@ -115,6 +115,25 @@ const Meta = (() => {
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const wpick = (entries) => { let t = 0; for (const e of entries) t += e[1]; let r = Math.random() * t; for (const e of entries) { r -= e[1]; if (r <= 0) return e[0]; } return entries[entries.length - 1][0]; };
 
+  // ---- daily login reward: one claim a day, a 7-day cycle that ends in an epic drop ----
+  const LOGIN_REWARDS = [
+    { type: 'coins', n: 100 }, { type: 'pp', n: 50 }, { type: 'drop', rarity: '' }, { type: 'gems', n: 5 },
+    { type: 'credits', n: 60 }, { type: 'coins', n: 300 }, { type: 'drop', rarity: 'epic' },
+  ];
+  function loginState(now) {
+    const L = S().login || (S().login = { last: '', n: 0 });
+    const ready = L.last !== dayKey(now || Date.now());
+    return { ready, day: ready ? L.n % 7 : (L.n + 6) % 7, list: LOGIN_REWARDS };
+  }
+  function claimLogin(now) {
+    const st = loginState(now), L = S().login;
+    if (!st.ready) return null;
+    const g = grant(LOGIN_REWARDS[st.day]);
+    L.last = dayKey(now || Date.now()); L.n++;
+    saveGame();
+    return g;
+  }
+
   // ---- daily state (wins, quests, gift, shop purchases) ----
   const QUEST_KINDS = [
     { k: 'play', text: (q) => `Play ${q.goal} games`, goal: () => 4, xp: 200 },
@@ -383,12 +402,19 @@ const Meta = (() => {
     }
     return entries.length ? rng.weighted(entries) : rng.pick(BRAWLER_KEYS);
   }
+  // A bot's power level comes from its trophies on that brawler, not from yours, as matchmaking in
+  // the original does: low trophies see low levels, and from 150 on mostly upgraded brawlers.
+  const BOT_LVL = [[150, 1, 5], [400, 6, 9], [700, 8, 10], [1e9, 9, 11]]; // [below trophies, min, max]
+  function botLevel(rng, tro) {
+    const band = BOT_LVL.find((x) => tro < x[0]) || BOT_LVL[BOT_LVL.length - 1];
+    return clamp(rng.int(band[1], band[2]), 1, MAX_POWER);
+  }
   function botSlot(rng, team, mode, mapKey, tro, lvl, taken) {
     const btro = Math.max(0, Math.round(tro * rng.range(0.75, 1.2) + rng.int(-15, 25)));
     const prof = botProfile(rng, btro, mode);
     const bk = botBrawler(rng, prof, mode, mapKey, taken);
     taken.add(bk);
-    const blvl = clamp(lvl + rng.int(-1, 1), 1, MAX_POWER), D = BRAWLERS[bk];
+    const blvl = botLevel(rng, btro), D = BRAWLERS[bk];
     return {
       team, bk, lvl: blvl,
       gadget: blvl >= GADGET_LVL && rng.chance(0.8) ? rng.int(0, D.gadgets.length - 1) : -1,
@@ -570,7 +596,7 @@ const Meta = (() => {
   return {
     RARITIES, ROAD, PASS, PASS_TIER_XP, UP_COINS, UP_PP, CREDIT_COST, GADGET_LVL, STAR_LVL, NEWBIE_TOTAL, DAILY_WIN_DROPS,
     owned, bState, totalTrophies, upgradeCost, upgrade, gearCost, buyGear, setGear, buyBrawler, creditCost, select,
-    roadState, claimRoad, passState, claimPass, pendingDrops, openDrop, shop, buy, quests, daily,
+    roadState, claimRoad, passState, claimPass, loginState, claimLogin, pendingDrops, openDrop, shop, buy, quests, daily,
     events, matchCfg, friendlyCfg, friendLayout, layoutOk, layoutWhy, botProfile, applyResult, trophyDelta, mapsFor, grant,
   };
 })();

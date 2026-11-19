@@ -5,7 +5,9 @@
 //           deadzone = manual aim with an indicator, release fires; dragging back into the centre
 //           cancels.
 //   super   same tap/drag behaviour, left of / above attack; only takes a thumb while me.supReady
-//   gadget  small button, fires on press (aimed where you walk, else auto)
+//   gadget  small button. An aimed gadget (a shot, throw, dash, jump, unit or zone: Colt's and the
+//           like; not dashes) works like the attack stick: tap = auto-aim, drag = aim it yourself, back to the
+//           centre = cancel. Other gadgets (buffs, spins, heals) fire on press.
 //   chat    quick-chat button: a wheel of PINS and EMOTES -> Input.onPin(i) / Input.onEmote(i)
 // Keyboard + mouse: WASD / arrows move, the mouse aims (Input.setScreenToWorld gives world points),
 // left click attack, right click or Space super, Q / E gadget, F auto-aim attack, T quick chat
@@ -50,6 +52,7 @@ const Input = {
     // aim sticks. st: 0 idle, 1 held in the centre (a tap so far), 2 aiming, 3 cancel
     atk: { id: null, ox: 0, oy: 0, x: 0, y: 0, st: 0, act: 1 },
     sup: { id: null, ox: 0, oy: 0, x: 0, y: 0, st: 0, act: 2 },
+    gad: { id: null, ox: 0, oy: 0, x: 0, y: 0, st: 0, act: 3 },
   },
   gadDown: false,
   keys: {}, // held movement keys: up / down / left / right
@@ -230,10 +233,11 @@ const Input = {
     }
     const b = this.hitButton(x, y);
     if (b === 'chat') { this.openWheel(); this.ptr.set(id, 'chat'); return; }
-    if (b === 'gad') { this.gadDown = true; this.queueGadget(); this.ptr.set(id, 'gad'); return; }
-    if (b === 'sup' || b === 'atk') {
+    if (b === 'gad' && !this.gadAimed()) { this.gadDown = true; this.queueGadget(); this.ptr.set(id, 'gad'); return; }
+    if (b === 'sup' || b === 'atk' || b === 'gad') {
       const a = this.st[b];
-      if (a.id !== null || (b === 'sup' && !this.superReady())) { this.ptr.set(id, 'none'); return; }
+      if (a.id !== null || (b === 'sup' && !this.superReady()) || (b === 'gad' && !this.gadReady())) { this.ptr.set(id, 'none'); return; }
+      if (b === 'gad') this.gadDown = true;
       a.id = id; a.ox = a.x = x; a.oy = a.y = y; a.st = 1;
       this.ptr.set(id, b);
       return;
@@ -255,13 +259,14 @@ const Input = {
       // the base follows the thumb when it is dragged past the rim
       const dx = x - m.ox, dy = y - m.oy, d = Math.hypot(dx, dy), lim = this.R;
       if (d > lim) { m.ox = x - (dx / d) * lim; m.oy = y - (dy / d) * lim; }
-    } else if (k === 'atk' || k === 'sup') {
+    } else if ((k === 'atk' || k === 'sup' || k === 'gad') && this.st[k].id === id) {
       const a = this.st[k];
       a.x = x; a.y = y;
       const d = Math.hypot(x - a.ox, y - a.oy), dead = this.deadzone();
       if (d > dead) a.st = 2;
       else if (a.st === 2) a.st = 3; // came back into the centre: cancel
       if (k === 'sup' && !this.superReady()) a.st = 3;
+      if (k === 'gad' && !this.gadReady()) a.st = 3;
     } else if (k === 'chat') {
       this.wheel.hover = this.wheelItem(x, y);
     }
@@ -271,14 +276,16 @@ const Input = {
     const k = this.ptr.get(id);
     this.ptr.delete(id);
     if (k === 'move') this.mv.id = null;
-    else if (k === 'gad') this.gadDown = false;
-    else if (k === 'atk' || k === 'sup') {
+    else if (k === 'gad' && this.st.gad.id !== id) this.gadDown = false;
+    else if (k === 'atk' || k === 'sup' || k === 'gad') {
       const a = this.st[k];
+      if (k === 'gad') this.gadDown = false;
       if (fire && a.id === id) {
         a.x = x; a.y = y;
         const d = Math.hypot(x - a.ox, y - a.oy);
         if (a.st === 2 && d <= this.deadzone()) a.st = 3;
         if (k === 'sup' && !this.superReady()) a.st = 3;
+        if (k === 'gad' && !this.gadReady()) a.st = 3;
         if (a.st === 1) this.queue(a.act, 1, 0, 1);
         else if (a.st === 2) this.queue(a.act, 0, this.stickAng(a), this.stickD(a));
       }
@@ -462,6 +469,15 @@ const Input = {
   },
 
   superReady() { return !this.me || !!this.me.supReady; }, // holding the ball, a charged super kicks it further
+  // a gadget can go now: uses left, off cooldown, not holding the ball
+  gadReady() { const me = this.me; return this.hasGadget() && !this.ball && !(me && (me.gadLeft <= 0 || me.gadT > 0)); },
+  // a gadget aimed like an attack (Colt's Silver Bullet-style shots, throws, jumps, units, zones)
+  gadAimed() {
+    const s = this.spec(ACT.GADGET);
+    if (!s || s.seek) return false;
+    // (dashes go the way you walk, as Shelly's and Max's do in the original)
+    return s.t === 'shot' || s.t === 'lob' || s.t === 'beam' || s.t === 'leap' || s.t === 'deploy' || s.t === 'arc' || (s.t === 'area' && s.at === 'aim');
+  },
   hasGadget() {
     const me = this.me;
     if (!me) return !!(this.data && this.data.gadgets && this.data.gadgets.length);
@@ -510,10 +526,11 @@ const Input = {
     let best = null;
     for (const k in this.st) {
       const a = this.st[k];
-      if (a.id !== null && a.st === 2 && (best === null || k === 'sup')) best = a;
+      if (a.id !== null && a.st === 2 && (best === null || a.act > best.act)) best = a;
     }
     if (best) {
       if (best.act === ACT.SUPER && !this.superReady()) return null;
+      if (best.act === ACT.GADGET && !this.gadReady()) return null;
       o.act = best.act; o.ang = wrapAng(this.stickAng(best)); o.d = this.stickD(best);
       return o;
     }
@@ -668,14 +685,20 @@ const Input = {
       ctx.fillStyle = 'rgba(255,214,60,0.55)';
       ctx.fill();
     }
-    if (held) {
+    if (held) { this.drawStick(ctx, b, a, op, col, this.ball ? (sup ? 'pass' : 'ball') : k); return; }
+    this.drawRest(ctx, k, b, me, op, sup, ready, charge, col, pulse);
+  },
+  // A held aim button: the drag area around it, the knob under the thumb (or a cancel cross).
+  drawStick(ctx, b, a, op, col, iconKey) {
+    const s = this.s, R = this.R;
+    {
       // the drag area
       ctx.globalAlpha = op * 0.85;
       circle(ctx, b.x, b.y, R);
       ctx.fillStyle = 'rgba(20,10,10,0.38)';
       ctx.fill();
       ctx.lineWidth = 3 * s;
-      ctx.strokeStyle = a.st === 3 ? 'rgba(255,80,80,0.9)' : sup ? 'rgba(255,220,90,0.85)' : 'rgba(255,140,120,0.85)';
+      ctx.strokeStyle = a.st === 3 ? 'rgba(255,80,80,0.9)' : a.act === ACT.SUPER ? 'rgba(255,220,90,0.85)' : a.act === ACT.GADGET ? 'rgba(140,255,130,0.85)' : 'rgba(255,140,120,0.85)';
       ctx.stroke();
       const dx = a.x - a.ox, dy = a.y - a.oy, d = Math.hypot(dx, dy), m = Math.min(d, R);
       const kx = d > 0 ? b.x + (dx / d) * m : b.x, ky = d > 0 ? b.y + (dy / d) * m : b.y;
@@ -696,9 +719,11 @@ const Input = {
         ctx.moveTo(kx + c, ky - c); ctx.lineTo(kx - c, ky + c);
         ctx.stroke();
         outlineText(ctx, 'CANCEL', b.x, b.y - R - 10 * s, 12 * s, '#ff8a8a');
-      } else this.icon(ctx, this.ball ? (sup ? 'pass' : 'ball') : k, kx, ky, b.r * 0.62, true);
-      return;
+      } else this.icon(ctx, iconKey, kx, ky, b.r * 0.62, true);
     }
+  },
+  drawRest(ctx, k, b, me, op, sup, ready, charge, col, pulse) {
+    const s = this.s;
     // resting button
     ctx.globalAlpha = op * (ready ? 0.95 : 0.7);
     circle(ctx, b.x, b.y, b.r);
@@ -722,6 +747,7 @@ const Input = {
 
   drawGadget(ctx, me, op) {
     const b = this.btn.gad, s = this.s;
+    if (this.st.gad.id !== null) { this.drawStick(ctx, b, this.st.gad, op, '#3fc43a', 'gad'); return; }
     const left = me ? me.gadLeft | 0 : 0;
     const cd = me ? me.gadT || 0 : 0;
     const spec = this.spec(ACT.GADGET);

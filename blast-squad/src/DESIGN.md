@@ -179,6 +179,16 @@ sim.rng                        // RNG for gameplay randomness
   the respawn spots on the ground. While the local brawler waits to come back, the world turns dark
   and grey under the countdown.
 
+**Tanks** (`role: 'tank'`) charge their super from damage taken from enemies: losing a whole max
+health fills `TANK_HIT_CHARGE` (40%) of it, as the original's Tank class trait.
+
+**Aimed gadgets.** A gadget that is a shot, throw, beam, jump, unit or aimed zone (Colt's
+and the like) works like the attack stick: tap for auto-aim, drag to aim, back to the centre to
+cancel (`Input.gadAimed`). Dashes, buffs, spins and heals still fire on press (dashes go the way you walk).
+
+**Lingering supers.** A speed buff with `linger` (Zip's Rush Hour, 0.5 s) keeps its circle round
+the caster that long; allies it reaches get what is left of the boost.
+
 **Vision:** walls never block sight.
 - A brawler in a bush is seen only by its own team, plus any team that has a living member within
   `REVEAL_R`.

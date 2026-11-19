@@ -678,6 +678,19 @@ const View = (() => {
     if ((c && c.hit > 0) || b.spawnT > 0) fl |= Art.F.FLASH; // (just back: glowing white)
     else if (b.slowT > 0) fl |= Art.F.COLD;
     if (b.fireT !== undefined ? b.fireT < 0.12 : c && c.atk > 0.06) fl |= Art.F.ATK;
+    // a lingering super circle (Zip's Rush Hour): the range stays drawn round the caster
+    if (b.auraT > 0 && b.kit && b.kit.sup && b.kit.sup.r) {
+      const rr = b.kit.sup.r * T;
+      ctx.globalAlpha = 0.25 + 0.3 * clamp(b.auraT / 0.5, 0, 1);
+      ctx.beginPath();
+      ctx.arc(x, y, rr, 0, TAU);
+      ctx.fillStyle = 'rgba(255,214,60,0.18)';
+      ctx.fill();
+      ctx.lineWidth = Math.max(2, T * 0.06);
+      ctx.strokeStyle = '#ffd23f';
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
     // just back from a defeat: a white glow until the brawler can move
     if (b.spawnT > 0) {
       ctx.globalAlpha = 0.7 + 0.3 * Math.sin(V.time * 14);

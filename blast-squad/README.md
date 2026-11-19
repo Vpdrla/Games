@@ -143,6 +143,10 @@ way.
 - **Starr-style drops.** Reward rolls that can upgrade in rarity, from the first 5 wins each
   day, the road and the pass.
 - **Daily quests and a shop** with daily offers.
+- **Daily login reward.** A 7-day cycle (coins, power points, a drop, gems, credits, coins, an
+  epic drop), claimed from a pop-up or the **Daily** button.
+- **Bots' power levels follow their trophies**, not yours: 1-5 below 150 trophies, 6-9 up to
+  400, 8-10 up to 700, then 9-11.
 
 ## Friendly battle (online)
 

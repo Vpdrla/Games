@@ -81,6 +81,8 @@ function pageMain() {
 
   window.__T = {
     me, pins, emotes,
+    gadSpec: (g) => Input.setLocal(me, Object.assign({}, D, { gadgets: g ? [g] : D.gadgets })),
+    aim: () => { const a = Input.aim; return a ? { act: a.act, ang: a.ang } : null; },
     btn: (k) => ({ x: Input.btn[k].x, y: Input.btn[k].y, r: Input.btn[k].r }),
     R: () => Input.R,
     home: () => ({ x: Input.home.x, y: Input.home.y }),
@@ -344,6 +346,20 @@ fs.writeFileSync(pagePath, html);
   ok(w.act === ACT.GADGET && w.auto === 0 && near(w.aimA, Math.PI, 0.03), 'gadget while walking goes the way you walk', w);
   await E(([hx, hy]) => window.__T.up(18, hx - 40, hy), [home.x, home.y]);
   await word();
+  // an aimed gadget (a shot, like Colt's): a tap auto-aims, a drag aims it like the attack stick
+  await E(() => window.__T.gadSpec({ t: 'shot', range: 9, cd: 5 }));
+  await tap(23, gad.x, gad.y);
+  w = await word();
+  ok(w.act === ACT.GADGET && w.auto === 1, 'an aimed gadget: a tap auto-aims', w);
+  await E(([gx, gy]) => { window.__T.down(24, gx, gy); window.__T.move(24, gx + 60, gy); }, [gad.x, gad.y]);
+  const ga = await E(() => window.__T.aim());
+  await E(([gx, gy]) => window.__T.up(24, gx + 60, gy), [gad.x, gad.y]);
+  w = await word();
+  ok(ga && ga.act === ACT.GADGET && w.act === ACT.GADGET && w.auto === 0 && near(w.aimA, 0, 0.03), 'an aimed gadget: dragging the button aims it (indicator shown)', [ga, w]);
+  await E(([gx, gy]) => { window.__T.down(25, gx, gy); window.__T.move(25, gx + 60, gy); window.__T.move(25, gx + 2, gy); window.__T.up(25, gx + 2, gy); }, [gad.x, gad.y]);
+  w = await word();
+  ok(w.act === ACT.NONE, 'an aimed gadget: back to the centre cancels', w);
+  await E(() => window.__T.gadSpec(null));
 
   // ---- 9. quick chat ----
   await tap(20, chat.x, chat.y);

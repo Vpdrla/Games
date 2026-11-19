@@ -27,6 +27,7 @@ function defaultSave() {
     pass: { xp: 0, claimed: 0 }, // free pass: tiers claimed in order
     drops: [], // pending drops (rarity floors, '' = random)
     daily: { day: '', wins: 0, quests: [], gift: false, bought: [] },
+    login: { last: '', n: 0 }, // daily login reward: last day claimed, days claimed so far (a 7-day cycle)
     stats: { played: 0, wins: 0, losses: 0, draws: 0, sdWins: 0, kills: 0, deaths: 0, mvps: 0, streak: 0, bestStreak: 0 },
     settings: { sound: true, music: true, vibrate: true, quality: 'auto', leftHanded: false, autoAimHint: true, btnSize: 1 },
     seen: {}, // one-time tips and "new" badges
@@ -45,6 +46,7 @@ function loadGame() {
       SAVE.v = SAVE_VERSION;
       SAVE.pass = Object.assign(defaultSave().pass, d.pass || {});
       SAVE.daily = Object.assign(defaultSave().daily, d.daily || {});
+      SAVE.login = Object.assign(defaultSave().login, d.login || {});
       SAVE.stats = Object.assign(defaultSave().stats, d.stats || {});
       SAVE.settings = Object.assign(defaultSave().settings, d.settings || {});
       SAVE.seen = d.seen && typeof d.seen === 'object' ? d.seen : {};
