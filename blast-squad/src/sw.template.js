@@ -22,9 +22,26 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+// The page itself (and anything it is built from) is fetched network-first, so a normal open shows
+// the newest version; the cache is only the offline fallback. Icons and the manifest are cache-first.
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  const page = req.mode === 'navigate' || /(^|\/)(index\.html|sw\.js)?$/.test(new URL(req.url).pathname);
+  if (page) {
+    e.respondWith(
+      fetch(req, { cache: 'no-cache' })
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put('./index.html', copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match('./index.html', { ignoreSearch: true }).then((hit) => hit || Response.error()))
+    );
+    return;
+  }
   e.respondWith(
     caches.match(req, { ignoreSearch: true }).then((hit) => {
       if (hit) return hit;
@@ -36,7 +53,7 @@ self.addEventListener('fetch', (e) => {
           }
           return res;
         })
-        .catch(() => (req.mode === 'navigate' ? caches.match('./index.html') : Response.error()));
+        .catch(() => Response.error());
     })
   );
 });

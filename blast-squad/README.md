@@ -148,6 +148,13 @@ way.
 - **Bots' power levels follow their trophies**, not yours: 1-5 below 150 trophies, 6-9 up to
   400, 8-10 up to 700, then 9-11.
 
+## Updates on a phone
+
+The page is fetched from the network first and only falls back to the cached copy when offline.
+The game also looks for a new version when it starts and whenever you come back to it, and
+restarts itself once (never in the middle of a match) when one is found. If an old version still
+shows, clear the site's data in the browser settings.
+
 ## Friendly battle (online)
 
 From **Friends**, one phone taps **Create room** and gets a room code. The other types the code

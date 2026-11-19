@@ -14494,7 +14494,21 @@ const Game = {
     try {
       const embedded = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
       const ok = !embedded && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1');
-      if (ok) navigator.serviceWorker.register('sw.js').catch(() => {});
+      if (!ok) return;
+      // always look for a newer version: on start and whenever the app comes back to the front; when a
+      // new one takes over, reload once (not in the middle of a match)
+      let had = !!navigator.serviceWorker.controller, reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!had) { had = true; return; } // the very first install is not an update
+        if (reloaded) return;
+        const go = () => { if (reloaded) return; if (this.match) { setTimeout(go, 3000); return; } reloaded = true; UI.toast('New version, restarting...'); setTimeout(() => location.reload(), 600); };
+        go();
+      });
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+        const check = () => { try { reg.update().catch(() => {}); } catch (e) { /* ignore */ } };
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+        setInterval(check, 10 * 60 * 1000);
+      }).catch(() => {});
     } catch (e) { /* not supported here */ }
   },
 
