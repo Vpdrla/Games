@@ -15,6 +15,7 @@ const RESPAWN_T = 5; // s (3v3 modes with respawn; a mode may set its own)
 const SPAWN_SHIELD_T = 3; // s of spawn protection (the white bubble) after (re)spawning
 const SPAWN_LOCK_T = 0.5; // s after a respawn before the brawler can move or act (spawn glow)
 const RESPAWN_AMMO_F = 1 / 3; // share of max ammo after a respawn (one bar of three)
+const TANK_HIT_CHARGE = 0.4; // share of the super a tank gains from losing its whole max health to enemies
 const REVEAL_R = 2; // tiles: an enemy this close sees into your bush
 const REVEAL_T = 1.0; // s visible after attacking or being hit while in a bush
 const LEVEL_MULT = (lvl) => 1 + 0.1 * (lvl - 1); // health and damage per power level (11 = x2)

@@ -93,8 +93,9 @@ const UI = (() => {
   let heroRaf = 0, heroT = 0, heroLast = 0;
   function heroLoop(ts) {
     heroRaf = 0;
-    if (U.screen !== 'lobby' && U.screen !== 'room') return;
-    const c = $('herocv');
+    const page = U.screen === 'panel' && U.panelName === 'brawler';
+    if (U.screen !== 'lobby' && U.screen !== 'room' && !page) return;
+    const c = $(page ? 'bdcv' : 'herocv');
     if (!c) return;
     const dt = heroLast ? Math.min(0.05, (ts - heroLast) / 1000) : 0;
     heroLast = ts; heroT += dt;
@@ -105,7 +106,7 @@ const UI = (() => {
     x.clearRect(0, 0, w, h);
     // podiums: you in the middle; in a friendly room your friend stands beside you (as in the
     // original's team lobby), on your side if they are with you
-    const list = U.screen === 'room' && U.heroes ? U.heroes : [S().sel];
+    const list = page ? [U.panelArg || S().sel] : U.screen === 'room' && U.heroes ? U.heroes : [S().sel];
     const one = list.length < 2 || !list[1];
     for (let k = 0; k < list.length; k++) {
       if (!list[k]) continue;
@@ -146,6 +147,7 @@ const UI = (() => {
     const drops = s.drops.length;
     const qDone = typeof Meta !== 'undefined' ? Meta.quests(Date.now()).filter((q) => q.done).length : 0;
     const gift = typeof Meta !== 'undefined' ? Meta.shop(Date.now()).some((o) => o.id === 'gift' && !o.bought) : false;
+    const login = typeof Meta !== 'undefined' && Meta.loginState ? Meta.loginState(Date.now()) : { ready: false };
     const L = el('lobby');
     L.innerHTML = `
       <div class="top">
@@ -158,6 +160,7 @@ const UI = (() => {
         <button class="mb o" data-go="brawlers"><b>🧢</b>Brawlers</button>
         <button class="mb o ${ps.ready > 0 ? 'dot' : ''}" data-go="pass"><b>🎟️</b>Pass</button>
         <button class="mb o ${qDone ? 'dot' : ''}" data-go="quests"><b>📜</b>Quests</button>
+        <button class="mb o ${login.ready ? 'dot' : ''}" data-go="login"><b>📅</b>Daily</button>
         <button class="mb o" data-go="friends"><b>👥</b>Friends</button>
         ${drops ? `<button class="mb o dot" data-go="drops" style="background:linear-gradient(#ffe46a,#ffb21a);color:#3a2300"><b>⭐</b>Drops ${drops}</button>` : ''}
       </div>
@@ -176,6 +179,30 @@ const UI = (() => {
     });
     heroLast = 0;
     if (!heroRaf && typeof requestAnimationFrame !== 'undefined') heroRaf = requestAnimationFrame(heroLoop);
+    // the daily login reward pops up the first time the lobby shows on a new day
+    if (login.ready && !loginShown && !(typeof navigator !== 'undefined' && navigator.webdriver)) { loginShown = true; setTimeout(() => { if (U.screen === 'lobby') U.showLogin(); }, 350); }
+  };
+  let loginShown = false;
+
+  // ---- daily login reward: seven days in a row, today's tile highlighted ----
+  function rewardTile(r) {
+    if (r.type === 'drop') return { ic: '⭐', tx: r.rarity ? (r.rarity[0].toUpperCase() + r.rarity.slice(1)) + ' drop' : 'Drop' };
+    const ic = { coins: '<i class="coin"></i>', pp: '<i class="ppi"></i>', gems: '<i class="gemi"></i>', credits: '<i class="cri"></i>' }[r.type] || '🎁';
+    return { ic, tx: fmtNum(r.n) };
+  }
+  U.showLogin = () => {
+    const st = Meta.loginState(Date.now());
+    const tiles = st.list.map((r, i) => {
+      const t = rewardTile(r), done = i < st.day || (!st.ready && i === st.day), today = st.ready && i === st.day;
+      return `<div class="lday ${today ? 'today' : ''} ${done ? 'done' : ''}"><div class="o" style="font-size:.7em">DAY ${i + 1}</div><div class="o" style="font-size:1.5em">${t.ic}</div><div class="o" style="font-size:.8em">${t.tx}</div>${done ? '<div class="lck o">✔</div>' : ''}</div>`;
+    }).join('');
+    const html = `<div class="o" style="font-size:1.3em;margin-bottom:.4em">Daily login reward</div><div class="ldays">${tiles}</div>
+      <div class="muted" style="font-size:.75em;margin:.5em 0">${st.ready ? 'Come back every day for the next reward.' : 'Claimed today. Come back tomorrow!'}</div>`;
+    U.modal(html, st.ready ? [{ text: 'Claim', cls: 'y', fn: () => {
+      const g = Meta.claimLogin(Date.now());
+      if (g) { snd('buy'); const t = rewardTile(g); U.toast(`Got ${t.tx.replace(/<[^>]*>/g, '')}${g.type === 'drop' ? '' : ' ' + g.type}!`); }
+      if (U.screen === 'lobby') U.showLobby(); else if (U.screen === 'panel') U.refresh();
+    } }] : [{ text: 'OK', cls: 'y' }]);
   };
 
   // ---- panels ----
@@ -211,6 +238,8 @@ const UI = (() => {
         S().ev = +b.dataset.ev; saveGame(); U.showLobby();
       });
     },
+    // The brawler list, laid out like the original's: a card per brawler in its rarity's colour, name
+    // on top, power level in a badge, trophies under it; locked ones dark.
     brawlers() {
       const keys = BRAWLER_KEYS.slice().sort((a, b) => {
         const oa = Meta.owned(a), ob = Meta.owned(b);
@@ -218,69 +247,92 @@ const UI = (() => {
         if (oa) return Meta.bState(b).tro - Meta.bState(a).tro;
         return Meta.RARITIES.indexOf(brRar(a)) - Meta.RARITIES.indexOf(brRar(b));
       });
-      const body = `<div class="grid">${keys.map((bk) => {
+      const nOwned = keys.filter((k) => Meta.owned(k)).length;
+      const body = `<div class="muted o" style="font-size:.8em;margin-bottom:.4em">${nOwned} / ${keys.length} unlocked</div><div class="grid">${keys.map((bk) => {
         const o = Meta.owned(bk), st = o ? Meta.bState(bk) : null, up = o && Meta.upgradeCost(bk);
-        const can = up && S().coins >= up.coins && (S().pp | 0) >= up.pp;
-        return `<button class="bc ${o ? '' : 'lock'} ${S().sel === bk ? 'sel' : ''} ${can ? 'dot' : ''}" data-bk="${bk}" style="border-color:${RAR_COL(brRar(bk))}">${pcv(bk, 7)}<div class="bn o">${esc(brName(bk))}</div><div class="bt o">${o ? `<i class="troi"></i> ${st.tro} · P${st.lvl}` : 'Locked'}</div></button>`;
+        const can = up && S().coins >= up.coins && (S().pp | 0) >= up.pp, col = RAR_COL(brRar(bk));
+        return `<button class="bc ${o ? '' : 'lock'} ${S().sel === bk ? 'sel' : ''} ${can ? 'dot' : ''}" data-bk="${bk}" style="background:linear-gradient(${col},#1d1240 95%)"><div class="bn o">${esc(brName(bk).toUpperCase())}</div>${pcv(bk, 7)}${o ? `<div class="bpw o">${st.lvl}</div><div class="bt o"><i class="troi"></i> ${st.tro}</div>` : '<div class="bt o" style="color:#cfc8ff">🔒 Locked</div>'}</button>`;
       }).join('')}</div>`;
       const P = panel('Brawlers', body);
       P.querySelectorAll('.bc[data-bk]').forEach((b) => b.addEventListener('click', () => { snd('click'); U.open('brawler', b.dataset.bk); }));
     },
+    // A brawler's page, laid out like the original's: name, rarity and class with the trophies and
+    // the power level (power points bar, upgrade) on the left, the brawler turning on a podium in the
+    // middle, its stats (health, attack, super, with the next level's gain) and ability icons on the
+    // right, and a big SELECT. Tapping an ability shows what it does (and buys or equips gear).
     brawler(bk) {
       bk = bk || S().sel;
       const D = BRAWLERS[bk], o = Meta.owned(bk), st = o ? Meta.bState(bk) : { lvl: 1, tro: 0, best: 0, gad: [], st: [], gadget: -1, star: -1 };
       const lv = st.lvl;
       const ss = typeof brawlerStats === 'function' ? brawlerStats(bk, lv) : null;
+      const nx = typeof brawlerStats === 'function' && lv < MAX_POWER ? brawlerStats(bk, lv + 1) : null;
       const up = o && Meta.upgradeCost(bk);
       const roadNode = Meta.ROAD.find((n) => n.reward.type === 'brawler' && n.reward.bk === bk);
-      const gearRow = (kind, i, g) => {
-        if (!g) return '';
-        const ownedG = kind === 'gadget' ? st.gad[i] : st.st[i];
-        const need = kind === 'gadget' ? Meta.GADGET_LVL : Meta.STAR_LVL;
-        const eq = kind === 'gadget' ? st.gadget === i : st.star === i;
-        const cost = Meta.gearCost(bk, kind, i);
-        let act = '';
-        if (o && ownedG) act = `<button class="btn ${eq ? 'g' : 'dark'} o" data-eq="${kind}:${i}">${eq ? 'Equipped' : 'Equip'}</button>`;
-        else if (o && lv >= need && cost) act = `<button class="btn y o" data-buy="${kind}:${i}" ${S().coins >= cost.coins ? '' : 'disabled'}><i class="coin"></i>${fmtNum(cost.coins)}</button>`;
-        else act = `<span class="muted" style="font-size:.7em">Power ${need}</span>`;
-        return `<div class="abil"><span class="tag o" style="background:${kind === 'gadget' ? '#2fa83d' : '#e0a000'}">${kind === 'gadget' ? 'GADGET' : 'STAR'}</span><div class="tx"><b>${esc(g.name)}</b> ${esc(g.text)}</div>${act}</div>`;
+      const col = RAR_COL(D.rarity);
+      const gain = (k) => (o && nx && ss && nx[k] > ss[k] ? `<span class="nx">+${fmtNum(nx[k] - ss[k])}</span>` : '');
+      const row = (ic, k, v, g) => `<div class="srow"><span class="sic">${ic}</span><span class="sk o">${k}</span><span class="sv o">${v}${g || ''}</span></div>`;
+      const ppHave = S().pp | 0, ppNeed = up ? up.pp : 0, ppF = up ? clamp(ppHave / Math.max(1, ppNeed), 0, 1) : 1;
+      // abilities: attack, super, gadgets, star powers as tiles
+      const tiles = [{ k: 'atk', tag: 'ATTACK', c: '#d22a3a', g: D.atk }, { k: 'sup', tag: 'SUPER', c: '#e0a000', g: D.sup }]
+        .concat((D.gadgets || []).map((g, i) => ({ k: 'gadget', i, tag: 'GADGET', c: '#2fa83d', g })))
+        .concat((D.stars || []).map((g, i) => ({ k: 'star', i, tag: 'STAR POWER', c: '#e0a000', g })));
+      const tileHtml = (t, j) => {
+        let state = '';
+        if (t.k === 'gadget' || t.k === 'star') {
+          const has = t.k === 'gadget' ? st.gad[t.i] : st.st[t.i], eq = t.k === 'gadget' ? st.gadget === t.i : st.star === t.i;
+          state = eq ? 'eq' : has ? '' : 'off';
+        }
+        const ic = t.k === 'atk' ? '🎯' : t.k === 'sup' ? '💥' : t.k === 'gadget' ? '⚡' : '⭐';
+        return `<button class="atile ${state}" data-ab="${j}" style="--c:${t.c}"><span class="aic">${ic}</span><span class="atg o">${t.tag}</span>${state === 'eq' ? '<span class="aeq o">✔</span>' : ''}</button>`;
       };
-      const stat = (k, v) => `<div class="stat"><div class="k">${k}</div><div class="v o">${v}</div></div>`;
-      let actions = '';
-      if (o) {
-        if (up) actions += `<button class="btn y o" data-up ${S().coins >= up.coins && (S().pp | 0) >= up.pp ? '' : 'disabled'}>Upgrade to ${lv + 1}: <i class="ppi"></i>${up.pp} <i class="coin"></i>${up.coins}</button>`;
-        else actions += '<span class="pill o">Max power</span>';
-        actions += S().sel === bk ? ' <span class="pill o">Selected</span>' : ` <button class="btn g o" data-sel>Select</button>`;
-      } else {
+      let main = '';
+      if (o) main = S().sel === bk ? '<button class="btn dark o bsel" disabled>SELECTED</button>' : '<button class="btn y o bsel" data-sel>SELECT</button>';
+      else {
         const c = Meta.creditCost(bk);
-        actions += `<button class="btn b o" data-unlock ${S().credits >= c ? '' : 'disabled'}>Unlock <i class="cri"></i>${fmtNum(c)}</button>`;
-        if (roadNode) actions += ` <span class="pill o">Trophy Road <i class="troi"></i> ${roadNode.t}</span>`;
+        main = `<button class="btn b o bsel" data-unlock ${S().credits >= c ? '' : 'disabled'}>UNLOCK <i class="cri"></i>${fmtNum(c)}</button>` + (roadNode ? `<div class="pill o" style="font-size:.75em">Trophy Road <i class="troi"></i> ${roadNode.t}</div>` : '');
       }
-      const body = `<div class="det">
-        <div class="lft">${pcv(bk, 12)}<div class="o" style="font-size:1.3em">${esc(D.name)}</div><div class="pill o" style="color:${RAR_COL(D.rarity)}">${esc(RARITY[D.rarity].name)} · ${esc(ROLES[D.role])}</div>
-          ${o ? `<div class="pill o"><i class="troi"></i> ${st.tro} (best ${st.best})</div>` : ''}</div>
-        <div class="rgt">
-          <div class="card" style="font-family:system-ui,sans-serif;font-weight:700;font-size:.8em">${esc(D.desc)}</div>
-          <div class="stats">${ss ? stat('POWER', lv) + stat('HEALTH', fmtNum(ss.hp)) + stat('DAMAGE', fmtNum(ss.dmg) + (ss.n > 1 ? ' ×' + ss.n : '')) + stat('RANGE', esc(ss.rangeName || ss.range)) + stat('RELOAD', esc(ss.reloadName || ss.reload)) + stat('SPEED', esc(ss.speedName || ss.speed)) + stat('SUPER', fmtNum(ss.supDmg)) + stat('RARITY', esc(RARITY[D.rarity].name)) : ''}</div>
-          <div class="card rows">
-            <div class="abil"><span class="tag o" style="background:#d22a3a">ATTACK</span><div class="tx"><b>${esc(D.atk.name)}</b> ${esc(D.atk.text)}</div></div>
-            <div class="abil"><span class="tag o" style="background:#e0a000;color:#3a2300">SUPER</span><div class="tx"><b>${esc(D.sup.name)}</b> ${esc(D.sup.text)}</div></div>
-            ${(D.gadgets || []).map((g, i) => gearRow('gadget', i, g)).join('')}
-            ${(D.stars || []).map((g, i) => gearRow('star', i, g)).join('')}
+      const body = `<div class="bdet">
+        <div class="bl">
+          <div class="bname o">${esc(D.name.toUpperCase())}</div>
+          <div><span class="brar o" style="background:${col}">${esc(RARITY[D.rarity].name.toUpperCase())}</span> <span class="pill o" style="font-size:.75em">${esc(ROLES[D.role])}</span></div>
+          ${o ? `<div class="btro"><i class="troi" style="font-size:1.6em"></i><div><div class="o" style="font-size:1.3em">${st.tro}</div><div class="muted o" style="font-size:.65em">HIGHEST ${st.best}</div></div></div>` : ''}
+          <div class="bpow"><div class="pbadge o"><span>POWER</span><b>${lv}</b></div><div style="flex:1">
+            ${o && up ? `<div class="ppbar"><i style="width:${ppF * 100}%"></i><span class="o"><i class="ppi"></i> ${fmtNum(ppHave)} / ${fmtNum(ppNeed)}</span></div>` : `<div class="ppbar max"><i style="width:100%"></i><span class="o">${o ? 'MAX' : 'Not unlocked'}</span></div>`}
+          </div></div>
+          ${o && up ? `<button class="btn g o bup" data-up ${S().coins >= up.coins && ppHave >= up.pp ? '' : 'disabled'}>UPGRADE <i class="coin"></i> ${fmtNum(up.coins)}</button>` : ''}
+          <div class="bdesc">${esc(D.desc)}</div>
+        </div>
+        <div class="bm"><canvas id="bdcv"></canvas></div>
+        <div class="br">
+          <div class="scard">
+            ${ss ? row('❤️', 'HEALTH', fmtNum(ss.hp), gain('hp')) + row('🎯', 'ATTACK', fmtNum(ss.dmg) + (ss.n > 1 ? ' ×' + ss.n : ''), gain('dmg')) + row('💥', 'SUPER', ss.supDmg ? fmtNum(ss.supDmg) : '—', gain('supDmg')) : ''}
+            ${ss ? `<div class="smini muted o"><span>Range ${esc(ss.rangeName || ss.range)}</span><span>Reload ${esc(ss.reloadName || ss.reload)}</span><span>Speed ${esc(ss.speedName || ss.speed)}</span></div>` : ''}
           </div>
-          <div>${actions}</div>
-        </div></div>`;
+          <div class="atiles">${tiles.map(tileHtml).join('')}</div>
+          <div class="bmain">${main}</div>
+        </div>
+      </div>`;
       const P = panel(D.name, body, { back: () => U.open('brawlers') });
       bind(P, '[data-up]', () => { if (Meta.upgrade(bk)) { snd('levelUp'); U.toast(`${D.name} is now power ${Meta.bState(bk).lvl}!`); } PANELS.brawler(bk); });
       bind(P, '[data-sel]', () => { Meta.select(bk); goHome(); });
       bind(P, '[data-unlock]', () => { if (Meta.buyBrawler(bk)) { snd('unlock'); U.toast(`${D.name} unlocked!`); } PANELS.brawler(bk); });
-      // data-buy / data-eq: "gadget:1", "star:0" (one of each can be equipped; tapping the equipped one takes it off)
-      bind(P, '[data-buy]', (b) => { const [k, i] = b.dataset.buy.split(':'); if (Meta.buyGear(bk, k, +i)) { snd('buy'); } PANELS.brawler(bk); });
-      bind(P, '[data-eq]', (b) => {
-        const s2 = Meta.bState(bk), [k, i] = b.dataset.eq.split(':'), n = +i;
-        if (k === 'gadget') Meta.setGear(bk, s2.gadget === n ? -1 : n, s2.star); else Meta.setGear(bk, s2.gadget, s2.star === n ? -1 : n);
-        PANELS.brawler(bk);
+      bind(P, '[data-ab]', (b) => {
+        const t = tiles[+b.dataset.ab], btns = [];
+        let note = '';
+        if (t.k === 'gadget' || t.k === 'star') {
+          const s2 = o ? Meta.bState(bk) : st, has = t.k === 'gadget' ? s2.gad[t.i] : s2.st[t.i], eq = t.k === 'gadget' ? s2.gadget === t.i : s2.star === t.i;
+          const need = t.k === 'gadget' ? Meta.GADGET_LVL : Meta.STAR_LVL, cost = Meta.gearCost(bk, t.k, t.i);
+          // one of each can be equipped; tapping the equipped one takes it off
+          const setEq = () => { const s3 = Meta.bState(bk); if (t.k === 'gadget') Meta.setGear(bk, s3.gadget === t.i ? -1 : t.i, s3.star); else Meta.setGear(bk, s3.gadget, s3.star === t.i ? -1 : t.i); PANELS.brawler(bk); };
+          if (o && has) btns.push({ text: eq ? 'Unequip' : 'Equip', cls: eq ? 'dark' : 'g', fn: setEq });
+          else if (o && lv >= need && cost) btns.push({ text: `Buy for ${fmtNum(cost.coins)} coins`, cls: 'y', fn: () => { if (Meta.buyGear(bk, t.k, t.i)) snd('buy'); else U.toast('Not enough coins'); PANELS.brawler(bk); } });
+          else note = `<div class="muted" style="font-size:.75em;margin-top:.4em">Unlocks at power ${need}</div>`;
+        }
+        btns.push({ text: 'Close', cls: 'dark' });
+        U.modal(`<div class="o" style="font-size:.75em;color:${t.c}">${t.tag}</div><div class="o" style="font-size:1.25em;margin:.15em 0 .4em">${esc(t.g.name)}</div><div style="font-family:system-ui,sans-serif;font-weight:700;font-size:.85em;max-width:24em">${esc(t.g.text)}</div>${note}<div style="height:.6em"></div>`, btns);
       });
+      heroLast = 0;
+      if (!heroRaf && typeof requestAnimationFrame !== 'undefined') heroRaf = requestAnimationFrame(heroLoop);
     },
     road() {
       const rs = Meta.roadState();
@@ -332,6 +384,7 @@ const UI = (() => {
       panel('Quests', body);
     },
     drops() { openDrops(); },
+    login() { U.showLobby(); U.showLogin(); },
     friends() {
       const evs = (typeof MODE_INFO !== 'undefined' ? Object.keys(MODE_INFO) : []).filter((m) => Meta.mapsFor(m).length);
       const body = `<div class="rows">

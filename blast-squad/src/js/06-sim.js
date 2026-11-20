@@ -93,7 +93,7 @@ class Sim {
       cubes: 0, carry: 0, bounty: 0,
       vis: 0, inBush: false, revealT: 0, quietT: 0, shieldT: 0, spawnT: 0,
       stunT: 0, slowT: 0, slowF: 0, kbT: 0, kbx: 0, kby: 0, dashT: 0,
-      invisT: 0, speedT: 0, speedF: 0,
+      invisT: 0, speedT: 0, speedF: 0, auraT: 0, auraS: null, auraAge: 0,
       mvx: 0, mvy: 0, lastSeq: 0,
       st: { kills: 0, deaths: 0, dmg: 0, heal: 0, gems: 0, goals: 0, stars: 0 },
       // sim-private (the view may read jumpT/jumpTT for the jump arc, aimA/fireT/lastAct for poses)
@@ -778,9 +778,11 @@ class Sim {
           const e = B[i];
           if (!e.alive || e.team !== b.team) continue;
           if (e !== b && (!s.r || dist2(b.x, b.y, e.x, e.y) > s.r * s.r)) continue;
-          e.speedT = s.T; e.speedF = s.pts ? U(s.pts) / e.speed : s.f; e.speedSrc = b.slot; // pts: speed points added
-          this.ev(EV.STATUS, e.slot, 6, s.T);
+          this.speedUp(e, b, s, s.T);
         }
+        // linger: the circle stays round the caster that long, so allies it reaches as the caster
+        // moves still get the boost (Max's Run Forrest Run, as in the original)
+        if (s.linger && s.r) { b.auraT = s.linger; b.auraS = s; b.auraAge = 0; }
         break;
       case 'invis':
         b.invisT = s.T;
@@ -798,6 +800,23 @@ class Sim {
       default: throw new Error('Unknown buff ' + s.what);
     }
     this.fxn[b.slot * 4 + act]++;
+  }
+
+  speedUp(e, b, s, T) {
+    e.speedT = T; e.speedF = s.pts ? U(s.pts) / e.speed : s.f; e.speedSrc = b.slot; // pts: speed points added
+    this.ev(EV.STATUS, e.slot, 6, T);
+  }
+  // A lingering speed circle: allies who step into it get what is left of the boost.
+  stepAura(b) {
+    const s = b.auraS, B = this.brawlers;
+    b.auraAge += SIM_DT;
+    b.auraT -= SIM_DT;
+    if (b.auraT <= 0 || !s) { b.auraT = 0; b.auraS = null; return; }
+    for (let i = 0; i < B.length; i++) {
+      const e = B[i];
+      if (e === b || !e.alive || e.team !== b.team || (e.speedT > 0 && e.speedSrc === b.slot)) continue;
+      if (dist2(b.x, b.y, e.x, e.y) <= s.r * s.r) this.speedUp(e, b, s, Math.max(0.1, s.T - b.auraAge));
+    }
   }
 
   // Damage (and knockback/stun/slow from `o`) to every enemy in a circle, units and boxes included.
@@ -852,6 +871,8 @@ class Sim {
         if (!e.dying) { e.dying = true; e.killer = src; }
       }
       this.ev(EV.HIT, e.id, amt, e.x, e.y, src, crit || 0, act | 0);
+      // tanks charge their super by taking damage from enemies (the original's Tank class trait)
+      if (src >= 0 && e.kit.D.role === 'tank' && this.brawlers[src].team !== e.team && e.alive && e.hp > 0) this.charge(e, (dealt / e.maxHp) * TANK_HIT_CHARGE);
       if (src >= 0) {
         const sb = this.brawlers[src];
         if (sb.team !== e.team) { sb.st.dmg += dealt; this.dmgBy[src * 4 + act] += dealt; }
@@ -1560,6 +1581,7 @@ class Sim {
       if (b.revealT > 0) b.revealT = Math.max(0, b.revealT - dt);
       if (b.invisT > 0) b.invisT = Math.max(0, b.invisT - dt);
       if (b.speedT > 0) { b.speedT -= dt; if (b.speedT <= 0) { b.speedT = 0; b.speedF = 0; } }
+      if (b.auraT > 0) this.stepAura(b);
       if (b.shieldT > 0) { b.shieldT -= dt; if (b.shieldT <= 0) { b.shieldT = 0; b.shieldF = 0; b.spawnSh = false; } }
       if (b.spawnT > 0) b.spawnT = Math.max(0, b.spawnT - dt);
       if (b.faceT > 0) b.faceT = Math.max(0, b.faceT - dt);

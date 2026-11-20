@@ -97,7 +97,7 @@ const BRAWLERS = {
     hp: 3100, speed: 750, reload: 1.3,
     atk: {
       name: 'Six-Shooter', text: 'Fires 6 bullets in two streams from both revolvers.',
-      t: 'shot', n: 6, burst: 0.133, jit: 0.165, dmg: 360, range: 9, spd: 13.33, r: 0.165, chg: 0.0835,
+      t: 'shot', n: 6, burst: 0.133, jit: 0.165, dmg: 360, range: 9, spd: 13.33, r: 0.3, chg: 0.0835,
     },
     sup: {
       name: 'Bullet Storm', text: 'A long burst of 12 big bullets that pierce enemies; each destroys the wall it hits.',
@@ -247,7 +247,7 @@ const BRAWLERS = {
     hp: 3000, speed: 750, reload: 1.1,
     atk: {
       name: 'Ricochet Bolts', text: 'A burst of 5 bolts that bounce off walls, gaining 1.67 tiles of range per bounce.',
-      t: 'shot', n: 5, burst: 0.1, spread: 0.118, dmg: 300, range: 9.67, spd: 11.59, r: 0.335, ricochet: true, gain: 1.67, chg: 0.0625,
+      t: 'shot', n: 5, burst: 0.1, spread: 0.118, dmg: 300, range: 9.67, spd: 11.59, r: 0.6, ricochet: true, gain: 1.67, chg: 0.0625,
     },
     sup: {
       name: 'Thunder Spray', text: 'A long burst of 12 bolts that pierce enemies and bounce off walls.',
@@ -270,7 +270,7 @@ const BRAWLERS = {
     hp: 2800, speed: 750, reload: 2.3,
     atk: {
       name: 'Long Shot', text: 'A single bullet: 360 damage up close, rising to 1800 over the last 15% of its range.',
-      t: 'shot', dmg: 1800, ramp: [0.2, 1, 0, 0.85], range: 10, spd: 13.33, r: 0.335, chg: 0.1765,
+      t: 'shot', dmg: 1800, ramp: [0.2, 1, 0, 0.85], range: 10, spd: 13.33, r: 0.6, chg: 0.1765,
     },
     sup: {
       name: 'Pop-Up', text: 'Leaps away for 2 seconds, untouchable, dropping 4 grenades where she took off.',
@@ -333,11 +333,11 @@ const BRAWLERS = {
     hp: 3500, speed: 855, reload: 1.3, ammo: 4,
     atk: {
       name: 'Rapid Fire', text: 'Fires 4 fast bullets in a quick sweeping burst. Zip has 4 ammo bars.',
-      t: 'shot', n: 4, burst: 0.1075, spread: 0.236, dmg: 320, range: 8.33, spd: 13.33, r: 0.13, chg: 1 / 18,
+      t: 'shot', n: 4, burst: 0.1075, spread: 0.236, dmg: 320, range: 8.33, spd: 13.33, r: 0.235, chg: 1 / 18,
     },
     sup: {
-      name: 'Rush Hour', text: 'Zip and allies within 4 tiles move 300 speed points faster for 4 seconds.',
-      t: 'buff', what: 'speed', pts: 300, T: 4, r: 4,
+      name: 'Rush Hour', text: 'Zip and allies within 4 tiles move 300 speed points faster for 4 seconds. The circle stays round Zip for half a second, so allies he runs to get it too.',
+      t: 'buff', what: 'speed', pts: 300, T: 4, r: 4, linger: 0.5,
     },
     gadgets: [{ name: 'Blink', text: 'Dashes 3.33 tiles and can\'t be hurt for half a second.', cd: 18, t: 'dash', dist: 3.33, spd: 18, inv: true, invT: 0.5 }],
     stars: [
@@ -351,7 +351,7 @@ const BRAWLERS = {
     hp: 3300, speed: 855, reload: 1.9,
     atk: {
       name: 'Spectral Blades', text: '4 blades swept left to right: 480 damage over the first 15% of their range, down to 168 at full range.',
-      t: 'shot', n: 4, burst: 0.0875, spread: 0.305, dmg: 480, ramp: [1, 0.35, 0.15, 1], range: 9.67, spd: 11.67, r: 0.14, chg: 0.12625,
+      t: 'shot', n: 4, burst: 0.0875, spread: 0.305, dmg: 480, ramp: [1, 0.35, 0.15, 1], range: 9.67, spd: 11.67, r: 0.25, chg: 0.12625,
     },
     sup: {
       name: 'Fade', text: 'Turns invisible for 6 seconds: only enemies within 4 tiles see him. Attacking ends it.',

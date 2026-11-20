@@ -20,7 +20,7 @@ const FILES = ['01-util.js', '02-const.js', '03-brawlers.js', '04-maps.js', '05-
 const NAMES = [
   'Sim', 'RNG', 'BRAWLERS', 'BRAWLER_KEYS', 'MAPS', 'MODES', 'ModeKit', 'parseMap', 'packIn', 'unpackIn',
   'ACT', 'EV', 'K', 'PICK', 'TILE', 'TF_MOVE', 'TF_SHOT', 'TF_BUSH', 'flowField', 'flowDir', 'shotClear',
-  'flagsAt', 'tileAt', 'SIM_DT', 'MAX_AMMO', 'REGEN_DELAY', 'REGEN_RATE', 'SPAWN_SHIELD_T', 'REVEAL_R',
+  'flagsAt', 'tileAt', 'SIM_DT', 'MAX_AMMO', 'REGEN_DELAY', 'REGEN_RATE', 'SPAWN_SHIELD_T', 'TANK_HIT_CHARGE', 'REVEAL_R',
   'LEVEL_MULT', 'CUBE_HP', 'CUBE_DMG', 'IN_IDLE', 'RESPAWN_T', 'brawlerKit', 'BRAWLER_R',
 ];
 const A = load({ files: FILES, names: NAMES });
@@ -1242,11 +1242,11 @@ function modeRules() {
       const p = openRow(sim.map, 6, true);
       place(sim, b, p.x, p.y); ready(b);
       fire(sim, 0, ACT.ATTACK, Math.PI, 1 / 7.33); // the sticks land a tile behind him
-      stepN(sim, 45);
+      stepN(sim, 60);
       const stick = b.x - p.x;
       place(sim, b, p.x, p.y); b.sup = 1; b.supReady = true;
       fire(sim, 0, ACT.SUPER, Math.PI, 1 / 7.33);
-      stepN(sim, 60);
+      stepN(sim, 75);
       check(stick > 2.5 && stick < 3.5 && b.x - p.x > 4.5, `Rocket Boots: Pip is flung away from his own blast (${stick.toFixed(2)} tiles by a stick, ${(b.x - p.x).toFixed(2)} by Big Barrel)`);
     }
     { // Hard Gust (star 0): pushed into a wall, enemies are stunned
@@ -1326,31 +1326,56 @@ function modeRules() {
       stepN(s2, 45);
       check(1e6 - e2.hp === Math.round(800 * LM) && e2.y < 5.5, `Gale Wall passes the wall, hits once and carries the enemy away (y ${e2.y.toFixed(2)})`);
     }
-    { // Dynamike-style fuse: the sticks land, lie lit on the ground and burst 1 s after the throw
+    { // Dynamike-style fuse: the sticks land, lie lit on the ground and burst 1.45 s after the throw
       const sim = mkSim('test', 'zz_wall', ['pip', 'dax'], { star: -1 });
       const [b, e] = sim.brawlers;
       unshield(e); e.hp = e.maxHp = 1e6;
       place(sim, b, 10.5, 15.5); place(sim, e, 10.5, 13.5); ready(b);
       fire(sim, 0, ACT.ATTACK, -Math.PI / 2, 2 / 7.33);
-      stepN(sim, 22);
+      stepN(sim, 27);
       const lit = sim.shots.filter((s) => s.lob && !s.dead);
-      check(lit.length === 2 && lit.every((s) => s.lob.t >= s.lob.T && s.lob.fuse === 1) && e.hp === 1e6, `Fuse Pair: 0.75 s after a short throw both sticks lie lit on the ground, no damage yet (${lit.length})`);
-      stepN(sim, 10);
-      check(1e6 - e.hp === Math.round(2 * 800 * LM) && !sim.shots.some((s) => s.lob && !s.dead), `Fuse Pair: they burst together 1 s after the throw (${1e6 - e.hp})`);
+      check(lit.length === 2 && lit.every((s) => s.lob.t >= s.lob.T && s.lob.fuse === 1.45) && e.hp === 1e6, `Fuse Pair: 0.9 s after a short throw both sticks lie lit on the ground, no damage yet (${lit.length})`);
+      stepN(sim, 17);
+      check(1e6 - e.hp === Math.round(2 * 800 * LM) && !sim.shots.some((s) => s.lob && !s.dead), `Fuse Pair: they burst together 1.45 s after the throw (${1e6 - e.hp})`);
       // stepping off a lit stick before it goes off
       ready(b); e.hp = 1e6; place(sim, e, 10.5, 13.5);
       fire(sim, 0, ACT.ATTACK, -Math.PI / 2, 2 / 7.33);
-      stepN(sim, 22);
+      stepN(sim, 27);
       place(sim, e, 10.5, 10.0);
-      stepN(sim, 12);
+      stepN(sim, 19);
       check(e.hp === 1e6, 'Fuse Pair: walking away from a lit stick before it bursts avoids the damage');
-      // Big Barrel: 1.3 s fuse, 2.67 blast, knocks back
+      // Big Barrel: 1.7 s fuse, 2.67 blast, knocks back
       b.sup = 1; b.supReady = true; place(sim, e, 10.5, 11.5); e.hp = 1e6;
       fire(sim, 0, ACT.SUPER, -Math.PI / 2, 3 / 8.33);
-      stepN(sim, 35);
+      stepN(sim, 47);
       const hp1 = e.hp;
       stepN(sim, 8);
-      check(hp1 === 1e6 && 1e6 - e.hp === Math.round(2200 * LM) && e.y < 10, `Big Barrel bursts 1.3 s after the throw and knocks back (${hp1 === 1e6}, ${1e6 - e.hp}, y ${e.y.toFixed(2)})`);
+      check(hp1 === 1e6 && 1e6 - e.hp === Math.round(2200 * LM) && e.y < 10, `Big Barrel bursts 1.7 s after the throw and knocks back (${hp1 === 1e6}, ${1e6 - e.hp}, y ${e.y.toFixed(2)})`);
+    }
+    { // tanks charge their super when hit by enemies; others don't
+      const sim = mkSim('test', 'zz_wall', ['brick', 'dax', 'nova'], { teams: [0, 1, 0], star: -1 });
+      const [t, e, n] = sim.brawlers;
+      for (const o of [t, n]) unshield(o);
+      sim.hurt(t, t.maxHp * 0.5, e.slot, ACT.ATTACK, 0, 0);
+      sim.hurt(n, n.maxHp * 0.5, e.slot, ACT.ATTACK, 0, 0);
+      check(Math.abs(t.sup - 0.5 * A.TANK_HIT_CHARGE) < 0.01 && n.sup === 0, `a tank charges its super from damage taken (${t.sup.toFixed(3)}), others don't (${n.sup})`);
+    }
+    { // Rush Hour lingers half a second round Zip: an ally he reaches in that time gets the boost
+      const sim = mkSim('test', 'zz_wall', ['zip', 'nova', 'dax'], { teams: [0, 0, 1], star: -1 });
+      const [z, a] = sim.brawlers;
+      place(sim, z, 10.5, 13.5); place(sim, a, 10.5, 8.5); // 5 tiles: outside the 4-tile circle
+      z.sup = 1; z.supReady = true;
+      fire(sim, 0, ACT.SUPER, 0, 1);
+      stepN(sim, 2);
+      const before = a.speedT;
+      place(sim, z, 10.5, 11.5); // Zip runs towards the ally
+      stepN(sim, 3);
+      const mid = a.speedT;
+      place(sim, a, 10.5, 2.0); a.speedT = 0;
+      stepN(sim, 20);
+      place(sim, a, 10.5, 10.5);
+      stepN(sim, 2);
+      check(before === 0 && mid > 3 && a.speedT === 0, `Rush Hour lingers 0.5 s round Zip (${before}, ${mid.toFixed(2)}, after ${a.speedT})`);
     }
     { // Big Drop: flies at 9 tiles a second and the landing knocks enemies back 2.6 tiles
       const sim = mkSim('test', 'zz_wall', ['brick', 'dax'], { star: -1 });
