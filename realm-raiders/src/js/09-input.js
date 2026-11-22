@@ -27,6 +27,7 @@ const Input = {
   canvas: null,
   enabled: true,
   layout: null,
+  rot: false,
   onPause: null,
 
   init(canvas) {
@@ -60,11 +61,11 @@ const Input = {
     const R = safe ? safe.r : 0, B = safe ? safe.b : 0;
     this.layout = {
       s, W, H,
-      skill: { x: W - R - 96 * s, y: H - B - 92 * s, r: 44 * s },
-      ult: { x: W - R - 196 * s, y: H - B - 62 * s, r: 36 * s },
-      dash: { x: W - R - 70 * s, y: H - B - 192 * s, r: 30 * s },
-      pause: { x: W - R - 34 * s, y: 34 * s + (safe ? safe.t : 0), r: 22 * s },
-      stickR: 58 * s,
+      skill: { x: W - R - 92 * s, y: H - B - 88 * s, r: 44 * s },
+      ult: { x: W - R - 190 * s, y: H - B - 58 * s, r: 36 * s },
+      dash: { x: W - R - 66 * s, y: H - B - 186 * s, r: 31 * s },
+      pause: { x: W - R - 34 * s, y: 34 * s + (safe ? safe.t : 0), r: 23 * s },
+      stickR: 60 * s,
     };
   },
 
@@ -75,7 +76,12 @@ const Input = {
     return null;
   },
 
-  tPos(t) { const r = this.canvas.getBoundingClientRect(); return { x: t.clientX - r.left, y: t.clientY - r.top }; },
+  // With the game turned sideways on an upright phone, screen x/y map to the game's y/x.
+  tPos(t) {
+    if (this.rot) return { x: t.clientY, y: innerWidth - t.clientX };
+    const r = this.canvas.getBoundingClientRect();
+    return { x: t.clientX - r.left, y: t.clientY - r.top };
+  },
 
   tStart(t) {
     const p = this.tPos(t);

@@ -15,11 +15,12 @@ const Game = {
     const unlock = () => { Sound.unlock(); Music.start(this.mood || 'menu'); };
     addEventListener('pointerdown', unlock, true);
     addEventListener('keydown', unlock, true);
+    addEventListener('orientationchange', () => setTimeout(() => View.resize(), 250));
     document.addEventListener('visibilitychange', () => { if (document.hidden && this.scene === 'play' && !this.online && !this.paused) UI.showPause(); });
     this.makeDemo();
     UI.showMenu();
     this.setMood('menu');
-    Meta.connectCloud().then((r) => { if (r === 'loaded') { applySettings(); if (this.scene === 'menu' && !UI.cur) UI.showMenu(); UI.toast('Progress loaded from your Claude account'); } });
+    Meta.connectCloud().then((r) => { if (r === 'loaded') { applySettings(); if (this.scene === 'menu' && !UI.cur) UI.showMenu(); UI.toast(tr('Progress loaded from your Claude account')); } });
     try {
       if ('serviceWorker' in navigator && /^https?:/.test(location.protocol) && !/claude\.(ai|site)|claudeusercontent/.test(location.hostname)) navigator.serviceWorker.register('sw.js').catch(() => {});
     } catch (e) { /* not available */ }
@@ -58,7 +59,7 @@ const Game = {
       else this.menuFrame(now, dt);
     } catch (e) {
       console.error(e);
-      if (!this.crashed) { this.crashed = true; UI.toast('Something went wrong: ' + esc(e.message)); }
+      if (!this.crashed) { this.crashed = true; UI.toast(tr('Something went wrong: ') + esc(e.message)); }
     }
     Input.endFrame();
   },
@@ -211,7 +212,7 @@ const Game = {
     party.forEach((p, i) => {
       const info = p.kind === 'local' ? Meta.playerInfo(p.hero) : Meta.botInfo(p.hero);
       const pl = Object.assign(info, { slot: i, kind: p.kind, dev: p.dev, team: cfg.mode === 'arena' ? p.team || 0 : 0 });
-      pl.name = p.kind === 'local' ? (li === 0 ? Meta.s.name : 'Player ' + (li + 1)) : BOT_NAMES[(seed + bi++ * 7) % BOT_NAMES.length];
+      pl.name = p.kind === 'local' ? (li === 0 ? Meta.s.name : 'P' + (li + 1)) : BOT_NAMES[(seed + bi++ * 7) % BOT_NAMES.length];
       if (p.kind === 'local') li++;
       if (p.kind === 'bot') pl.bot = new HeroBot(Meta.s.settings.botSkill, seed + i);
       players.push(pl);
@@ -249,9 +250,9 @@ const Game = {
       Meta.s.tutorial = true;
       Meta.save();
       const d = this.locals[0].dev;
-      const how = d === 'touch' ? 'Drag on the left to move. Tap SKILL, ULT and the dash button, or drag them to aim.' : d.startsWith('pad') ? 'Left stick moves. X skill, B ultimate, A dash.' : 'WASD to move. Q skill, E ultimate, Space dash. The mouse aims.';
-      setTimeout(() => UI.toast('Your hero attacks on its own. ' + how), 1800);
-      setTimeout(() => UI.toast('Step out of <b>red areas</b>: they are attacks about to land!'), 6500);
+      const how = d === 'touch' ? 'Drag on the left to move. Tap the skill, ultimate and dash buttons, or drag them to aim.' : d.startsWith('pad') ? 'Left stick moves. X skill, B ultimate, A dash.' : 'WASD to move. Q skill, E ultimate, Space dash. The mouse aims.';
+      setTimeout(() => UI.toast(tr('Your hero attacks on its own.') + ' ' + tr(how)), 1800);
+      setTimeout(() => UI.toast(tr('Step out of <b>red areas</b>: they are attacks about to land!')), 6500);
     }
   },
 
@@ -283,11 +284,11 @@ const Game = {
       const sc = res.score || {};
       if (this.cfg && !this.cfg.teams && unit) {
         const place = 1 + Object.values(sc).filter((v) => v > (sc[unit.team] || 0)).length;
-        title = place === 1 ? 'Champion!' : 'Place #' + place;
-      } else title = won ? 'Victory!' : 'Defeat';
-      sub = 'Score ' + Object.values(sc).join(' : ');
-    } else if (res.kind === 'abyss') { title = 'The Abyss'; sub = 'You cleared ' + (res.floor || 0) + ' floors'; }
-    else { title = res.win ? 'Realm cleared!' : 'Defeated'; sub = REALMS[(res.realm || 1) - 1].name + ' · ' + DIFFS[res.diff || 0].name; }
+        title = place === 1 ? tr('Champion!') : tr('Place #{n}', { n: place });
+      } else title = won ? tr('Victory!') : tr('Defeat');
+      sub = tr('Score') + ' ' + Object.values(sc).join(' : ');
+    } else if (res.kind === 'abyss') { title = tr('The Abyss'); sub = tr('You cleared {n} floors', { n: res.floor || 0 }); }
+    else { title = res.win ? tr('Realm cleared!') : tr('Defeated'); sub = tr(REALMS[(res.realm || 1) - 1].name) + ' · ' + tr(DIFFS[res.diff || 0].name); }
     UI.showResults({ title, sub, win: res.kind === 'arena' ? won : res.win || res.kind === 'abyss', res, ws, out, hero, kind: res.kind, time: res.time, canAgain: canAgain, kos: unit ? unit.kos : 0, deaths: unit ? unit.deaths : 0 });
     Sound.play(res.win || won ? 'win' : 'lose', 0.8);
   },
@@ -491,15 +492,15 @@ const Game = {
     const wasPlaying = this.scene === 'play';
     if (wasPlaying) { for (const it of this.loot) Meta.addItem(it); Meta.save(); }
     this.leaveOnline(true);
-    if (wasPlaying || this.scene === 'results') { this.scene = 'menu'; this.mirror = null; UI.hideAll(); UI.showMenu(); UI.toast('The host left the game' + (this.loot.length ? '. Your loot was saved.' : '.')); this.setMood('menu'); return; }
-    UI.online = { step: 'error', msg: why === 'version' ? 'Your friend runs a different version. Both of you should reload.' : 'The room was closed.' };
+    if (wasPlaying || this.scene === 'results') { this.scene = 'menu'; this.mirror = null; UI.hideAll(); UI.showMenu(); UI.toast(this.loot.length ? tr('The host left the game. Your loot was saved.') : tr('The host left the game.')); this.setMood('menu'); return; }
+    UI.online = { step: 'error', msg: why === 'version' ? 'Your friend is running a different version. Both of you should reload.' : 'The room was closed.' };
     if (UI.cur === 'online') UI.refresh();
   },
 
   onGuestLeft(g) {
     if (this.scene === 'play' && this.world) {
       const pl = this.playerBySlot(g.slot);
-      if (pl && pl.kind === 'remote') { pl.kind = 'bot'; pl.bot = new HeroBot(1, g.slot + 99); UI.toast(esc(g.name) + ' left. A bot takes over.'); }
+      if (pl && pl.kind === 'remote') { pl.kind = 'bot'; pl.bot = new HeroBot(1, g.slot + 99); UI.toast(tr('{name} left. A bot takes over.', { name: esc(g.name) })); }
       return;
     }
     this.onLobbyChange();

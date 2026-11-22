@@ -819,7 +819,7 @@ class World {
     if (!this.arena && this.t - u.lastHurt > 5) regen += 0.01;
     if (regen > 0) this.heal(u, u.maxHp * regen * dt);
     if (s.bulwark) { u.counters.bulT += dt; if (u.counters.bulT >= 10) { u.counters.bulT = 0; this.shieldUp(u, u.maxHp * s.bulwark, 8); } }
-    if (u.healAcc >= 1 && (this.tick % 20 === 0)) { this.emit('heal', u.x, u.y - u.r - 8, Math.round(u.healAcc)); u.healAcc = 0; }
+    if (u.healAcc >= Math.max(6, u.maxHp * 0.04) && this.tick % 30 === 0) { this.emit('heal', u.x, u.y - u.r - 8, Math.round(u.healAcc)); u.healAcc = 0; }
     if (u.kit.tick) u.kit.tick(this, u, dt);
     // history for Rewind
     u.histT += dt;

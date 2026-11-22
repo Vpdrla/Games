@@ -9,6 +9,9 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const outDir = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : path.join(require('node:os').tmpdir(), 'rr-smoke');
 const desktop = process.argv.includes('--desktop');
+const portrait = process.argv.includes('--portrait');
+const ko = process.argv.includes('--ko');
+const tag = (desktop ? 'd-' : portrait ? 'p-' : 'm-') + (ko ? 'ko-' : '');
 fs.mkdirSync(outDir, { recursive: true });
 const errors = [];
 const fail = (m) => { errors.push(m); console.log('FAIL - ' + m); };
@@ -16,15 +19,19 @@ const ok = (m) => console.log('ok - ' + m);
 
 (async () => {
   const browser = await chromium.launch();
-  const ctx = await browser.newContext(desktop ? { viewport: { width: 1280, height: 720 } } : { viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const ctx = await browser.newContext(Object.assign(desktop ? { viewport: { width: 1280, height: 720 } } : { viewport: portrait ? { width: 390, height: 844 } : { width: 844, height: 390 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, { locale: ko ? 'ko-KR' : 'en-US' }));
   const page = await ctx.newPage();
   page.on('pageerror', (e) => fail('page error: ' + e.message + '\n' + (e.stack || '').split('\n').slice(0, 4).join('\n')));
   page.on('console', (m) => { if (m.type() === 'error') fail('console error: ' + m.text()); });
   await page.goto('file://' + path.join(root, 'index.html'));
   await page.waitForTimeout(1200);
-  const shot = (n) => page.screenshot({ path: path.join(outDir, (desktop ? 'd-' : 'm-') + n + '.png') });
+  const shot = (n) => page.screenshot({ path: path.join(outDir, tag + n + '.png') });
   const has = (sel) => page.$(sel).then((e) => !!e);
   if (await has('#menu.show .mode.adv')) ok('main menu shows'); else fail('no main menu');
+  const lang = await page.evaluate(() => [window.__RR.UI && document.querySelector('.mode.adv b').textContent, document.getElementById('app').style.transform]);
+  ok('language/turn: ' + JSON.stringify(lang));
+  if (ko && lang[0] !== '모험') fail('Korean menu expected, got ' + lang[0]);
+  if (portrait && !/rotate/.test(lang[1])) fail('upright phone should turn the game sideways');
   await shot('01-menu');
   for (const p of ['heroes', 'gear', 'camp', 'ach', 'quests', 'settings', 'help', 'online']) {
     await page.evaluate((n) => { window.__RR.UI.closePanels(); window.__RR.UI.open(n); }, p);

@@ -14,11 +14,13 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231c1240'/%3E%3Cpath d='M32 6 L38 26 L58 32 L38 38 L32 58 L26 38 L6 32 L26 26 Z' fill='%23ffd23f' stroke='%230d0a1a' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
-:root{color-scheme:dark;--ink:#0d0a1a;--panel:#1e1640;--panel2:#2a1f58;--line:#07050f;--text:#f4f0ff;--muted:#a9a0d0;--gold:#ffd23f;--red:#ff4f6d;--green:#5be36a;--blue:#4fb3ff;--fs:clamp(12px,min(2.7vh,1.55vw),19px)}
+:root{color-scheme:dark;--ink:#0d0a1a;--panel:#1e1640;--panel2:#2a1f58;--line:#07050f;--text:#f4f0ff;--muted:#a9a0d0;--gold:#ffd23f;--red:#ff4f6d;--green:#5be36a;--blue:#4fb3ff;--fs:16px}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{position:fixed;inset:0;overflow:hidden;background:#0d0a1a;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-weight:700;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+#app{position:fixed;left:0;top:0;width:100%;height:100%;transform-origin:0 0;overflow:hidden;font-size:var(--fs)}
 #game{position:absolute;left:0;top:0;display:block;touch-action:none}
 #ui{position:absolute;inset:0;pointer-events:none;font-size:var(--fs)}
+.pfoot{border-top:.12em solid var(--line);border-bottom:0}
 .screen{position:absolute;inset:0;display:none}
 .screen.show{display:flex}
 #safe-probe{position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
@@ -41,17 +43,17 @@ input,textarea,select{font:inherit;color:var(--text);background:#120c28;border:.
 .dot::after{content:"";position:absolute;right:-.2em;top:-.2em;width:.75em;height:.75em;border-radius:50%;background:#ff3b5a;border:.12em solid var(--line)}
 /* main menu */
 #menu{pointer-events:auto;background:linear-gradient(90deg,rgba(13,10,26,.92) 0%,rgba(13,10,26,.55) 45%,rgba(13,10,26,.35) 70%,rgba(13,10,26,.75) 100%)}
-.mtop{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:.6em;padding:calc(env(safe-area-inset-top) + .6em) calc(env(safe-area-inset-right) + .9em) .3em calc(env(safe-area-inset-left) + .9em)}
+.mtop{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:.6em;padding:calc(var(--sat,0px) + .6em) calc(var(--sar,0px) + .9em) .3em calc(var(--sal,0px) + .9em)}
 .logo{font-size:2.1em;font-weight:900;letter-spacing:.04em;line-height:.95;background:linear-gradient(#fff3b0,#ffb22e 60%,#ff7a2e);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 .08em 0 #07050f) drop-shadow(0 0 .3em rgba(255,160,40,.35))}
 .logo small{display:block;font-size:.32em;letter-spacing:.3em;color:#c8b8ff;-webkit-text-fill-color:#c8b8ff}
 .mtop .sp{flex:1}
-.showcase{position:absolute;left:calc(env(safe-area-inset-left) + 1em);top:5.2em;bottom:4.2em;width:min(40vw,22em);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.3em}
-.showcase canvas{width:min(30vh,14em);height:min(30vh,14em)}
+.showcase{position:absolute;left:calc(var(--sal,0px) + 1em);top:5.2em;bottom:4.2em;width:min(calc(var(--vw,1vw)*40),22em);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.3em}
+.showcase canvas{width:min(calc(var(--vh,1vh)*30),14em);height:min(calc(var(--vh,1vh)*30),14em)}
 .showcase .hn{font-size:1.5em;font-weight:900}
 .showcase .ht{color:var(--muted);font-size:.85em}
 .lvbar{width:12em;height:.55em;border-radius:1em;background:#120c28;border:.1em solid var(--line);overflow:hidden}
 .lvbar i{display:block;height:100%;background:linear-gradient(90deg,#7a62ff,#c46bff)}
-.modes{position:absolute;right:calc(env(safe-area-inset-right) + 1em);top:4.8em;bottom:4.2em;display:flex;flex-direction:column;gap:.55em;justify-content:center;width:min(44vw,21em)}
+.modes{position:absolute;right:calc(var(--sar,0px) + 1em);top:4.8em;bottom:4.2em;display:flex;flex-direction:column;gap:.55em;justify-content:center;width:min(calc(var(--vw,1vw)*44),21em)}
 .mode{position:relative;display:flex;align-items:center;gap:.7em;text-align:left;padding:.55em .9em;border-radius:.8em;border:.14em solid var(--line);box-shadow:0 .22em 0 var(--line),inset 0 .15em 0 rgba(255,255,255,.2);color:#fff;pointer-events:auto;overflow:hidden}
 .mode b{display:block;font-size:1.25em;font-weight:900}
 .mode span{display:block;font-size:.78em;opacity:.85;font-weight:600}
@@ -61,11 +63,11 @@ input,textarea,select{font:inherit;color:var(--text);background:#120c28;border:.
 .mode.are{background:linear-gradient(100deg,#ff4f6d,#8a1a3a)}
 .mode.onl{background:linear-gradient(100deg,#2fc6ff,#1a5ac8)}
 .mode[disabled]{filter:grayscale(.8) brightness(.6)}
-.mnav{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:.45em;padding:.4em calc(env(safe-area-inset-right) + .8em) calc(env(safe-area-inset-bottom) + .6em) calc(env(safe-area-inset-left) + .8em);flex-wrap:wrap}
-.mnav .btn{min-width:6.2em}
+.mnav{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:.45em;padding:.4em calc(var(--sar,0px) + .8em) calc(var(--sab,0px) + .6em) calc(var(--sal,0px) + .8em);flex-wrap:wrap}
+.mnav .btn{min-width:0;padding:.35em .75em;min-height:2.1em;font-size:.9em}
 /* panels */
 #panel{pointer-events:auto;background:rgba(6,4,14,.72);align-items:center;justify-content:center}
-.pbox{position:relative;width:min(96vw,60em);height:min(94vh,40em);margin:auto;background:linear-gradient(#251b52,#170f36);border:.16em solid var(--line);border-radius:1em;box-shadow:0 .4em 0 var(--line),0 0 3em rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden}
+.pbox{position:relative;width:min(calc(var(--vw,1vw)*96),60em);height:min(calc(var(--vh,1vh)*94),40em);margin:auto;background:linear-gradient(#251b52,#170f36);border:.16em solid var(--line);border-radius:1em;box-shadow:0 .4em 0 var(--line),0 0 3em rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden}
 .phead{display:flex;align-items:center;gap:.6em;padding:.5em .8em;background:rgba(0,0,0,.25);border-bottom:.12em solid var(--line)}
 .phead h2{font-size:1.25em;font-weight:900;flex:1}
 .pbody{flex:1;overflow:auto;padding:.7em .9em;-webkit-overflow-scrolling:touch;touch-action:pan-y}
@@ -118,7 +120,7 @@ input,textarea,select{font:inherit;color:var(--text);background:#120c28;border:.
 .orow{display:flex;flex-direction:column;align-items:center;gap:.35em}
 .orow h3{font-size:1em;font-weight:900}
 .ocards{display:flex;gap:.6em;justify-content:center}
-.bc{width:min(27vw,12em);min-height:9em;border-radius:.9em;border:.18em solid;padding:.6em .6em;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:.3em;background:linear-gradient(#2a1f58,#140c30);box-shadow:0 .25em 0 var(--line);cursor:pointer;pointer-events:auto;transition:transform .12s}
+.bc{width:min(calc(var(--vw,1vw)*27),12em);min-height:9em;border-radius:.9em;border:.18em solid;padding:.6em .6em;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:.3em;background:linear-gradient(#2a1f58,#140c30);box-shadow:0 .25em 0 var(--line);cursor:pointer;pointer-events:auto;transition:transform .12s}
 .bc.cur{transform:translateY(-.35em) scale(1.04);box-shadow:0 0 0 .18em #fff,0 .25em 0 var(--line)}
 .bc b{font-size:1.08em;font-weight:900}
 .bc .bd{font-size:.82em;color:#e0d8ff;font-weight:600}
@@ -127,33 +129,27 @@ input,textarea,select{font:inherit;color:var(--text);background:#120c28;border:.
 .bstar{font-size:1.8em;line-height:1}
 /* pause / results */
 #pause,#results{pointer-events:auto;align-items:center;justify-content:center;background:rgba(6,4,14,.75)}
-.mbox{width:min(92vw,34em);max-height:92vh;overflow:auto;background:linear-gradient(#251b52,#170f36);border:.16em solid var(--line);border-radius:1em;box-shadow:0 .4em 0 var(--line);padding:1em;display:flex;flex-direction:column;gap:.6em;align-items:stretch;touch-action:pan-y}
+.mbox{width:min(calc(var(--vw,1vw)*92),34em);max-height:calc(var(--vh,1vh)*92);overflow:auto;background:linear-gradient(#251b52,#170f36);border:.16em solid var(--line);border-radius:1em;box-shadow:0 .4em 0 var(--line);padding:1em;display:flex;flex-direction:column;gap:.6em;align-items:stretch;touch-action:pan-y}
 .mbox h1{text-align:center;font-size:2em;font-weight:900}
 .mbox .btn{width:100%}
-.res{width:min(94vw,44em)}
+.res{width:min(calc(var(--vw,1vw)*94),44em)}
 .rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(7em,1fr));gap:.4em}
 .rstat{background:rgba(10,6,30,.55);border-radius:.6em;padding:.4em;text-align:center}
 .rstat b{display:block;font-size:1.25em}
 .rstat span{font-size:.72em;color:var(--muted)}
 .loot{display:flex;flex-wrap:wrap;gap:.4em}
 .loot .item{flex:1 1 12em}
-#toasts{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 4.2em);transform:translateX(-50%);display:flex;flex-direction:column;gap:.35em;align-items:center;pointer-events:none;z-index:5}
-.toast{display:flex;align-items:center;gap:.5em;padding:.4em .9em;border-radius:.7em;background:rgba(14,9,34,.92);border:.14em solid var(--gold);box-shadow:0 .2em 0 var(--line);animation:tin .3s ease-out;font-size:.9em;max-width:90vw}
+#toasts{position:absolute;right:calc(var(--sar,0px) + .6em);top:calc(var(--sat,0px) + 3.4em);display:flex;flex-direction:column;gap:.35em;align-items:flex-end;max-width:46%;pointer-events:none;z-index:5}
+.toast{display:flex;align-items:center;gap:.5em;padding:.35em .8em;border-radius:.7em;background:rgba(14,9,34,.88);font-size:.85em;border:.14em solid var(--gold);box-shadow:0 .2em 0 var(--line);animation:tin .3s ease-out;font-size:.9em;max-width:calc(var(--vw,1vw)*90)}
 .toast b{color:var(--gold)}
 @keyframes tin{from{transform:translateY(-1em) scale(.9);opacity:0}to{transform:none;opacity:1}}
 .dialog{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;pointer-events:auto;z-index:10}
-#rotate{display:none}
-@media (orientation:portrait) and (max-width:600px){
-  .showcase{display:none}
-  .modes{left:calc(env(safe-area-inset-left) + 1em);right:calc(env(safe-area-inset-right) + 1em);width:auto;top:6.5em}
-  .logo{font-size:1.7em}
-  #rotate{display:block;position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 4.6em);text-align:center;color:var(--muted);font-size:.8em}
-}
 </style>
 </head>
 <body>
-<canvas id="game"></canvas>
 <div id="safe-probe"></div>
+<div id="app">
+<canvas id="game"></canvas>
 <div id="ui">
   <div id="menu" class="screen"></div>
   <div id="panel" class="screen"></div>
@@ -161,6 +157,7 @@ input,textarea,select{font:inherit;color:var(--text);background:#120c28;border:.
   <div id="pause" class="screen"></div>
   <div id="results" class="screen"></div>
   <div id="toasts"></div>
+</div>
 </div>
 <script>
 (function () {
@@ -757,6 +754,344 @@ const QUESTS = [
 ];
 
 const BOT_NAMES = ['Aria', 'Bram', 'Cass', 'Dorin', 'Elka', 'Fenn', 'Gwen', 'Hugo', 'Isla', 'Jory', 'Kira', 'Lio', 'Mara', 'Nico', 'Oona', 'Pip', 'Quin', 'Rhea', 'Sven', 'Tova', 'Ulric', 'Vera', 'Wren', 'Yara', 'Zeke'];
+
+// ===== 02b-lang.js =====
+// ---------- Languages: English and Korean ----------
+// Text is written in English in the code and translated on display with tr(). Text that arrives
+// from the simulation (banners, room labels, pop-ups) goes through trx(), which also understands
+// labels with numbers and names in them. Each device shows its own language, also online.
+
+const Lang = { ko: false };
+
+function langAuto() {
+  try { return /^ko/i.test(navigator.language || '') || (navigator.languages || []).some((l) => /^ko/i.test(l)); } catch (e) { return false; }
+}
+
+function setLang(code) {
+  Lang.ko = code === 'ko' || (code === 'auto' && langAuto());
+  try { document.documentElement.lang = Lang.ko ? 'ko' : 'en'; } catch (e) { /* no document */ }
+}
+
+function fillParams(s, p) {
+  if (!p) return s;
+  return s.replace(/\{(\w+)\}/g, (m, k) => (p[k] != null ? p[k] : m));
+}
+
+// Korean particles that depend on the last syllable of a name: 이/가, 은/는, 을/를, (으)로.
+function josa(s) {
+  const fin = (ch) => { const c = ch.charCodeAt(0) - 0xac00; return c >= 0 && c <= 11171 ? c % 28 : -1; };
+  return s
+    .replace(/([가-힣])((?:<\/b>)?)이\(가\)/g, (m, ch, b) => ch + b + (fin(ch) > 0 ? '이' : '가'))
+    .replace(/([가-힣])((?:<\/b>)?)\(으\)로/g, (m, ch, b) => ch + b + (fin(ch) > 0 && fin(ch) !== 8 ? '으로' : '로'));
+}
+
+// Translate a fixed English text (with optional {params}).
+function tr(s, p) {
+  if (s == null) return '';
+  if (Lang.ko) { const k = KO[s]; if (k != null) return p ? josa(fillParams(k, p)) : k; }
+  const e = EN[s];
+  return fillParams(e != null ? e : s, p);
+}
+
+let KO_LOWER = null;
+function trName(s) {
+  if (!Lang.ko) return s;
+  if (KO[s] != null) return KO[s];
+  if (!KO_LOWER) { KO_LOWER = {}; for (const k in KO) KO_LOWER[k.toLowerCase()] = KO[k]; }
+  const v = KO_LOWER[String(s).toLowerCase()];
+  return v != null ? v : s;
+}
+
+// Translate text built by the game ("Whispering Woods · Room 3/7", "FLOOR 5 CLEARED", ...).
+function trx(s) {
+  if (!Lang.ko || s == null || s === '') return s == null ? '' : s;
+  s = String(s);
+  if (s.includes(' · ')) return s.split(' · ').map(trx).join(' · ');
+  const n = trName(s);
+  if (n !== s) return n;
+  for (const [re, f] of KO_PAT) { const m = s.match(re); if (m) return f(m); }
+  return s;
+}
+
+const KO_PAT = [
+  [/^Room (\d+)\/(\d+)$/, (m) => '방 ' + m[1] + '/' + m[2]],
+  [/^Room (\d+)$/, (m) => m[1] + '번 방'],
+  [/^Floor (\d+)$/, (m) => m[1] + '층'],
+  [/^FLOOR (\d+) CLEARED$/, (m) => m[1] + '층 돌파!'],
+  [/^(.+) IS ENRAGED!$/, (m) => trName(m[1]) + ', 분노하다!'],
+  [/^(.+) falls$/, (m) => trName(m[1]) + ' 처치!'],
+  [/^(.+) WINS!$/, (m) => trName(m[1]) + ' 승리!'],
+  [/^first to (\d+)$/, (m) => m[1] + '점 선취'],
+  [/^(\d+)x MULTI-KILL!$/, (m) => m[1] + '연속 처치!'],
+  [/^Gamepad (\d)$/, (m) => '게임패드 ' + m[1]],
+  [/^Player (\d)$/, (m) => '플레이어 ' + m[1]],
+  [/^Joining room (\w+)\.\.\.$/, (m) => m[1] + ' 방에 들어가는 중...'],
+];
+
+// Item names are built from parts, so they are rebuilt in Korean word order.
+function itemName(it) {
+  if (it.uniq) return tr(UNIQUE_BY_ID[it.uniq].name);
+  if (!Lang.ko) return it.name;
+  const parts = String(it.name).split(' ');
+  const pre = parts[0], base = parts[1] || it.base, suf = parts.slice(2).join(' ');
+  return (suf ? tr(suf) + ' ' : '') + tr(pre) + ' ' + tr(base);
+}
+
+const KO = {
+  // ---- roles, rarity, difficulty, slots
+  Tank: '탱커', Fighter: '전사', Mage: '마법사', Ranger: '원거리', Assassin: '암살자', Healer: '힐러', Support: '서포터', Summoner: '소환사',
+  Common: '일반', Rare: '희귀', Epic: '에픽', Legendary: '전설', Mythic: '신화',
+  Normal: '보통', Heroic: '영웅',
+  Weapon: '무기', Armor: '방어구', Charm: '장신구',
+
+  // ---- heroes
+  Brand: '브랜드', 'Oathsworn Knight': '맹세의 기사', 'Shield Bash': '방패 강타',
+  'Charge forward, stunning and knocking back every foe in the way.': '앞으로 돌진해 길을 막는 모든 적을 기절시키고 밀쳐 냅니다.',
+  'Rallying Banner': '결집의 깃발',
+  'Plant a banner: allies near it take half damage and heal. Taunts nearby monsters and shields Brand.': '깃발을 꽂아 주변 아군이 받는 피해를 절반으로 줄이고 회복시킵니다. 주변 몬스터를 도발하고 브랜드에게 보호막을 씌웁니다.',
+  Bulwark: '철벽', 'Takes 20% less damage.': '받는 피해가 20% 줄어듭니다.',
+  Ember: '엠버', Pyromancer: '화염술사', 'Flame Wave': '화염 파도',
+  'Breathe a wide cone of fire that burns everything it touches.': '닿는 모든 것을 불태우는 넓은 부채꼴 불길을 내뿜습니다.',
+  'Meteor Storm': '메테오 폭풍', 'Call down a storm of meteors on the enemy horde.': '적 무리 위로 유성우를 떨어뜨립니다.',
+  Combustion: '연소', 'Burning foes explode when they die.': '불타는 적은 죽을 때 폭발합니다.',
+  Hawke: '호크', 'Wind Ranger': '바람 궁수', Volley: '일제 사격', 'Fire a fan of seven piercing arrows.': '관통하는 화살 일곱 발을 부채꼴로 쏩니다.',
+  'Arrow Rain': '화살비', 'Darken the sky: arrows pour down on a wide area for three seconds.': '하늘을 뒤덮은 화살이 3초 동안 넓은 지역에 쏟아집니다.',
+  'Eagle Eye': '매의 눈', 'Deals up to 30% more damage to distant targets.': '멀리 있는 적에게 최대 30% 더 큰 피해를 줍니다.',
+  Willow: '윌로우', 'Grove Druid': '숲의 드루이드', 'Healing Bloom': '치유의 꽃', 'Grow a flower field that heals allies standing in it.': '안에 선 아군을 치유하는 꽃밭을 피워 냅니다.',
+  'Grove of Life': '생명의 숲', 'Revive every fallen ally nearby, heal the whole party and root foes in place.': '주변의 쓰러진 아군을 모두 부활시키고, 파티 전체를 치유하며, 적을 그 자리에 묶습니다.',
+  'Verdant Aura': '신록의 기운', 'Allies near Willow regenerate health.': '윌로우 근처의 아군은 체력이 회복됩니다.',
+  Rime: '라임', 'Frost Witch': '서리 마녀', 'Frost Nova': '서리 폭발', 'Blast frost around you, freezing nearby foes solid.': '주변에 냉기를 터뜨려 가까운 적을 얼려 버립니다.',
+  Blizzard: '눈보라', 'Summon a blizzard that slows, shreds and freezes everything inside.': '안에 있는 모든 것을 느리게 하고, 베고, 얼리는 눈보라를 부릅니다.',
+  Shatter: '산산조각', 'Frozen foes take 40% more damage.': '얼어붙은 적은 40% 더 큰 피해를 받습니다.',
+  Gale: '게일', 'Wind Monk': '바람 수도승', 'Cyclone Kick': '회오리 발차기', 'Spin through the enemy line, kicking foes away. Untouchable while spinning.': '적진을 회전하며 돌파해 적을 걷어찹니다. 회전하는 동안 무적입니다.',
+  Tornado: '토네이도', 'Unleash a roaming tornado that drags foes in and shreds them.': '적을 빨아들여 갈기갈기 찢는 떠도는 토네이도를 풀어놓습니다.',
+  Windwalk: '바람걸음', 'Moves faster and dodges 15% of attacks.': '더 빠르게 움직이고 공격의 15%를 회피합니다.',
+  Gizmo: '기즈모', Gadgeteer: '발명가', 'Deploy Turret': '포탑 설치', 'Drop an auto-turret that shoots nearby foes (up to two at once).': '가까운 적을 쏘는 자동 포탑을 설치합니다 (최대 2개).',
+  'Rocket Barrage': '로켓 포화', 'Fire a swarm of homing rockets.': '유도 로켓을 무더기로 발사합니다.',
+  Overclock: '오버클럭', 'Each of your turrets gives you +15% attack speed.': '포탑 하나마다 공격 속도가 15% 빨라집니다.',
+  Volt: '볼트', 'Storm Caller': '폭풍술사', 'Thunder Dash': '번개 질주', 'Become lightning and blink forward, shocking everything you pass.': '번개가 되어 앞으로 순간이동하며 지나간 모든 것을 감전시킵니다.',
+  Thunderstorm: '뇌우', 'A storm follows you, striking foes around you again and again.': '폭풍이 따라다니며 주변의 적을 계속해서 내리칩니다.',
+  Overload: '과부하', 'Every 4th attack chains to five targets.': '4번째 공격마다 다섯 대상에게 번개가 이어집니다.',
+  Nyx: '닉스', 'Shadow Blade': '그림자 칼날', 'Shadow Step': '그림자 걸음', 'Teleport behind a foe and vanish. Your next three hits are critical.': '적 뒤로 순간이동해 모습을 감춥니다. 다음 세 번의 공격은 치명타입니다.',
+  'Death Lotus': '죽음의 연꽃', 'Become a whirl of blades, cutting every foe around you. Untouchable while it lasts.': '칼날의 소용돌이가 되어 주변의 모든 적을 벱니다. 지속되는 동안 무적입니다.',
+  'Killer Instinct': '살인 본능', '+25% critical chance. Critical hits deal 220% damage.': '치명타 확률 +25%. 치명타는 220% 피해를 줍니다.',
+  Krag: '크라그', Berserker: '광전사', Whirlwind: '소용돌이', 'Spin your axe for two seconds, hitting everything around you while you move.': '2초 동안 도끼를 휘둘러 움직이며 주변의 모든 것을 칩니다.',
+  'Blood Rage': '피의 분노', 'Grow huge and enraged: much faster attacks, speed, damage and lifesteal.': '거대해지고 분노합니다: 공격 속도, 이동 속도, 피해, 생명력 흡수가 크게 오릅니다.',
+  Fury: '격노', 'Deals up to 50% more damage as health drops.': '체력이 줄수록 최대 50% 더 큰 피해를 줍니다.',
+  Vex: '벡스', 'Plague Witch': '역병 마녀', 'Toxic Cloud': '독구름', 'Hurl a cloud of plague that poisons and slows foes inside.': '안에 있는 적을 중독시키고 느리게 하는 역병 구름을 던집니다.',
+  'Plague Burst': '역병 폭발', 'Detonate all poison at once and spread it to nearby foes.': '모든 독을 한꺼번에 터뜨리고 주변 적에게 퍼뜨립니다.',
+  Venom: '맹독', 'Poisoned foes deal 20% less damage.': '중독된 적은 피해를 20% 덜 줍니다.',
+  Morrow: '모로우', Necromancer: '강령술사', 'Raise Dead': '시체 일으키기', 'Raise two skeleton warriors to fight for you.': '함께 싸울 해골 전사 둘을 일으킵니다.',
+  'Soul Harvest': '영혼 수확', 'Rip the souls from every foe nearby, healing your party and raising champions.': '주변 모든 적의 영혼을 뜯어내 파티를 치유하고 해골 용사를 일으킵니다.',
+  Gravecall: '무덤의 부름', 'Foes you kill sometimes rise as skeletons.': '처치한 적이 가끔 해골로 되살아납니다.',
+  Lyra: '라이라', 'Battle Bard': '전투 음유시인', 'Battle Hymn': '전투 찬가', 'Inspire the party: faster attacks, faster feet and more damage.': '파티를 고무합니다: 더 빠른 공격, 더 빠른 발, 더 큰 피해.',
+  Crescendo: '크레셴도', 'A sonic boom stuns every foe on screen and heals the party.': '음파 폭발로 화면의 모든 적을 기절시키고 파티를 치유합니다.',
+  Encore: '앙코르', 'Allies near Lyra deal 10% more damage.': '라이라 근처의 아군은 피해를 10% 더 줍니다.',
+  Atlas: '아틀라스', 'Stone Titan': '바위 거인', 'Boulder Toss': '바위 던지기', 'Hurl a boulder that stuns everything where it lands.': '떨어진 곳의 모든 것을 기절시키는 바위를 던집니다.',
+  Earthquake: '지진', 'Three shockwaves ripple out from Atlas, stunning foes.': '아틀라스에게서 세 번의 충격파가 퍼져 나가 적을 기절시킵니다.',
+  'Stone Skin': '돌 피부', 'Gains a shield after a few seconds without being hit.': '몇 초 동안 맞지 않으면 보호막을 얻습니다.',
+  Sol: '솔', 'Dawn Cleric': '새벽 사제', Sanctuary: '성역', 'Shield every nearby ally and cleanse their ailments.': '주변 아군 모두에게 보호막을 씌우고 상태 이상을 정화합니다.',
+  'Divine Intervention': '신성한 개입', 'Make the whole party invulnerable, revive the fallen and heal everyone.': '파티 전체를 무적으로 만들고, 쓰러진 아군을 부활시키고, 모두를 치유합니다.',
+  Grace: '은총', 'Each hit heals the most wounded ally nearby.': '공격할 때마다 주변에서 가장 많이 다친 아군을 치유합니다.',
+  Chrona: '크로나', 'Time Weaver': '시간 직조자', Rewind: '되감기', 'Return to where you were three seconds ago, with the health you had then.': '3초 전의 위치와 그때의 체력으로 돌아갑니다.',
+  'Time Stop': '시간 정지', 'Freeze time for every foe. Your party keeps moving.': '모든 적의 시간을 멈춥니다. 파티는 계속 움직입니다.',
+  Haste: '가속', 'Skills recharge 15% faster and attacks are 10% faster.': '스킬이 15% 빨리 충전되고 공격이 10% 빨라집니다.',
+  Umbra: '움브라', 'Void Seer': '공허 예언자', 'Black Hole': '블랙홀', 'Open a black hole that drags foes together and crushes them.': '적을 한데 끌어모아 짓누르는 블랙홀을 엽니다.',
+  Collapse: '붕괴', 'Open a giant singularity that pulls everything in, then explodes.': '모든 것을 빨아들인 뒤 폭발하는 거대한 특이점을 엽니다.',
+  Entropy: '엔트로피', 'Foes inside your void zones take 25% more damage.': '공허 지대 안의 적은 25% 더 큰 피해를 받습니다.',
+  Drakon: '드라콘', 'Dragon Knight': '용기사', 'Dragon Leap': '용의 도약', 'Leap into the air and crash down in a burst of flame.': '공중으로 뛰어올라 화염과 함께 내리꽂습니다.',
+  Dragonform: '용 변신', 'Become a dragon for 8 seconds: bigger, tougher, breathing fire.': '8초 동안 용이 됩니다: 더 크고, 더 단단하고, 불을 뿜습니다.',
+  Dragonblood: '용의 피', 'Immune to burning. Deals 15% more damage to burning foes.': '화상에 면역입니다. 불타는 적에게 15% 더 큰 피해를 줍니다.',
+  // basic attack descriptions
+  'Strikes nearby foes in an arc, knocking them back.': '가까운 적을 휘둘러 베고 밀쳐 냅니다.',
+  'Strikes nearby foes in an arc.': '가까운 적을 휘둘러 벱니다.',
+  'Lightning that jumps between foes.': '적 사이를 건너뛰는 번개를 쏩니다.',
+  'A spear thrust that pierces a line of foes.': '일렬로 선 적을 꿰뚫는 창 찌르기.',
+  'Fires bolts that explode and burn at range.': '폭발하며 불태우는 화염구를 멀리 쏩니다.',
+  'Fires bolts that poison at range.': '중독시키는 다트를 멀리 쏩니다.',
+  'Fires bolts that slow at range.': '적을 느리게 하는 탄을 멀리 쏩니다.',
+  'Fires bolts that pierce at range.': '관통하는 탄을 멀리 쏩니다.',
+  'Fires bolts that seek their target at range.': '대상을 쫓아가는 탄을 멀리 쏩니다.',
+  'Fires bolts at range.': '탄을 멀리 쏩니다.',
+
+  // ---- bosses, realms, elites, rewards
+  Gorethorn: '고어손', 'The Treant King': '나무정령 왕', Morvane: '모르반', 'The Bone Lich': '해골 리치', Infernus: '인페르누스', 'The Molten Golem': '용암 골렘',
+  Glacia: '글라시아', 'The Frost Wyrm': '서리 비룡', 'The Hollow King': '공허의 왕', 'Lord of the Void': '공허의 군주',
+  'Whispering Woods': '속삭이는 숲', 'Sunken Crypt': '가라앉은 묘지', 'Ember Depths': '불꽃 동굴', 'Frostfang Peaks': '서리송곳니 봉우리', 'Void Citadel': '공허의 성채',
+  Swift: '신속한', Brutal: '잔혹한', Armored: '단단한', Volatile: '폭발하는', Frostbound: '서리 깃든', Vampiric: '흡혈하는',
+  Blessing: '축복', 'Choose a blessing': '축복을 고르세요', 'Gold Hoard': '황금 더미', 'A pile of gold': '금화 더미', 'Gear Chest': '장비 상자', 'New equipment': '새 장비',
+  Spring: '샘', 'Heal and revive the party': '파티 치유와 부활', 'Elite Den': '정예 소굴', 'Tough fight, blessing + gear': '힘든 전투, 축복 + 장비',
+
+  // ---- blessings
+  Might: '힘', '+12% damage': '피해 +12%', '+12% attack speed': '공격 속도 +12%', 'Fleet Foot': '날랜 발', '+8% move speed': '이동 속도 +8%',
+  Vigor: '활력', '+16% max health': '최대 체력 +16%', Focus: '집중', 'Skill recharges 10% faster': '스킬 충전 10% 빠르게', 'Ultimate charges 20% faster': '궁극기 충전 20% 빠르게',
+  'Keen Edge': '예리한 칼날', '+6% critical chance': '치명타 확률 +6%', Brutality: '잔혹함', '+25% critical damage': '치명타 피해 +25%',
+  'Iron Skin': '강철 피부', 'Take 8% less damage': '받는 피해 8% 감소', Renewal: '재생', 'Regenerate 0.6% health per second': '초당 체력 0.6% 회복',
+  Greed: '탐욕', '+25% gold': '골드 +25%', Vampirism: '흡혈', 'Heal for 3% of damage dealt': '준 피해의 3%만큼 회복',
+  'Bramble Mail': '가시 갑옷', 'Return 40% of damage taken': '받은 피해의 40%를 되돌려 줌', 'Split Shot': '분열 사격', 'Attacks hit one more target': '공격이 대상 하나를 더 맞힘',
+  Piercing: '관통', 'Shots pierce one more foe': '투사체가 적 하나를 더 관통', Ignite: '점화', '15% chance on hit to set foes ablaze': '적중 시 15% 확률로 불태움',
+  Frostbite: '동상', '25% chance on hit to chill foes': '적중 시 25% 확률로 둔화', 'Static Charge': '정전기', '12% chance on hit to chain lightning': '적중 시 12% 확률로 연쇄 번개',
+  Toxin: '독소', '35% chance on hit to poison': '적중 시 35% 확률로 중독', Executioner: '처형자', '+40% damage to foes under 30% health': '체력 30% 이하의 적에게 피해 +40%',
+  'Every 10 s, gain a shield of 15% max health': '10초마다 최대 체력 15%의 보호막', 'Spirit Blades': '영혼 칼날', 'Two spirit blades orbit you and cut foes': '영혼 칼날 두 개가 주위를 돌며 적을 벱니다',
+  'Spirit Wisp': '영혼 도깨비불', 'A wisp follows you and shoots foes': '도깨비불이 따라다니며 적을 쏩니다', Echo: '메아리', '30% chance your skill recharges instantly': '30% 확률로 스킬이 즉시 재충전',
+  Shockwave: '충격파', 'Using your skill releases a shockwave': '스킬을 쓰면 충격파가 터집니다', Overcharge: '과충전', 'Ultimate deals 40% more damage': '궁극기 피해 +40%',
+  'Giant Blood': '거인의 피', '+30% health, +15% damage, bigger': '체력 +30%, 피해 +15%, 몸집 증가', 'Second Wind': '기사회생', 'Once per room, survive a fatal blow': '방마다 한 번, 치명적인 공격을 버팁니다',
+  'Phoenix Heart': '불사조의 심장', 'Rise from defeat once with 60% health': '쓰러져도 한 번 체력 60%로 일어섭니다', 'Glass Cannon': '유리 대포', '+50% damage, -25% max health': '피해 +50%, 최대 체력 -25%',
+  'Time Warp': '시간 왜곡', 'Skill 30% faster, ultimate charges 30% faster': '스킬 30% 빠르게, 궁극기 충전 30% 빠르게', Stormlord: '폭풍의 군주', 'Every 3rd attack calls lightning down on the target': '3번째 공격마다 대상에게 번개가 떨어집니다',
+  'Midas Touch': '미다스의 손', 'Double gold, elites burst into coins': '골드 2배, 정예 몬스터가 금화를 쏟아냅니다', Avatar: '화신', 'Your ultimate also empowers you: +50% damage and speed for 6 s': '궁극기를 쓰면 6초 동안 피해와 속도 +50%',
+  'Twin Strike': '쌍둥이 일격', 'Attacks strike twice (the echo deals 50%)': '공격이 두 번 들어갑니다 (두 번째는 50%)',
+
+  // ---- gear
+  Sword: '검', Staff: '지팡이', Bow: '활', Axe: '도끼', Dagger: '단검', Wand: '완드', Spear: '창', Hammer: '망치', Tome: '마법서', Orb: '오브',
+  Plate: '판금 갑옷', Robe: '로브', Mail: '사슬 갑옷', Cloak: '망토', Vest: '조끼', Aegis: '방패', Garb: '의복', Mantle: '어깨망토',
+  Ring: '반지', Amulet: '목걸이', Talisman: '호부', Idol: '우상', Pendant: '펜던트', Sigil: '인장',
+  Damage: '피해', Health: '체력', 'Attack speed': '공격 속도', 'Crit chance': '치명타 확률', 'Crit damage': '치명타 피해', 'Skill haste': '스킬 가속', 'Move speed': '이동 속도',
+  Lifesteal: '생명력 흡수', 'Ult charge': '궁극기 충전', 'Damage reduction': '피해 감소', 'Gold find': '골드 획득', Regeneration: '재생',
+  Fierce: '사나운', Sturdy: '튼튼한', Quick: '재빠른', Keen: '예리한', Cruel: '잔인한', Arcane: '비전의', Thirsting: '피에 굶주린', Warded: '수호의', Lucky: '행운의', Living: '살아있는',
+  'of Embers': '불씨의', 'of the Owl': '올빼미의', 'of Storms': '폭풍의', 'of the Deep': '심해의', 'of Dawn': '새벽의', 'of Thorns': '가시의', 'of the Wolf': '늑대의', 'of Frost': '서리의',
+  'of Kings': '왕들의', 'of the Void': '공허의', 'of Ages': '시대의', 'of Valor': '용맹의',
+  'Phoenix Plume': '불사조 깃털', 'Once per run, rise from defeat with 40% health.': '런마다 한 번, 쓰러져도 체력 40%로 일어섭니다.',
+  'Stormcaller Ring': '폭풍 부름 반지', 'Hits have a 10% chance to call lightning.': '적중 시 10% 확률로 번개를 부릅니다.',
+  'Chrono Band': '시간의 팔찌', 'Skill recharges 20% faster.': '스킬이 20% 빨리 충전됩니다.', 'Midas Idol': '미다스 우상', '+60% gold find.': '골드 획득 +60%.',
+  'Fang of Night': '밤의 송곳니', '+8% lifesteal. Critical hits heal 2% health.': '생명력 흡수 +8%. 치명타 때 체력 2% 회복.',
+  Worldsplitter: '세계 분쇄자', 'Every 5th attack sends out a shockwave.': '5번째 공격마다 충격파를 보냅니다.',
+  'Heart of the Void': '공허의 심장', '+25% damage to elites and bosses.': '정예와 보스에게 피해 +25%.', 'Ember Brand': '불씨 낙인', 'Attacks set foes ablaze.': '공격이 적을 불태웁니다.',
+  'Titan Plate': '거인의 판금', '+40% health and 10% damage reduction.': '체력 +40%, 피해 감소 10%.',
+  'Frostheart Aegis': '서리심장 방패', 'Foes that hit you are chilled. Freezes nearby foes when health drops low.': '나를 때린 적은 둔화됩니다. 체력이 낮아지면 주변 적을 얼립니다.',
+  'Briar Mail': '찔레 갑옷', 'Returns 80% of damage taken to the attacker.': '받은 피해의 80%를 공격자에게 되돌립니다.',
+  'Windrunner Cloak': '바람걸음 망토', '+15% move speed; dash recharges twice as fast.': '이동 속도 +15%, 대시가 두 배 빨리 충전됩니다.',
+
+  // ---- camp upgrades
+  'War Banner': '전쟁 깃발', '+4% damage for every hero': '모든 영웅 피해 +4%', 'Healer Tent': '치유 천막', '+5% health for every hero': '모든 영웅 체력 +5%',
+  Treasury: '보물창고', '+8% gold from runs': '런에서 얻는 골드 +8%', Library: '도서관', '+10% hero XP': '영웅 경험치 +10%',
+  'Shrine of Luck': '행운의 제단', 'Better blessings and loot': '더 좋은 축복과 전리품', 'Fortune Teller': '점술가', '+1 blessing reroll per run': '런마다 축복 다시 뽑기 +1',
+  'Ankh Shrine': '앙크 제단', 'Rise once per run when you fall': '런마다 한 번, 쓰러지면 일어섭니다',
+
+  // ---- achievements
+  'First Blood': '첫 사냥', 'Defeat your first monster': '첫 몬스터 처치', 'Monster Hunter': '몬스터 사냥꾼', 'Defeat 500 monsters': '몬스터 500마리 처치',
+  'Monster Slayer': '몬스터 학살자', 'Defeat 5,000 monsters': '몬스터 5,000마리 처치', 'Legend of the Realms': '영역의 전설', 'Defeat 25,000 monsters': '몬스터 25,000마리 처치',
+  Woodcutter: '나무꾼', 'Defeat Gorethorn in the Whispering Woods': '속삭이는 숲에서 고어손 처치', Lichbane: '리치 사냥꾼', 'Defeat Morvane in the Sunken Crypt': '가라앉은 묘지에서 모르반 처치',
+  'Through the Fire': '불길을 넘어', 'Defeat Infernus. Unlocks Chrona': '인페르누스 처치. 크로나 해금', Wyrmslayer: '비룡 사냥꾼', 'Defeat Glacia the Frost Wyrm. Unlocks Drakon': '서리 비룡 글라시아 처치. 드라콘 해금',
+  Kingslayer: '왕 시해자', 'Defeat the Hollow King': '공허의 왕 처치', 'Heroic Deed': '영웅적 업적', 'Clear any realm on Heroic': '영웅 난이도로 아무 영역이나 돌파',
+  'Mythic Legend': '신화의 전설', 'Clear any realm on Mythic': '신화 난이도로 아무 영역이나 돌파', 'Master of Realms': '영역의 지배자', 'Clear all five realms on Mythic': '다섯 영역 모두 신화 난이도로 돌파',
+  'Into the Abyss': '심연 속으로', 'Reach floor 5 of the Abyss': '심연 5층 도달', 'Abyss Walker': '심연 보행자', 'Reach floor 10 of the Abyss. Unlocks Umbra': '심연 10층 도달. 움브라 해금',
+  'Abyss Diver': '심연 잠수부', 'Reach floor 25 of the Abyss': '심연 25층 도달', Bottomless: '끝없는 심연', 'Reach floor 50 of the Abyss': '심연 50층 도달',
+  Recruiter: '모집관', 'Unlock 6 heroes': '영웅 6명 해금', 'Guild Master': '길드 마스터', 'Unlock 12 heroes': '영웅 12명 해금', 'Full Roster': '전원 집합', 'Unlock every hero': '모든 영웅 해금',
+  Seasoned: '숙련자', 'Raise a hero to level 10': '영웅 하나를 10레벨까지', Veteran: '베테랑', 'Raise a hero to level 20': '영웅 하나를 20레벨까지', Paragon: '귀감', 'Raise a hero to level 30': '영웅 하나를 30레벨까지',
+  'Shiny!': '반짝반짝!', 'Find an Epic item': '에픽 아이템 획득', 'Legendary Loot': '전설의 전리품', 'Find a Legendary item': '전설 아이템 획득', 'Mythic Treasure': '신화의 보물', 'Find a Mythic item': '신화 아이템 획득',
+  Blacksmith: '대장장이', 'Upgrade an item to +10': '아이템을 +10까지 강화', Untouchable: '무결점', 'Clear a combat room without anyone taking damage': '아무도 피해를 입지 않고 전투 방 돌파',
+  'Perfect Hunt': '완벽한 사냥', 'Defeat a boss with nobody falling': '아무도 쓰러지지 않고 보스 처치', 'Combo Master': '콤보 마스터', 'Reach a 200 hit combo': '200 콤보 달성',
+  Unstoppable: '멈출 수 없는', 'Reach a 600 hit combo': '600 콤보 달성', Massacre: '대학살', 'Defeat 20 monsters in one quick chain': '몬스터 20마리를 쉬지 않고 연속 처치',
+  'Ultimate Power': '궁극의 힘', 'Use 100 ultimates': '궁극기 100번 사용', 'Guardian Angel': '수호천사', 'Revive allies 25 times': '동료를 25번 부활',
+  'Divinely Blessed': '신의 축복', 'Hold 15 blessings in a single run': '한 런에서 축복 15개 보유', 'Chosen One': '선택받은 자', 'Receive a Legendary blessing': '전설 축복 받기',
+  'Dragon Hoard': '용의 보물', 'Earn 25,000 gold in total': '총 25,000 골드 획득', Speedrunner: '스피드러너', 'Clear a realm in under 7 minutes': '7분 안에 영역 돌파',
+  'Better Together': '함께라서 좋아', 'Finish a run with another player': '다른 플레이어와 런 완주', 'Long Distance': '멀리서도 함께', 'Play an online game with a friend': '친구와 온라인 게임 하기',
+  Gladiator: '검투사', 'Win an Arena match': '아레나 1승', Champion: '챔피언', 'Win 25 Arena matches': '아레나 25승', Ace: '에이스', 'Score 5 knockouts in a row in the Arena without falling': '아레나에서 쓰러지지 않고 5연속 처치',
+  Dutiful: '성실함', 'Complete 15 daily quests': '일일 퀘스트 15개 완료', Builder: '건축가', 'Buy 15 camp upgrades': '캠프 업그레이드 15번 구매',
+
+  // ---- daily quests
+  'Defeat {n} monsters': '몬스터 {n}마리 처치', 'Clear {n} rooms': '방 {n}개 돌파', 'Defeat {n} elite monsters': '정예 몬스터 {n}마리 처치', 'Defeat {n} boss': '보스 {n}마리 처치',
+  'Use your ultimate {n} times': '궁극기 {n}번 사용', 'Collect {n} gold in runs': '런에서 골드 {n} 모으기', 'Open {n} gear chests': '장비 상자 {n}개 열기',
+  'Win {n} Arena match': '아레나 {n}승', 'Collect {n} blessings': '축복 {n}개 모으기', 'Clear {n} Abyss floors': '심연 {n}층 돌파',
+
+  // ---- in-game text (simulation, HUD, effects)
+  DODGE: '회피', 'SECOND WIND': '기사회생!', 'ECHO!': '메아리!', 'STONE SKIN': '돌 피부', 'REBORN!': '부활!', OUT: '탈락', 'DOWN!': '쓰러짐!', DOWN: '쓰러짐',
+  HEAL: '회복', 'POWER!': '힘!', 'ULT +35': '궁극기 +35', 'KILLING SPREE!': '연속 처치!', 'UNSTOPPABLE!': '막을 수 없다!',
+  'ROOM CLEAR': '방 돌파!', 'Flawless!': '무피해!', 'VICTORY!': '승리!', DEFEATED: '패배', 'Healing Spring': '치유의 샘', 'Rest a moment': '잠시 쉬어 가세요',
+  ARENA: '아레나', 'Free for all': '개인전', 'Team battle': '팀전', OVERTIME: '연장전', 'Next knockout wins': '다음 처치가 승리', 'BLUE TEAM': '블루 팀', 'RED TEAM': '레드 팀', PLAYER: '플레이어',
+  Boss: '보스', BOSS: '보스', Arena: '아레나', Abyss: '심연', 'The Abyss': '심연', 'TIME STOP': '시간 정지', COMBO: '콤보', BOT: '봇', 'Esc: menu': 'Esc: 메뉴', 'The arena': '아레나',
+  ULT: '궁극', Raider: '모험가', 'You are out until the next room': '다음 방까지 탈락했어요', 'Rising again...': '다시 일어서는 중...', 'You are down! Allies can revive you': '쓰러졌어요! 동료가 살려 줄 수 있어요',
+  dash: '대시',
+};
+
+// Long English texts that are looked up by key.
+const EN = {
+  HELP_BASICS: 'Your hero <b>attacks automatically</b> whatever is in range. You move, dodge, and choose when to use your <b>skill</b>, your <b>ultimate</b> (charges as you deal damage) and your <b>dash</b> (a quick roll you can\'t be hit during). Red areas are attacks about to land: step out of them!',
+  HELP_RAIDS: 'Each realm has 7 rooms and a boss. After a room, pick a portal: each shows its reward (<b>Blessings</b> make you stronger for the run, <b>Gear chests</b> give equipment you keep, <b>Springs</b> heal). Fallen allies can be revived by standing next to them. Gold, gear and hero XP stay after the run, win or lose.',
+  HELP_TOUCH: 'Drag on the left to move. Tap a button to use it at the nearest foe, or drag from a button to aim it, then let go. If you hold your phone upright, the game turns sideways on its own. The buttons can be made more or less see-through in Settings.',
+  HELP_KEYS: '<b>Player 1:</b> WASD move · Q skill · E ultimate · Space dash (alone you can also use arrows + J/K/L, and the mouse to aim: left click skill, right click ultimate)<br><b>Player 2:</b> IJKL move · U skill · O ultimate · ; dash<br><b>Player 3:</b> Arrows move · Numpad 1 skill · Numpad 2 ultimate · Numpad 0 dash',
+  HELP_PADS: 'Left stick move · X or RB skill · B, Y or RT ultimate · A, LB or LT dash · right stick aims · Start for the menu.',
+  HELP_FRIENDS: 'On one screen: open Adventure, Abyss or Arena and have each friend press a key from their keys or a button on their gamepad to join. Online: one player creates a room under <b>Play with friends</b> and shares the 4-letter code; up to 4 players, bots fill the gaps.',
+  ONLINE_NOTE: 'Online play connects your devices directly (WebRTC) and needs an internet connection. It works from the GitHub Pages version of the game, not inside the Claude preview. On mobile data, if a connection fails, try Wi-Fi. Friends on the same screen can also just join from Adventure, Abyss or Arena.',
+};
+
+Object.assign(KO, {
+  // menus
+  'CO-OP ACTION RPG': '협동 액션 RPG', 'Daily chest': '일일 상자', Power: '전투력', 'Change hero': '영웅 바꾸기', Adventure: '모험',
+  'Raid 5 realms · bosses · loot': '영역 5곳 공략 · 보스 · 전리품', 'Endless floors · best {n}': '끝없는 층 · 최고 {n}층', 'Beat the Whispering Woods first': '먼저 속삭이는 숲을 돌파하세요',
+  'Hero vs hero · team or free-for-all': '영웅 대 영웅 · 팀전 또는 개인전', 'Play with friends': '친구와 함께', 'Online room code · or join on one screen': '온라인 방 코드 · 한 화면에서도 참가',
+  Heroes: '영웅', Gear: '장비', Camp: '캠프', Achievements: '업적', Quests: '퀘스트', Settings: '설정', 'How to play': '플레이 방법', Achievement: '업적',
+  Empty: '비어 있음', 'Tap to equip': '눌러서 장착', Unlock: '해금', 'Level {n}': '레벨 {n}', max: '최대', '{a} runs · {b} kills': '{a}번 출전 · {b}마리 처치',
+  Speed: '속도', Attack: '공격', Skill: '스킬', '{n}s': '{n}초', Ultimate: '궁극기', Passive: '패시브', Selected: '선택됨', 'Play as {name}': '{name}(으)로 플레이',
+  NEW: 'NEW', '+{n} more': '+{n}개 더', All: '전체', 'No gear yet. Gear Chests, elite dens, bosses and daily rewards drop equipment.': '아직 장비가 없어요. 장비 상자, 정예 소굴, 보스, 일일 보상에서 장비를 얻을 수 있어요.',
+  'Salvage unequipped:': '장착 안 한 장비 분해:', Commons: '일반', 'Rare & below': '희귀 이하', 'Upgrade +{n}: all stats +10%': '+{n} 강화: 모든 능력치 +10%',
+  'item level {n}': '아이템 레벨 {n}', 'score {n}': '점수 {n}', 'Equipped by {name}': '{name} 장착 중', 'Compared with what {name} wears now': '{name}이(가) 지금 착용한 장비와 비교',
+  Lock: '잠금', Salvage: '분해', Upgrade: '강화', 'Max +10': '최대 +10', Unequip: '해제', 'Equip on {name}': '{name}에게 장착', Item: '아이템',
+  'You have no {slot} yet.': '아직 {slot}이(가) 없어요.', 'Choose {slot} for {name}': '{name}의 {slot} 고르기',
+  'Camp upgrades': '캠프 업그레이드', 'Permanent upgrades for every hero, paid with gold from your raids.': '모든 영웅에게 적용되는 영구 업그레이드. 공략에서 얻은 골드로 구매합니다.',
+  hero: '영웅', Done: '완료', 'Bonus chest claimed': '보너스 상자 받음', 'Finish all three: bonus gear chest': '세 개 모두 완료: 보너스 장비 상자',
+  'Daily quests': '일일 퀘스트', 'New quests every day. Progress counts in every mode.': '매일 새 퀘스트가 나와요. 모든 모드의 진행이 반영됩니다.',
+  // settings
+  Automatic: '자동', Language: '언어', Player: '플레이어', Name: '이름', Sound: '소리', Effects: '효과음', Music: '음악', Game: '게임',
+  'Touch buttons': '터치 버튼', 'See-through': '반투명', Medium: '중간', Solid: '진하게', 'Screen shake': '화면 흔들림', 'Damage numbers': '피해 숫자',
+  'Auto-salvage Common items': '일반 아이템 자동 분해', 'Bot skill': '봇 실력', Easy: '쉬움', Hard: '어려움', Save: '저장',
+  'Your progress is saved on this device and in your Claude account.': '진행 상황은 이 기기와 Claude 계정에 저장됩니다.', 'Your progress is saved on this device.': '진행 상황은 이 기기에 저장됩니다.',
+  'Copy the save code to move it to another device.': '다른 기기로 옮기려면 저장 코드를 복사하세요.', 'Copy save code': '저장 코드 복사', 'Load a save code': '저장 코드 불러오기', 'Reset progress': '진행 초기화',
+  // help
+  'The basics': '기본', Raids: '공략', Touch: '터치', 'Keyboard (up to 3 players on one keyboard)': '키보드 (한 키보드로 최대 3명)', 'Gamepads (up to 4)': '게임패드 (최대 4개)', Friends: '친구',
+  HELP_BASICS: '영웅은 사거리 안의 적을 <b>자동으로 공격</b>합니다. 여러분은 움직이고, 피하고, <b>스킬</b>, <b>궁극기</b>(피해를 줄수록 충전), <b>대시</b>(구르는 동안 맞지 않음)를 쓸 때를 고르면 됩니다. 빨간 영역은 곧 떨어질 공격이니 피하세요!',
+  HELP_RAIDS: '영역마다 방 7개와 보스가 있어요. 방을 돌파하면 포털을 고르세요. 포털마다 보상이 보여요 (<b>축복</b>은 이번 런 동안 강해지고, <b>장비 상자</b>는 계속 쓰는 장비를 주고, <b>샘</b>은 회복시켜 줍니다). 쓰러진 동료 옆에 서 있으면 살릴 수 있어요. 골드, 장비, 영웅 경험치는 이기든 지든 남습니다.',
+  HELP_TOUCH: '왼쪽을 드래그해서 움직이세요. 버튼을 누르면 가장 가까운 적에게 쓰고, 버튼에서 드래그한 뒤 손을 떼면 그 방향으로 조준합니다. 휴대폰을 세로로 들어도 게임은 자동으로 가로로 돌아갑니다. 설정에서 버튼 투명도를 바꿀 수 있어요.',
+  HELP_KEYS: '<b>플레이어 1:</b> WASD 이동 · Q 스킬 · E 궁극기 · Space 대시 (혼자일 때는 방향키 + J/K/L, 마우스 조준도 가능: 왼쪽 클릭 스킬, 오른쪽 클릭 궁극기)<br><b>플레이어 2:</b> IJKL 이동 · U 스킬 · O 궁극기 · ; 대시<br><b>플레이어 3:</b> 방향키 이동 · 숫자패드 1 스킬 · 숫자패드 2 궁극기 · 숫자패드 0 대시',
+  HELP_PADS: '왼쪽 스틱 이동 · X 또는 RB 스킬 · B, Y 또는 RT 궁극기 · A, LB 또는 LT 대시 · 오른쪽 스틱 조준 · Start 메뉴.',
+  HELP_FRIENDS: '한 화면에서: 모험, 심연, 아레나를 열고 친구가 자기 키나 게임패드 버튼을 누르면 참가합니다. 온라인: 한 명이 <b>친구와 함께</b>에서 방을 만들고 4글자 코드를 알려 주세요. 최대 4명이고 빈자리는 봇이 채웁니다.',
+  // setup
+  Realm: '영역', cleared: '돌파', 'Not cleared': '아직 돌파 못 함', 'Clear realm {n}': '{n}번 영역 돌파 필요', Difficulty: '난이도',
+  'Tougher monsters, more gold and better loot': '더 강한 몬스터, 더 많은 골드, 더 좋은 전리품', 'Clear a realm to unlock Heroic, clear Heroic for Mythic': '영역을 돌파하면 영웅 난이도, 영웅을 돌파하면 신화 난이도가 열려요',
+  'Endless floors of mixed monsters with a boss every 5th floor. How deep can you go? Best: floor {n}.': '온갖 몬스터가 나오는 끝없는 층, 5층마다 보스가 나와요. 얼마나 깊이 갈 수 있을까요? 최고 기록: {n}층.',
+  FFA: '개인전', 'Knockouts to win': '승리 처치 수', "Heroes are evened out in the arena: level and gear don't count.": '아레나에서는 모든 영웅이 공평해요: 레벨과 장비가 반영되지 않습니다.',
+  'Add bot': '봇 추가', 'or press a key / gamepad button to join': '또는 키 / 게임패드 버튼을 눌러 참가', Party: '파티', '(up to 4)': '(최대 4명)',
+  'Friends on this device: press U (right keyboard), Numpad 1 (arrows) or A on a gamepad to join.': '이 기기의 친구: U (오른쪽 키보드), 숫자패드 1 (방향키), 또는 게임패드 A를 눌러 참가하세요.',
+  Start: '시작', 'Red team': '레드 팀', 'Blue team': '블루 팀', You: '나', Remove: '빼기', Controls: '조작', Bot: '봇', '{dev} joined!': '{dev} 참가!',
+  // online
+  'Play the same game together on different phones or computers. One player creates a room; the others join with its code. Up to 4 heroes, bots fill the empty places.': '서로 다른 휴대폰이나 컴퓨터에서 같은 게임을 함께 해요. 한 명이 방을 만들고 나머지는 코드로 들어옵니다. 영웅은 최대 4명, 빈자리는 봇이 채워요.',
+  'Your name': '내 이름', Host: '방장', 'Create a room and share the code.': '방을 만들고 코드를 알려 주세요.', 'Create room': '방 만들기', Join: '참가',
+  ONLINE_NOTE: '온라인 플레이는 기기끼리 직접 연결(WebRTC)되며 인터넷이 필요해요. GitHub Pages 버전에서 작동하고, Claude 미리보기 안에서는 작동하지 않아요. 모바일 데이터에서 연결이 안 되면 Wi-Fi를 써 보세요. 같은 화면의 친구는 모험, 심연, 아레나에서 바로 참가할 수 있어요.',
+  Back: '뒤로', you: '나', Mode: '모드', 'Friends vs bots': '친구 대 봇', 'Friends vs friends': '친구 대 친구', 'Fill empty places with bots': '빈자리를 봇으로 채우기',
+  'The host picks the mode:': '방장이 모드를 고릅니다:', 'Room code': '방 코드', 'Tell your friends to open Play with friends → Join': '친구에게 친구와 함께 → 참가를 누르라고 알려 주세요',
+  Players: '플레이어', 'Waiting for the host to start...': '방장이 시작하기를 기다리는 중...',
+  'Connecting...': '연결 중...', 'Creating a room...': '방을 만드는 중...', 'Connected! Waiting for the room...': '연결됐어요! 방 정보를 기다리는 중...', 'This browser cannot play online.': '이 브라우저에서는 온라인 플레이를 할 수 없어요.',
+  'The room was closed.': '방이 닫혔어요.', 'Your friend is running a different version. Both of you should reload.': '친구와 게임 버전이 달라요. 두 사람 모두 새로고침하세요.',
+  'Could not create a room. Try again.': '방을 만들 수 없어요. 다시 시도하세요.', 'Could not connect to your friend. Check the code, or try another network (Wi-Fi).': '친구와 연결할 수 없어요. 코드를 확인하거나 다른 네트워크(Wi-Fi)를 써 보세요.',
+  'The connection failed. Your networks may block direct connections; try Wi-Fi.': '연결에 실패했어요. 네트워크가 직접 연결을 막고 있을 수 있어요. Wi-Fi를 써 보세요.',
+  'Room not found. Check the code and make sure your friend is waiting.': '방을 찾을 수 없어요. 코드를 확인하고 친구가 기다리고 있는지 확인하세요.', 'The connection failed.': '연결에 실패했어요.',
+  'Could not start a connection on this device.': '이 기기에서 연결을 시작할 수 없어요.', 'Room not found.': '방을 찾을 수 없어요.', 'That room is full.': '방이 가득 찼어요.',
+  'The host left the room.': '방장이 방을 나갔어요.',
+  'Could not reach the matchmaking server. Online play needs an internet connection (it does not work inside the Claude preview; open the GitHub Pages version).': '매칭 서버에 연결할 수 없어요. 온라인 플레이는 인터넷이 필요해요 (Claude 미리보기 안에서는 작동하지 않으니 GitHub Pages 버전을 여세요).',
+  'The matchmaking server refused the connection.': '매칭 서버가 연결을 거부했어요.',
+  // toasts and dialogs
+  'Now playing {name}': '이제 {name}(으)로 플레이', '{name} joined your guild!': '{name}이(가) 길드에 합류했어요!', 'Salvaged for {g}': '분해해서 {g} 획득',
+  'Salvage every unequipped, unlocked Rare or Common item?': '장착하지 않고 잠그지 않은 희귀·일반 아이템을 모두 분해할까요?', 'Salvage every unequipped, unlocked Common item?': '장착하지 않고 잠그지 않은 일반 아이템을 모두 분해할까요?',
+  'Salvaged {n} items for {g}': '아이템 {n}개를 분해해 {g} 획득', 'Quest complete! {g}': '퀘스트 완료! {g}', 'Daily chest: {g}': '일일 상자: {g}', 'Come back tomorrow for another chest': '내일 또 상자를 받으러 오세요',
+  'Save code copied': '저장 코드를 복사했어요', 'Paste a save code, then press Load again': '저장 코드를 붙여 넣고 불러오기를 한 번 더 누르세요', 'Save loaded': '저장을 불러왔어요', 'That save code is not valid': '올바른 저장 코드가 아니에요',
+  'Reset all progress? Heroes, gear, gold and achievements will be lost.': '모든 진행을 초기화할까요? 영웅, 장비, 골드, 업적이 사라집니다.', Reset: '초기화', 'Enter the 4-letter room code': '4글자 방 코드를 입력하세요',
+  'Leave this run? You keep the gold and gear found so far.': '이번 런을 그만둘까요? 지금까지 얻은 골드와 장비는 남아요.', Leave: '나가기', Cancel: '취소', '{name} unlocked!': '{name} 해금!',
+  'You have {a}/{b}': '{a}/{b} 보유', 'Reroll ({n} left)': '다시 뽑기 ({n}번 남음)', 'No blessings yet': '아직 축복 없음',
+  // pause and results
+  Paused: '일시 정지', 'Online games keep running while this menu is open.': '온라인 게임은 이 메뉴를 열어도 계속 진행돼요.', Blessings: '축복', Resume: '계속하기',
+  'Mute sound': '소리 끄기', 'Unmute sound': '소리 켜기', 'Leave run': '런 그만두기', Rooms: '방', Kills: '처치', 'Best combo': '최고 콤보', Time: '시간', Gold: '골드', 'Hero XP': '영웅 경험치',
+  Floors: '층', Knockouts: '처치', Falls: '쓰러짐', '{name} reached level {n}!': '{name} 레벨 {n} 달성!', '{name} · level {n}': '{name} · 레벨 {n}', 'New realm unlocked: {name}!': '새 영역 해금: {name}!',
+  Loot: '전리품', 'Play again': '다시 하기', 'Back to lobby': '대기실로', 'Progress loaded from your Claude account': 'Claude 계정에서 진행 상황을 불러왔어요', 'Something went wrong: ': '문제가 생겼어요: ',
+  'Your hero attacks on its own.': '영웅은 알아서 공격해요.', 'Step out of <b>red areas</b>: they are attacks about to land!': '<b>빨간 영역</b>에서 벗어나세요: 곧 떨어질 공격이에요!',
+  'Drag on the left to move. Tap the skill, ultimate and dash buttons, or drag them to aim.': '왼쪽을 드래그해 움직이고, 스킬·궁극기·대시 버튼을 누르거나 드래그해서 조준하세요.',
+  'Left stick moves. X skill, B ultimate, A dash.': '왼쪽 스틱으로 이동, X 스킬, B 궁극기, A 대시.', 'WASD to move. Q skill, E ultimate, Space dash. The mouse aims.': 'WASD 이동, Q 스킬, E 궁극기, Space 대시. 마우스로 조준해요.',
+  'Champion!': '챔피언!', 'Place #{n}': '{n}위', 'Victory!': '승리!', Defeat: '패배', Score: '점수', 'You cleared {n} floors': '{n}층 돌파', 'Realm cleared!': '영역 돌파!', Defeated: '패배',
+  'The host left the game. Your loot was saved.': '방장이 게임을 나갔어요. 전리품은 저장됐어요.', 'The host left the game.': '방장이 게임을 나갔어요.', '{name} left. A bot takes over.': '{name}이(가) 나갔어요. 봇이 대신 플레이해요.',
+  'first to {n}': '{n}점 선취',
+  // device names and key hints
+  'Q skill': 'Q 스킬', 'E ult': 'E 궁극기', 'Space dash': 'Space 대시', 'U skill': 'U 스킬', 'O ult': 'O 궁극기', '; dash': '; 대시', Arrows: '방향키', '1 skill': '1 스킬', '2 ult': '2 궁극기', '0 dash (numpad)': '0 대시 (숫자패드)',
+  'Keyboard (left)': '키보드 (왼쪽)', 'Keyboard (right)': '키보드 (오른쪽)', 'Keyboard (arrows)': '키보드 (방향키)',
+});
 
 // ===== 03-world.js =====
 // ---------- World: the combat simulation ----------
@@ -1580,7 +1915,7 @@ class World {
     if (!this.arena && this.t - u.lastHurt > 5) regen += 0.01;
     if (regen > 0) this.heal(u, u.maxHp * regen * dt);
     if (s.bulwark) { u.counters.bulT += dt; if (u.counters.bulT >= 10) { u.counters.bulT = 0; this.shieldUp(u, u.maxHp * s.bulwark, 8); } }
-    if (u.healAcc >= 1 && (this.tick % 20 === 0)) { this.emit('heal', u.x, u.y - u.r - 8, Math.round(u.healAcc)); u.healAcc = 0; }
+    if (u.healAcc >= Math.max(6, u.maxHp * 0.04) && this.tick % 30 === 0) { this.emit('heal', u.x, u.y - u.r - 8, Math.round(u.healAcc)); u.healAcc = 0; }
     if (u.kit.tick) u.kit.tick(this, u, dt);
     // history for Rewind
     u.histT += dt;
@@ -3820,7 +4155,7 @@ function freshSave() {
     stats: { kills: 0, boss: {}, heroicClears: 0, mythicClears: 0, abyssBest: 0, bestRar: 0, maxUp: 0, flawless: 0, bossNoDown: 0, bestCombo: 0,
       bestMulti: 0, ults: 0, revives: 0, maxBless: 0, legBless: 0, goldEarned: 0, fastClear: 0, coopRuns: 0, onlineGames: 0, arenaWins: 0,
       bestStreak: 0, quests: 0, runs: 0, rooms: 0, wins: 0 },
-    settings: { sfx: 0.8, music: 0.45, shake: 1, nums: 1, botSkill: 1, bots: 2, autoSalvage: false },
+    settings: { sfx: 0.8, music: 0.45, shake: 1, nums: 1, botSkill: 1, bots: 2, autoSalvage: false, lang: 'auto', btnAlpha: 0.35 },
     created: Date.now(), savedAt: 0, tutorial: false,
   };
   for (const h of HEROES) s.heroes[h.id] = { unlocked: h.unlock.gold === 0, lvl: 1, xp: 0, gear: { weapon: null, armor: null, charm: null }, runs: 0, kills: 0, best: 0 };
@@ -4250,7 +4585,7 @@ const Meta = {
 };
 
 // Display settings read by the renderer and effects (kept in sync by applySettings).
-const Settings = { nums: 1, shake: 1 };
+const Settings = { nums: 1, shake: 1, btnAlpha: 0.35 };
 
 // ===== 09-input.js =====
 // ---------- Input: touch, keyboard (three players on one keyboard), gamepads, mouse ----------
@@ -4282,6 +4617,7 @@ const Input = {
   canvas: null,
   enabled: true,
   layout: null,
+  rot: false,
   onPause: null,
 
   init(canvas) {
@@ -4315,11 +4651,11 @@ const Input = {
     const R = safe ? safe.r : 0, B = safe ? safe.b : 0;
     this.layout = {
       s, W, H,
-      skill: { x: W - R - 96 * s, y: H - B - 92 * s, r: 44 * s },
-      ult: { x: W - R - 196 * s, y: H - B - 62 * s, r: 36 * s },
-      dash: { x: W - R - 70 * s, y: H - B - 192 * s, r: 30 * s },
-      pause: { x: W - R - 34 * s, y: 34 * s + (safe ? safe.t : 0), r: 22 * s },
-      stickR: 58 * s,
+      skill: { x: W - R - 92 * s, y: H - B - 88 * s, r: 44 * s },
+      ult: { x: W - R - 190 * s, y: H - B - 58 * s, r: 36 * s },
+      dash: { x: W - R - 66 * s, y: H - B - 186 * s, r: 31 * s },
+      pause: { x: W - R - 34 * s, y: 34 * s + (safe ? safe.t : 0), r: 23 * s },
+      stickR: 60 * s,
     };
   },
 
@@ -4330,7 +4666,12 @@ const Input = {
     return null;
   },
 
-  tPos(t) { const r = this.canvas.getBoundingClientRect(); return { x: t.clientX - r.left, y: t.clientY - r.top }; },
+  // With the game turned sideways on an upright phone, screen x/y map to the game's y/x.
+  tPos(t) {
+    if (this.rot) return { x: t.clientY, y: innerWidth - t.clientX };
+    const r = this.canvas.getBoundingClientRect();
+    return { x: t.clientX - r.left, y: t.clientY - r.top };
+  },
 
   tStart(t) {
     const p = this.tPos(t);
@@ -5205,7 +5546,7 @@ const FX = {
     if (!Settings.nums) return;
     if (this.nums.length > 70) this.nums.shift();
     const color = hurt ? '#ff5a5a' : kind === 2 ? '#a8f05a' : kind === 3 ? '#ffa040' : crit ? '#ffd23f' : '#ffffff';
-    this.nums.push({ x, y, vy: -60 - Math.random() * 30, vx: (Math.random() - 0.5) * 30, t: 0, life: crit ? 0.9 : 0.65, v: fmtNum(v), size: crit ? 22 : kind ? 12 : hurt ? 15 : 14, color, crit });
+    this.nums.push({ x, y, vy: -60 - Math.random() * 30, vx: (Math.random() - 0.5) * 30, t: 0, life: crit ? 0.9 : 0.65, v: fmtNum(v), size: crit ? 24 : kind ? 13 : hurt ? 17 : 15, color, crit });
   },
 
   text(x, y, s, color, size) { this.texts.push({ x, y, s, color, size: size || 16, t: 0, life: 1.1 }); },
@@ -5233,7 +5574,7 @@ const FX = {
         case 'die': this.burst(e[1], e[2], 14, e[3], 180, 0.55, 5); this.burst(e[1], e[2], 6, '#ffffff', 120, 0.3, 3); Sound.play('die', 0.35); break;
         case 'bossdie': this.burst(e[1], e[2], 80, e[3], 420, 1.2, 7); this.ring(e[1], e[2], 300, e[3], 1, 14); this.shake = 18; this.slowmo = 1.2; Sound.play('bossdie', 0.9); break;
         case 'text': this.text(e[1], e[2], e[3], e[4], e[5]); break;
-        case 'heal': if (Settings.nums) this.nums.push({ x: e[1], y: e[2], vy: -40, vx: 0, t: 0, life: 0.8, v: '+' + e[3], size: 13, color: '#5df0b0' }); break;
+        case 'heal': if (Settings.nums) this.nums.push({ x: e[1], y: e[2], vy: -40, vx: 0, t: 0, life: 0.8, v: '+' + e[3], size: 14, color: '#5df0b0' }); break;
         case 'coin': this.burst(e[1], e[2], 2, '#ffd23f', 60, 0.25, 3); Sound.play('coin', 0.25); break;
         case 'pick': this.text(e[1], e[2] - 30, e[4], e[3], 15); this.ring(e[1], e[2], 40, e[3], 0.35, 5); Sound.play('pickup', 0.5); break;
         case 'shake': this.shake = Math.max(this.shake, e[1] * Settings.shake); break;
@@ -5372,17 +5713,18 @@ const FX = {
       ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 0.82, a0, a1); ctx.stroke();
     }
     ctx.globalAlpha = 1;
+    const tk = View.textK();
     for (const t of this.texts) {
       if (t.screen) continue;
       const k = t.t / t.life;
       ctx.globalAlpha = 1 - k * k;
-      outlineText(ctx, t.s, t.x, t.y - k * 30, t.size, t.color);
+      outlineText(ctx, trx(t.s), t.x, t.y - k * 30, t.size * tk, t.color);
     }
     for (const n of this.nums) {
       const k = n.t / n.life;
       ctx.globalAlpha = k > 0.7 ? (1 - k) / 0.3 : 1;
       const sc = n.crit ? 1 + Math.max(0, 0.4 - n.t) * 1.5 : 1;
-      outlineText(ctx, n.v, n.x, n.y, n.size * sc, n.color);
+      outlineText(ctx, n.v, n.x, n.y, n.size * sc * tk, n.color);
     }
     ctx.restore();
   },
@@ -5410,19 +5752,41 @@ const View = {
     addEventListener('resize', () => this.resize());
   },
 
+  // A phone held upright still plays sideways: the whole game is turned 90 degrees.
   resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-    const W = innerWidth, H = innerHeight;
+    const vw = innerWidth, vh = innerHeight;
+    const touch = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
+    const rot = vh > vw && touch;
+    const W = rot ? vh : vw, H = rot ? vw : vh;
+    this.rot = rot;
     this.W = W; this.H = H; this.dpr = dpr;
+    const app = document.getElementById('app');
+    if (app) {
+      app.style.width = W + 'px'; app.style.height = H + 'px';
+      app.style.transform = rot ? 'rotate(90deg) translateY(-100%)' : 'none';
+    }
     this.cv.width = Math.round(W * dpr); this.cv.height = Math.round(H * dpr);
     this.cv.style.width = W + 'px'; this.cv.style.height = H + 'px';
     const p = document.getElementById('safe-probe');
-    if (p) { const cs = getComputedStyle(p); this.safe = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 }; }
+    let sf = { t: 0, r: 0, b: 0, l: 0 };
+    if (p) { const cs = getComputedStyle(p); sf = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 }; }
+    this.safe = rot ? { l: sf.t, r: sf.b, t: sf.r, b: sf.l } : sf;
+    if (app) {
+      for (const k of ['t', 'r', 'b', 'l']) app.style.setProperty('--sa' + k, this.safe[k] + 'px');
+      app.style.setProperty('--vw', W / 100 + 'px');
+      app.style.setProperty('--vh', H / 100 + 'px');
+      app.style.setProperty('--fs', clamp(Math.min(H * 0.041, W * 0.022), 14, 22).toFixed(1) + 'px');
+    }
+    Input.rot = rot;
     Input.setLayout(W, H, this.safe);
-    this.ui = clamp(Math.min(W, H) / 400, 0.75, 1.4);
+    this.ui = clamp(Math.min(W, H) / 330, 1, 1.7);
   },
 
-  baseZoom() { return Math.min(this.H / 540, this.W / 940); },
+  baseZoom() { return Math.min(this.H / 430, this.W / 760); },
+
+  // world-space text is scaled so it stays readable on small screens
+  textK() { return clamp(1 / (this.cam.z || 1), 0.9, 1.8); },
 
   updateCam(view, locals, dt, snap) {
     const room = view.room;
@@ -6191,7 +6555,7 @@ const View = {
     x.fillStyle = 'rgba(10,8,20,0.7)'; circle(x, p.x, by, 24); x.fill();
     x.strokeStyle = col; x.lineWidth = 3; circle(x, p.x, by, 24); x.stroke();
     this.icon(x, REWARD_ICON[p.reward] || 'skull', p.x, by, 13);
-    outlineText(x, p.reward === 'boss' ? 'BOSS' : R.name, p.x, p.y + 40, 15, col);
+    outlineText(x, p.reward === 'boss' ? tr('BOSS') : tr(R.name), p.x, p.y + 40, 16 * this.textK(), col);
   },
 
   // ---------- world ----------
@@ -6240,7 +6604,7 @@ const View = {
         x.fillStyle = 'rgba(10,8,20,0.75)'; x.fillRect(u.x - w / 2 - 1, y - 1, w + 2, 6);
         x.fillStyle = u.elite ? '#ff9a4a' : '#ff4f5a'; x.fillRect(u.x - w / 2, y, w * clamp(u.hp / u.maxHp, 0, 1), 4);
         if (u.shield > 0 && u.maxShield) { x.fillStyle = '#c8f0ff'; x.fillRect(u.x - w / 2, y - 3, w * clamp(u.shield / u.maxShield, 0, 1), 2); }
-        if (u.elite) { const ea = ELITE_AFFIX.find((e) => e.key === u.elite); outlineText(x, ea ? ea.name : '', u.x, y - 9, 11, ea ? ea.color : '#fff'); }
+        if (u.elite) { const ea = ELITE_AFFIX.find((e) => e.key === u.elite); outlineText(x, ea ? tr(ea.name) : '', u.x, y - 10, 12 * this.textK(), ea ? ea.color : '#fff'); }
       } else if (u.kind === 'summon' && u.stype !== 'wisp' && u.hp < u.maxHp) {
         const w = 22, y = u.y - u.r - 9;
         x.fillStyle = 'rgba(10,8,20,0.75)'; x.fillRect(u.x - w / 2 - 1, y - 1, w + 2, 5);
@@ -6261,8 +6625,8 @@ const View = {
     if (u.shield > 0) { x.fillStyle = 'rgba(160,230,255,0.9)'; x.fillRect(u.x - w / 2, y, w * clamp(u.shield / u.maxHp, 0, 1), 2); }
     x.fillStyle = u.ult >= 100 ? '#ffd23f' : 'rgba(255,210,63,0.55)';
     x.fillRect(u.x - w / 2, y + 5, w * clamp(u.ult / 100, 0, 1), 1.5);
-    const tag = isBot ? 'BOT' : (u.pl && u.pl.name ? u.pl.name : 'P' + (slot + 1));
-    outlineText(x, tag, u.x, y - 8, 11, col);
+    const tag = isBot ? tr('BOT') : (u.pl && u.pl.name ? trx(u.pl.name) : 'P' + (slot + 1));
+    outlineText(x, tag, u.x, y - 9, 13 * this.textK(), col);
   },
 
   // ---------- HUD ----------
@@ -6272,7 +6636,7 @@ const View = {
     if (view.timeStop) {
       x.save(); x.globalCompositeOperation = 'saturation'; x.fillStyle = '#808080'; x.globalAlpha = 0.85; x.fillRect(0, 0, W, H); x.restore();
       x.fillStyle = 'rgba(40,200,190,0.10)'; x.fillRect(0, 0, W, H);
-      outlineText(x, 'TIME STOP ' + Math.ceil(view.timeStop.t), W / 2, 92 * s, 18 * s, '#53e0d0');
+      outlineText(x, tr('TIME STOP') + ' ' + Math.ceil(view.timeStop.t), W / 2, 92 * s, 18 * s, '#53e0d0');
     }
     if (FX.flash) { x.globalAlpha = FX.flash.a * (1 - FX.flash.t / FX.flash.life); x.fillStyle = FX.flash.color; x.fillRect(0, 0, W, H); x.globalAlpha = 1; }
     const me = locals[0];
@@ -6280,32 +6644,34 @@ const View = {
       const g = x.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7);
       g.addColorStop(0, 'rgba(120,0,0,0)'); g.addColorStop(1, 'rgba(160,0,0,0.5)');
       x.fillStyle = g; x.fillRect(0, 0, W, H);
-      outlineText(x, me.deadOut ? 'You are out until the next room' : me.autoRev ? 'Rising again...' : 'You are down! Allies can revive you', W / 2, H * 0.32, 17 * s, '#ffb0b0');
+      outlineText(x, tr(me.deadOut ? 'You are out until the next room' : me.autoRev ? 'Rising again...' : 'You are down! Allies can revive you'), W / 2, H * 0.32, 17 * s, '#ffb0b0');
     }
     // party frames
     const hs = view.units.filter((u) => u.kind === 'hero');
     hs.sort((a, b) => (locals.includes(b) ? 1 : 0) - (locals.includes(a) ? 1 : 0) || a.pl.slot - b.pl.slot);
     let fy = 10 * s + sf.t, fx = 10 * s + sf.l;
-    const fw = 132 * s, fh = 30 * s;
+    const fw = 140 * s, fh = 31 * s;
     const maxFrames = view.arena ? 0 : 4;
     for (let i = 0; i < Math.min(hs.length, maxFrames); i++) {
       const u = hs[i], loc = locals.includes(u);
-      x.fillStyle = loc ? 'rgba(20,16,40,0.78)' : 'rgba(10,8,20,0.6)';
+      x.fillStyle = loc ? 'rgba(20,16,40,0.42)' : 'rgba(10,8,20,0.28)';
       roundRect(x, fx, fy, fw, fh, 8 * s); x.fill();
       if (loc) { x.strokeStyle = PLAYER_COLORS[u.pl.slot % 4]; x.lineWidth = 2; x.stroke(); }
       const pr = 11 * s;
       this.body(x, fx + pr + 4 * s, fy + fh / 2, pr, u.hero.color);
-      outlineText(x, u.hero.name[0], fx + pr + 4 * s, fy + fh / 2 + 1, 11 * s, '#fff');
+      outlineText(x, tr(u.hero.name)[0], fx + pr + 4 * s, fy + fh / 2 + 1, 12 * s, '#fff');
       const bx = fx + pr * 2 + 9 * s, bw = fw - (bx - fx) - 7 * s;
-      const nm = u.pl.kind === 'bot' ? u.hero.name + ' · BOT' : (u.pl.name || 'P' + (u.pl.slot + 1)) + ' · ' + u.hero.name;
-      x.font = `800 ${9.5 * s}px system-ui,sans-serif`; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillStyle = '#e8e4ff';
-      x.fillText(nm.length > 20 ? nm.slice(0, 19) + '…' : nm, bx, fy + 8 * s);
+      const nm = u.pl.kind === 'bot' ? tr(u.hero.name) + ' · ' + tr('BOT') : trx(u.pl.name || 'P' + (u.pl.slot + 1)) + ' · ' + tr(u.hero.name);
+      x.font = `800 ${11 * s}px system-ui,sans-serif`; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillStyle = '#ffffff';
+      x.lineWidth = 3 * s * 0.6; x.strokeStyle = 'rgba(10,8,20,0.85)';
+      const nmt = nm.length > 16 ? nm.slice(0, 15) + '…' : nm;
+      x.strokeText(nmt, bx, fy + 8 * s); x.fillText(nmt, bx, fy + 8 * s);
       x.fillStyle = 'rgba(0,0,0,0.6)'; x.fillRect(bx, fy + 14 * s, bw, 6 * s);
       x.fillStyle = u.downed ? '#ff4f5a' : '#5be36a'; x.fillRect(bx, fy + 14 * s, bw * clamp(u.hp / u.maxHp, 0, 1), 6 * s);
       if (u.shield > 0) { x.fillStyle = 'rgba(160,230,255,0.9)'; x.fillRect(bx, fy + 14 * s, bw * clamp(u.shield / u.maxHp, 0, 1), 2.5 * s); }
       x.fillStyle = 'rgba(0,0,0,0.6)'; x.fillRect(bx, fy + 22 * s, bw, 3 * s);
       x.fillStyle = u.ult >= 100 ? `hsl(${45 + Math.sin(t * 8) * 10},100%,60%)` : '#d8a020'; x.fillRect(bx, fy + 22 * s, bw * clamp(u.ult / 100, 0, 1), 3 * s);
-      if (u.downed) outlineText(x, u.deadOut ? 'OUT' : 'DOWN', fx + fw - 22 * s, fy + 9 * s, 10 * s, '#ff5a5a');
+      if (u.downed) outlineText(x, tr(u.deadOut ? 'OUT' : 'DOWN'), fx + fw - 24 * s, fy + 9 * s, 11 * s, '#ff5a5a');
       if (loc && opts.devs && opts.devs[u.id] && opts.devs[u.id] !== 'touch') {
         const cx = fx + fw + 14 * s, cy = fy + fh / 2;
         x.fillStyle = 'rgba(10,8,20,0.7)'; circle(x, cx, cy, 11 * s); x.fill();
@@ -6319,10 +6685,10 @@ const View = {
     const hud = view.mode && view.mode.hud ? view.mode.hud() : { label: '' };
     if (view.arena) this.arenaHud(x, view, s, t);
     else {
-      outlineText(x, hud.label || '', W / 2, 16 * s + sf.t, 13 * s, '#e8e4ff');
+      outlineText(x, trx(hud.label || ''), W / 2, 16 * s + sf.t, 14 * s, '#ffffff');
       const m = view.mode;
       if (m && m.total && m.roomIdx >= 0) {
-        const n = m.total, pw = 12 * s;
+        const n = m.total, pw = 13 * s;
         for (let i = 0; i < n; i++) {
           const px = W / 2 + (i - (n - 1) / 2) * pw * 1.4, py = 32 * s + sf.t;
           x.fillStyle = i < m.roomIdx ? '#ffd23f' : i === m.roomIdx ? '#ffffff' : 'rgba(255,255,255,0.25)';
@@ -6338,7 +6704,7 @@ const View = {
         const g = x.createLinearGradient(bx, 0, bx + bw, 0); g.addColorStop(0, '#ff4f6d'); g.addColorStop(1, '#ff9a4a');
         x.fillStyle = g; x.fillRect(bx, by, bw * clamp(boss.hp / boss.maxHp, 0, 1), 16 * s);
         x.strokeStyle = 'rgba(255,255,255,0.4)'; x.lineWidth = 1; x.beginPath(); x.moveTo(bx + bw / 2, by); x.lineTo(bx + bw / 2, by + 16 * s); x.stroke();
-        outlineText(x, boss.boss.name + '  ' + Math.ceil(boss.hp / boss.maxHp * 100) + '%', W / 2, by + 8 * s, 11 * s, '#ffffff');
+        outlineText(x, tr(boss.boss.name) + '  ' + Math.ceil(boss.hp / boss.maxHp * 100) + '%', W / 2, by + 8 * s, 12 * s, '#ffffff');
       }
     }
     // gold
@@ -6347,7 +6713,7 @@ const View = {
     this.icon(x, 'coin', gx - 30 * s, gy, 7 * s);
     x.font = `900 ${14 * s}px system-ui,sans-serif`; x.textAlign = 'right'; x.textBaseline = 'middle'; x.fillStyle = '#ffd23f';
     x.fillText(fmtNum(view.gold || 0), gx + 8 * s, gy);
-    if (!opts.touch) { x.font = `700 ${9 * s}px system-ui,sans-serif`; x.fillStyle = 'rgba(255,255,255,0.45)'; x.fillText('Esc: menu', gx + 8 * s, gy + 16 * s); }
+    if (!opts.touch) { x.font = `700 ${9 * s}px system-ui,sans-serif`; x.fillStyle = 'rgba(255,255,255,0.45)'; x.fillText(tr('Esc: menu'), gx + 8 * s, gy + 16 * s); }
     }
     // combo
     const n = view.combo ? view.combo.n : 0;
@@ -6357,7 +6723,7 @@ const View = {
       const cx = W - sf.r - 70 * s, cy = H * 0.36, sc = 1 + this.comboPulse * 1.2;
       const col = n >= 200 ? '#ff4f6d' : n >= 100 ? '#ff9a4a' : n >= 50 ? '#ffd23f' : '#ffffff';
       outlineText(x, n + '', cx, cy, 28 * s * sc, col);
-      outlineText(x, 'COMBO', cx, cy + 22 * s, 10 * s, col);
+      outlineText(x, tr('COMBO'), cx, cy + 22 * s, 11 * s, col);
     }
     // ult banner
     if (FX.ultCast) {
@@ -6366,7 +6732,7 @@ const View = {
       x.globalAlpha = k > 0.75 ? (1 - k) / 0.25 : 1;
       x.fillStyle = rgba(u.hero.color, 0.55);
       x.save(); x.translate(W / 2 + slide, H * 0.24); x.transform(1, 0, -0.25, 1, 0, 0); x.fillRect(-170 * s, -20 * s, 340 * s, 40 * s); x.restore();
-      outlineText(x, u.name.toUpperCase() + '!', W / 2 + slide, H * 0.24, 22 * s, '#ffffff');
+      outlineText(x, (Lang.ko ? tr(u.name) : u.name.toUpperCase()) + '!', W / 2 + slide, H * 0.24, 22 * s, '#ffffff');
       x.globalAlpha = 1;
     }
     // banners
@@ -6375,15 +6741,15 @@ const View = {
       const a = k < 0.1 ? k / 0.1 : k > 0.8 ? (1 - k) / 0.2 : 1;
       x.globalAlpha = a;
       const sc = k < 0.1 ? 1.4 - k * 4 : 1;
-      outlineText(x, b.title, W / 2, H * 0.17, 30 * s * sc, b.color);
-      if (b.sub) outlineText(x, b.sub, W / 2, H * 0.17 + 28 * s, 14 * s, '#e8e4ff');
+      outlineText(x, trx(b.title), W / 2, H * 0.17, 30 * s * sc, b.color);
+      if (b.sub) outlineText(x, trx(b.sub), W / 2, H * 0.17 + 28 * s, 15 * s, '#ffffff');
       x.globalAlpha = 1;
     }
     for (const tx of FX.texts) {
       if (!tx.screen) continue;
       const k = tx.t / tx.life;
       x.globalAlpha = k > 0.7 ? (1 - k) / 0.3 : 1;
-      outlineText(x, tx.s, W / 2, H * 0.3 - k * 20, tx.size * s, tx.color);
+      outlineText(x, trx(tx.s), W / 2, H * 0.3 - k * 20, tx.size * s, tx.color);
       x.globalAlpha = 1;
     }
     // off-screen pointers to allies and portals
@@ -6411,20 +6777,20 @@ const View = {
     if (!m.ffa) {
       outlineText(x, String(sc[0] || 0), W / 2 - 46 * s, 34 * s + sf.t, 24 * s, '#4fb3ff');
       outlineText(x, String(sc[1] || 0), W / 2 + 46 * s, 34 * s + sf.t, 24 * s, '#ff5d6d');
-      outlineText(x, 'first to ' + (m.target || 10), W / 2, 38 * s + sf.t, 9 * s, '#c8c0e8');
+      outlineText(x, tr('first to {n}', { n: m.target || 10 }), W / 2, 38 * s + sf.t, 10 * s, '#c8c0e8');
     } else {
       const hs = view.units.filter((u) => u.kind === 'hero').sort((a, b) => (sc[b.team] || 0) - (sc[a.team] || 0)).slice(0, 4);
       hs.forEach((u, i) => {
-        const name = u.pl && u.pl.kind !== 'bot' ? (u.pl.name || 'P' + (u.pl.slot + 1)) : u.hero.name;
-        x.font = `800 ${10 * s}px system-ui,sans-serif`; x.textAlign = 'left'; x.fillStyle = u.hero.color;
+        const name = u.pl && u.pl.kind !== 'bot' ? trx(u.pl.name || 'P' + (u.pl.slot + 1)) : tr(u.hero.name);
+        x.font = `800 ${11 * s}px system-ui,sans-serif`; x.textAlign = 'left'; x.fillStyle = u.hero.color;
         x.fillText((i + 1) + '. ' + name + '  ' + (sc[u.team] || 0), 12 * s + sf.l, 18 * s + i * 14 * s + sf.t);
       });
     }
     let fy = 50 * s + sf.t;
     for (const f of FX.feed) {
       x.globalAlpha = f.t > 4 ? 5 - f.t : 1;
-      x.font = `800 ${9.5 * s}px system-ui,sans-serif`; x.textAlign = 'right'; x.fillStyle = '#ffffff';
-      x.fillText((f.k ? (f.kn || f.k.name) : 'The arena') + '  ⚔  ' + (f.v ? (f.vn || f.v.name) : ''), W - 14 * s - sf.r, fy);
+      x.font = `800 ${10.5 * s}px system-ui,sans-serif`; x.textAlign = 'right'; x.fillStyle = '#ffffff';
+      x.fillText((f.k ? trx(f.kn || tr(f.k.name)) : tr('The arena')) + '  ⚔  ' + (f.v ? trx(f.vn || tr(f.v.name)) : ''), W - 14 * s - sf.r, fy);
       x.globalAlpha = 1;
       fy += 14 * s;
     }
@@ -6436,7 +6802,8 @@ const View = {
     // joystick
     const st = Input.stick;
     const bx = st ? st.x0 : 110 * L.s + this.safe.l, by = st ? st.y0 : this.H - 110 * L.s - this.safe.b;
-    x.globalAlpha = st ? 0.6 : 0.25;
+    const A = Settings.btnAlpha || 0.35;
+    x.globalAlpha = st ? 0.3 + A * 0.5 : 0.12 + A * 0.3;
     x.fillStyle = 'rgba(10,8,20,0.5)'; circle(x, bx, by, L.stickR); x.fill();
     x.strokeStyle = 'rgba(255,255,255,0.5)'; x.lineWidth = 2; x.stroke();
     let kx = bx, ky = by;
@@ -6444,13 +6811,16 @@ const View = {
     x.fillStyle = 'rgba(255,255,255,0.75)'; circle(x, kx, ky, L.stickR * 0.42); x.fill();
     x.globalAlpha = 1;
     const btn = (b, label, col, cd, cdMax, ready, aim) => {
-      x.fillStyle = 'rgba(10,8,20,0.6)'; circle(x, b.x, b.y, b.r); x.fill();
-      if (cd > 0) { x.fillStyle = rgba(col, 0.35); x.beginPath(); x.moveTo(b.x, b.y); x.arc(b.x, b.y, b.r, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - cd / (cdMax || 1))); x.closePath(); x.fill(); }
-      else { x.fillStyle = rgba(col, ready ? 0.75 + Math.sin(t * 8) * 0.15 : 0.6); circle(x, b.x, b.y, b.r * 0.88); x.fill(); }
-      x.strokeStyle = ready ? '#ffffff' : 'rgba(255,255,255,0.6)'; x.lineWidth = ready ? 3 : 2; circle(x, b.x, b.y, b.r); x.stroke();
+      const held = !!aim;
+      x.fillStyle = `rgba(10,8,20,${0.2 + A * 0.4})`; circle(x, b.x, b.y, b.r); x.fill();
+      if (cd > 0) { x.fillStyle = rgba(col, A * 0.7); x.beginPath(); x.moveTo(b.x, b.y); x.arc(b.x, b.y, b.r, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - cd / (cdMax || 1))); x.closePath(); x.fill(); }
+      else { x.fillStyle = rgba(col, Math.min(0.95, (held ? 0.35 : 0.1) + A + (ready ? Math.sin(t * 8) * 0.08 : 0))); circle(x, b.x, b.y, b.r * 0.88); x.fill(); }
+      x.strokeStyle = ready ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)'; x.lineWidth = ready ? 3 : 2; circle(x, b.x, b.y, b.r); x.stroke();
+      x.globalAlpha = 0.65 + A * 0.35;
       if (label === 'dash') this.icon(x, 'dash', b.x, b.y, b.r * 0.5, '#ffffff');
-      else outlineText(x, label, b.x, b.y, b.r * (label.length > 3 ? 0.34 : 0.45), '#ffffff');
-      if (cd > 0) outlineText(x, cd.toFixed(cd < 1 ? 1 : 0), b.x, b.y + b.r * 0.55, b.r * 0.32, '#ffffff');
+      else outlineText(x, label, b.x, b.y, b.r * (label.length > 4 ? 0.3 : label.length > 2 ? 0.38 : 0.48), '#ffffff');
+      if (cd > 0) outlineText(x, cd.toFixed(cd < 1 ? 1 : 0), b.x, b.y + b.r * 0.55, b.r * 0.34, '#ffffff');
+      x.globalAlpha = 1;
       if (aim && (Math.abs(aim.dx) > 20 || Math.abs(aim.dy) > 20)) {
         const a = Math.atan2(aim.dy, aim.dx);
         x.strokeStyle = 'rgba(255,255,255,0.8)'; x.lineWidth = 3; x.beginPath(); x.moveTo(b.x, b.y); x.lineTo(b.x + Math.cos(a) * b.r * 1.8, b.y + Math.sin(a) * b.r * 1.8); x.stroke();
@@ -6459,12 +6829,13 @@ const View = {
       }
     };
     const h = me.hero;
-    btn(L.skill, h.skill.name.split(' ')[0].toUpperCase().slice(0, 6), h.color, me.cd.skill, me.cd.skillMax, me.cd.skill <= 0, Input.btn.skill);
-    btn(L.ult, me.ult >= 100 ? 'ULT' : Math.floor(me.ult) + '%', '#ffd23f', 0, 1, me.ult >= 100, Input.btn.ult);
+    const sk = tr(h.skill.name).split(' ')[0];
+    btn(L.skill, Lang.ko ? sk.slice(0, 4) : sk.toUpperCase().slice(0, 6), h.color, me.cd.skill, me.cd.skillMax, me.cd.skill <= 0, Input.btn.skill);
+    btn(L.ult, me.ult >= 100 ? tr('ULT') : Math.floor(me.ult) + '%', '#ffd23f', 0, 1, me.ult >= 100, Input.btn.ult);
     btn(L.dash, 'dash', '#9be7ff', me.cd.dash, DASH_CD, me.cd.dash <= 0, null);
     const p = L.pause;
-    x.fillStyle = 'rgba(10,8,20,0.6)'; circle(x, p.x, p.y, p.r); x.fill();
-    x.fillStyle = '#ffffff'; x.fillRect(p.x - p.r * 0.35, p.y - p.r * 0.4, p.r * 0.25, p.r * 0.8); x.fillRect(p.x + p.r * 0.1, p.y - p.r * 0.4, p.r * 0.25, p.r * 0.8);
+    x.fillStyle = `rgba(10,8,20,${0.2 + A * 0.4})`; circle(x, p.x, p.y, p.r); x.fill();
+    x.fillStyle = 'rgba(255,255,255,0.85)'; x.fillRect(p.x - p.r * 0.35, p.y - p.r * 0.4, p.r * 0.25, p.r * 0.8); x.fillRect(p.x + p.r * 0.1, p.y - p.r * 0.4, p.r * 0.25, p.r * 0.8);
   },
 };
 
@@ -6683,12 +7054,12 @@ const SVGI = {
   lock: '<svg viewBox="0 0 24 24" width="1em" height="1em"><path d="M6 10V8a6 6 0 1 1 12 0v2h1v12H5V10h1zm3 0h6V8a3 3 0 0 0-6 0v2z" fill="currentColor"/></svg>',
   chest: '<svg viewBox="0 0 24 24" width="1em" height="1em"><path d="M3 10h18v10H3zM5 4h14a2 2 0 0 1 2 2v3H3V6a2 2 0 0 1 2-2z" fill="currentColor"/><rect x="10" y="9" width="4" height="5" fill="#3a2300"/></svg>',
   play: '<svg viewBox="0 0 24 24" width="1em" height="1em"><path d="M6 3l15 9-15 9z" fill="currentColor"/></svg>',
+  globe: '<svg viewBox="0 0 24 24" width="1em" height="1em"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 6h-3a15 15 0 0 0-1.3-3.9A8 8 0 0 1 18.9 8zM12 4.1c.8 1.1 1.5 2.4 1.9 3.9h-3.8c.4-1.5 1.1-2.8 1.9-3.9zM4.3 14a8 8 0 0 1 0-4h3.4a16 16 0 0 0 0 4H4.3zm.8 2h3a15 15 0 0 0 1.3 3.9A8 8 0 0 1 5.1 16zm3-8h-3a8 8 0 0 1 4.3-3.9A15 15 0 0 0 8.1 8zM12 19.9c-.8-1.1-1.5-2.4-1.9-3.9h3.8c-.4 1.5-1.1 2.8-1.9 3.9zM14.3 14H9.7a14 14 0 0 1 0-4h4.6a14 14 0 0 1 0 4zm.3 5.9a15 15 0 0 0 1.3-3.9h3a8 8 0 0 1-4.3 3.9zM16.3 14a16 16 0 0 0 0-4h3.4a8 8 0 0 1 0 4h-3.4z" fill="currentColor"/></svg>',
 };
 
-const ROLE_ORDER = ['Tank', 'Fighter', 'Assassin', 'Mage', 'Ranger', 'Summoner', 'Healer', 'Support'];
-
 function rarColor(r) { return RARITY[r].color; }
-function statLabel(k, v) { const g = GEAR_STATS[k]; return '+' + v + g[3] + ' ' + g[0]; }
+function statLabel(k, v) { const g = GEAR_STATS[k]; return '+' + v + g[3] + ' ' + tr(g[0]); }
+function heroName(id) { return tr(HERO_BY_ID[id].name); }
 
 const UI = {
   cur: null, arg: null, stack: [],
@@ -6696,7 +7067,6 @@ const UI = {
   offer: null,
   online: null,
   dlg: null,
-  showT: 0,
 
   init() {
     const root = $('ui');
@@ -6728,34 +7098,34 @@ const UI = {
     const qdot = s.daily.quests.some((q) => !q.claimed && q.prog >= q.n) || Meta.canBonus();
     $('menu').innerHTML = `
       <div class="mtop">
-        <div class="logo">REALM RAIDERS<small>CO-OP ACTION RPG</small></div>
+        <div class="logo">REALM RAIDERS<small>${tr('CO-OP ACTION RPG')}</small></div>
         <div class="sp"></div>
-        <button class="btn sm y${chest ? ' dot' : ''}" data-act="chest">${SVGI.chest} Daily chest</button>
+        <button class="btn sm dark" data-act="lang">${SVGI.globe} ${Lang.ko ? 'English' : '한국어'}</button>
+        <button class="btn sm y${chest ? ' dot' : ''}" data-act="chest">${SVGI.chest} ${tr('Daily chest')}</button>
         <span class="pill o"><span class="coin"></span> ${fmtNum(s.gold)}</span>
       </div>
       <div class="showcase">
         <canvas id="showcv" data-hero="${h.id}"></canvas>
-        <div class="hn o">${esc(h.name)}</div>
-        <div class="ht">${esc(h.title)} · <span style="color:${ROLE_COLOR[h.role]}">${h.role}</span></div>
-        <div class="row" style="justify-content:center"><span class="tag">Lv ${hh.lvl}</span><span class="tag">Power ${Meta.power(h.id)}</span></div>
+        <div class="hn o">${esc(tr(h.name))}</div>
+        <div class="ht">${esc(tr(h.title))} · <span style="color:${ROLE_COLOR[h.role]}">${tr(h.role)}</span></div>
+        <div class="row" style="justify-content:center"><span class="tag">Lv ${hh.lvl}</span><span class="tag">${tr('Power')} ${Meta.power(h.id)}</span></div>
         <div class="lvbar"><i style="width:${hh.lvl >= MAX_LVL ? 100 : Math.round(hh.xp / Meta.xpNeed(hh.lvl) * 100)}%"></i></div>
-        <button class="btn sm dark" data-act="open" data-arg="heroes">Change hero</button>
+        <button class="btn sm dark" data-act="open" data-arg="heroes">${tr('Change hero')}</button>
       </div>
       <div class="modes">
-        <button class="mode adv" data-act="setup" data-arg="adventure"><span class="ic">${SVGI.sword}</span><span><b>Adventure</b><span>Raid 5 realms · bosses · loot</span></span></button>
-        <button class="mode aby" data-act="setup" data-arg="abyss" ${Meta.abyssUnlocked() ? '' : 'disabled'}><span class="ic">${SVGI.swirl}</span><span><b>The Abyss</b><span>${Meta.abyssUnlocked() ? 'Endless floors · best ' + s.stats.abyssBest : 'Beat the Whispering Woods first'}</span></span></button>
-        <button class="mode are" data-act="setup" data-arg="arena"><span class="ic">${SVGI.cross}</span><span><b>Arena</b><span>Hero vs hero · team or free-for-all</span></span></button>
-        <button class="mode onl" data-act="open" data-arg="online"><span class="ic">${SVGI.users}</span><span><b>Play with friends</b><span>Online room code · or join on one screen</span></span></button>
+        <button class="mode adv" data-act="setup" data-arg="adventure"><span class="ic">${SVGI.sword}</span><span><b>${tr('Adventure')}</b><span>${tr('Raid 5 realms · bosses · loot')}</span></span></button>
+        <button class="mode aby" data-act="setup" data-arg="abyss" ${Meta.abyssUnlocked() ? '' : 'disabled'}><span class="ic">${SVGI.swirl}</span><span><b>${tr('The Abyss')}</b><span>${Meta.abyssUnlocked() ? tr('Endless floors · best {n}', { n: s.stats.abyssBest }) : tr('Beat the Whispering Woods first')}</span></span></button>
+        <button class="mode are" data-act="setup" data-arg="arena"><span class="ic">${SVGI.cross}</span><span><b>${tr('Arena')}</b><span>${tr('Hero vs hero · team or free-for-all')}</span></span></button>
+        <button class="mode onl" data-act="open" data-arg="online"><span class="ic">${SVGI.users}</span><span><b>${tr('Play with friends')}</b><span>${tr('Online room code · or join on one screen')}</span></span></button>
       </div>
-      <div id="rotate">Turn your phone sideways for the best view</div>
       <div class="mnav">
-        <button class="btn dark" data-act="open" data-arg="heroes">Heroes</button>
-        <button class="btn dark" data-act="open" data-arg="gear">Gear${s.items.some((i) => i.isNew) ? ' ●' : ''}</button>
-        <button class="btn dark" data-act="open" data-arg="camp">Camp</button>
-        <button class="btn dark" data-act="open" data-arg="ach">Achievements</button>
-        <button class="btn dark${qdot ? ' dot' : ''}" data-act="open" data-arg="quests">Quests</button>
-        <button class="btn dark" data-act="open" data-arg="settings">Settings</button>
-        <button class="btn dark" data-act="open" data-arg="help">How to play</button>
+        <button class="btn dark" data-act="open" data-arg="heroes">${tr('Heroes')}</button>
+        <button class="btn dark" data-act="open" data-arg="gear">${tr('Gear')}${s.items.some((i) => i.isNew) ? ' ●' : ''}</button>
+        <button class="btn dark" data-act="open" data-arg="camp">${tr('Camp')}</button>
+        <button class="btn dark" data-act="open" data-arg="ach">${tr('Achievements')}</button>
+        <button class="btn dark${qdot ? ' dot' : ''}" data-act="open" data-arg="quests">${tr('Quests')}</button>
+        <button class="btn dark" data-act="open" data-arg="settings">${tr('Settings')}</button>
+        <button class="btn dark" data-act="open" data-arg="help">${tr('How to play')}</button>
       </div>`;
     this.show('menu', true);
     this.paint($('menu'));
@@ -6776,7 +7146,7 @@ const UI = {
     const g = x.createRadialGradient(w / 2, h * 0.6, 4, w / 2, h * 0.6, w * 0.55);
     g.addColorStop(0, rgba(hero.color, 0.45)); g.addColorStop(1, 'rgba(0,0,0,0)');
     x.fillStyle = g; x.fillRect(0, 0, w, h);
-    const r = Math.min(w, h) * 0.24;
+    const r = Math.min(w, h) * 0.26;
     const u = { id: 1, kind: 'hero', x: w / 2, y: h * 0.6, px: w / 2, py: h * 0.6, r, baseR: r, hero, ang: ang != null ? ang : 0.9, st: newStatus(), buffs: [], cd: {}, pl: { slot: 0 }, anim: 0, flash: 0, shield: 0 };
     x.fillStyle = 'rgba(0,0,0,0.3)'; ellipse(x, u.x, u.y + r * 0.8, r * 0.9, r * 0.32); x.fill();
     if (dim) x.globalAlpha = 0.35;
@@ -6792,7 +7162,7 @@ const UI = {
   // ---------- panels ----------
   panel(title, body, opts) {
     opts = opts || {};
-    $('panel').innerHTML = `<div class="pbox"><div class="phead"><button class="btn sm dark" data-act="back">${SVGI.back}</button><h2 class="o">${title}</h2>${opts.right || ''}<span class="pill o"><span class="coin"></span> ${fmtNum(Meta.s.gold)}</span></div><div class="pbody" id="pbody">${body}</div>${opts.foot ? `<div class="phead" style="border-top:.12em solid var(--line);border-bottom:0">${opts.foot}</div>` : ''}</div>`;
+    $('panel').innerHTML = `<div class="pbox"><div class="phead"><button class="btn sm dark" data-act="back">${SVGI.back}</button><h2 class="o">${title}</h2>${opts.right || ''}<span class="pill o"><span class="coin"></span> ${fmtNum(Meta.s.gold)}</span></div><div class="pbody" id="pbody">${body}</div>${opts.foot ? `<div class="phead pfoot">${opts.foot}</div>` : ''}</div>`;
     this.show('panel', true);
     this.paint($('panel'));
   },
@@ -6824,10 +7194,10 @@ const UI = {
     const list = HEROES.slice().sort((a, b) => (s.heroes[b.id].unlocked - s.heroes[a.id].unlocked) || a.rarity - b.rarity);
     const cards = list.map((h) => {
       const hh = s.heroes[h.id];
-      const req = hh.unlocked ? `<span class="lv">Lv ${hh.lvl} · Power ${Meta.power(h.id)}</span>` : h.unlock.gold != null ? `<span class="lv">${SVGI.lock} <span class="coin"></span> ${fmtNum(h.unlock.gold)}</span>` : `<span class="lv">${SVGI.lock} Achievement</span>`;
-      return `<div class="card hc${s.sel === h.id ? ' sel' : ''}${hh.unlocked ? '' : ' lock'}" data-act="hero" data-arg="${h.id}"><canvas data-hero="${h.id}" data-dim="${hh.unlocked ? 0 : 1}"></canvas><span class="nm">${esc(h.name)}</span><span class="rl" style="background:${ROLE_COLOR[h.role]}">${h.role}</span>${req}</div>`;
+      const req = hh.unlocked ? `<span class="lv">Lv ${hh.lvl} · ${tr('Power')} ${Meta.power(h.id)}</span>` : h.unlock.gold != null ? `<span class="lv">${SVGI.lock} <span class="coin"></span> ${fmtNum(h.unlock.gold)}</span>` : `<span class="lv">${SVGI.lock} ${tr('Achievement')}</span>`;
+      return `<div class="card hc${s.sel === h.id ? ' sel' : ''}${hh.unlocked ? '' : ' lock'}" data-act="hero" data-arg="${h.id}"><canvas data-hero="${h.id}" data-dim="${hh.unlocked ? 0 : 1}"></canvas><span class="nm">${esc(tr(h.name))}</span><span class="rl" style="background:${ROLE_COLOR[h.role]}">${tr(h.role)}</span>${req}</div>`;
     }).join('');
-    this.panel('Heroes · ' + heroCount(s) + '/' + HEROES.length, `<div class="grid">${cards}</div>`);
+    this.panel(tr('Heroes') + ' · ' + heroCount(s) + '/' + HEROES.length, `<div class="grid">${cards}</div>`);
   },
 
   p_hero(id) {
@@ -6836,35 +7206,35 @@ const UI = {
     const lv = hh.lvl;
     const gear = SLOTS.map((sl) => {
       const it = Meta.item(hh.gear[sl]);
-      return it ? this.itemCard(it, `data-act="item" data-arg="${it.uid}"`) : `<div class="item" style="border-color:#3a2f70" data-act="gearpick" data-arg="${id}:${sl}"><span class="in muted">Empty ${SLOT_NAME[sl]}</span><span class="is">Tap to equip</span></div>`;
+      return it ? this.itemCard(it, `data-act="item" data-arg="${it.uid}"`) : `<div class="item" style="border-color:#3a2f70" data-act="gearpick" data-arg="${id}:${sl}"><span class="in muted">${tr('Empty')} · ${tr(SLOT_NAME[sl])}</span><span class="is">${tr('Tap to equip')}</span></div>`;
     }).join('');
     const unlock = hh.unlocked ? '' : h.unlock.gold != null
-      ? `<button class="btn y" data-act="unlock" data-arg="${id}" ${Meta.canUnlock(id) ? '' : 'disabled'}>Unlock · <span class="coin"></span> ${fmtNum(h.unlock.gold)}</button>`
-      : `<span class="tag">Unlock: ${esc((ACHIEVEMENTS.find((a) => a.id === h.unlock.ach) || {}).desc || '')}</span>`;
+      ? `<button class="btn y" data-act="unlock" data-arg="${id}" ${Meta.canUnlock(id) ? '' : 'disabled'}>${tr('Unlock')} · <span class="coin"></span> ${fmtNum(h.unlock.gold)}</button>`
+      : `<span class="tag">${tr('Unlock')}: ${esc(tr((ACHIEVEMENTS.find((a) => a.id === h.unlock.ach) || {}).desc || ''))}</span>`;
     const body = `<div class="row" style="align-items:flex-start;gap:1em">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:.3em;min-width:9em"><canvas data-hero="${id}" style="width:9em;height:9em"></canvas>
-        <span class="rl tag" style="background:${ROLE_COLOR[h.role]};color:#100a20">${h.role}</span>
-        ${hh.unlocked ? `<span>Level ${lv}${lv >= MAX_LVL ? ' (max)' : ''}</span><div class="lvbar" style="width:9em"><i style="width:${lv >= MAX_LVL ? 100 : Math.round(hh.xp / Meta.xpNeed(lv) * 100)}%"></i></div><span class="kv">${hh.runs} runs · ${fmtNum(hh.kills)} kills</span>` : ''}
+      <div style="display:flex;flex-direction:column;align-items:center;gap:.3em;min-width:8em"><canvas data-hero="${id}" style="width:8em;height:8em"></canvas>
+        <span class="rl tag" style="background:${ROLE_COLOR[h.role]};color:#100a20">${tr(h.role)}</span>
+        ${hh.unlocked ? `<span>${tr('Level {n}', { n: lv })}${lv >= MAX_LVL ? ' (' + tr('max') + ')' : ''}</span><div class="lvbar" style="width:8em"><i style="width:${lv >= MAX_LVL ? 100 : Math.round(hh.xp / Meta.xpNeed(lv) * 100)}%"></i></div><span class="kv">${tr('{a} runs · {b} kills', { a: hh.runs, b: fmtNum(hh.kills) })}</span>` : ''}
       </div>
       <div style="flex:1;min-width:14em">
-        <div class="kv"><b>${esc(h.title)}</b> · Health <b>${Math.round(h.hp * (1 + 0.07 * (lv - 1)) * (1 + (L.mods.hp || 0)))}</b> · Speed <b>${h.spd}</b> · Power <b>${Meta.power(id)}</b></div>
-        <div class="sec">Attack</div><div class="kv">${basicDesc(h)}</div>
-        <div class="sec">Skill · ${esc(h.skill.name)} <span class="tag">${h.skill.cd}s</span></div><div class="kv">${esc(h.skill.desc)}</div>
-        <div class="sec">Ultimate · ${esc(h.ult.name)}</div><div class="kv">${esc(h.ult.desc)}</div>
-        <div class="sec">Passive · ${esc(h.passive.name)}</div><div class="kv">${esc(h.passive.desc)}</div>
-        ${hh.unlocked ? `<div class="sec">Gear</div><div class="grid" style="grid-template-columns:repeat(3,1fr)">${gear}</div>` : ''}
+        <div class="kv"><b>${esc(tr(h.title))}</b> · ${tr('Health')} <b>${Math.round(h.hp * (1 + 0.07 * (lv - 1)) * (1 + (L.mods.hp || 0)))}</b> · ${tr('Speed')} <b>${h.spd}</b> · ${tr('Power')} <b>${Meta.power(id)}</b></div>
+        <div class="sec">${tr('Attack')}</div><div class="kv">${tr(basicDesc(h))}</div>
+        <div class="sec">${tr('Skill')} · ${esc(tr(h.skill.name))} <span class="tag">${tr('{n}s', { n: h.skill.cd })}</span></div><div class="kv">${esc(tr(h.skill.desc))}</div>
+        <div class="sec">${tr('Ultimate')} · ${esc(tr(h.ult.name))}</div><div class="kv">${esc(tr(h.ult.desc))}</div>
+        <div class="sec">${tr('Passive')} · ${esc(tr(h.passive.name))}</div><div class="kv">${esc(tr(h.passive.desc))}</div>
+        ${hh.unlocked ? `<div class="sec">${tr('Gear')}</div><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(11em,1fr))">${gear}</div>` : ''}
       </div></div>`;
-    const foot = hh.unlocked ? (s.sel === id ? '<span class="tag">Selected</span>' : `<button class="btn g" data-act="select" data-arg="${id}">Play as ${esc(h.name)}</button>`) : unlock;
-    this.panel(esc(h.name), body, { foot: '<div style="flex:1"></div>' + foot });
+    const foot = hh.unlocked ? (s.sel === id ? `<span class="tag">${tr('Selected')}</span>` : `<button class="btn g" data-act="select" data-arg="${id}">${tr('Play as {name}', { name: esc(tr(h.name)) })}</button>`) : unlock;
+    this.panel(esc(tr(h.name)), body, { foot: '<div style="flex:1"></div>' + foot });
   },
 
   itemCard(it, attrs, extra) {
     const by = Meta.equippedBy(it.uid);
     const st = Meta.itemStats(it);
-    return `<div class="item" style="position:relative;border-color:${rarColor(it.rar)}" ${attrs || ''}>${by ? `<span class="eq">${esc(HERO_BY_ID[by].name)}</span>` : ''}${it.isNew ? '<span class="eq" style="left:.35em;right:auto;background:#ff4f6d;color:#fff">NEW</span>' : ''}
-      <span class="in" style="color:${rarColor(it.rar)};${it.isNew ? 'margin-top:.7em' : ''}">${esc(it.name)}${it.up ? ' +' + it.up : ''}</span>
-      <span class="is">${RARITY[it.rar].name} ${SLOT_NAME[it.slot]} · iLvl ${it.ilvl}</span>
-      <span class="is" style="color:#e8e4ff">${statLabel(st[0][0], st[0][1])}${st.length > 1 ? ' · +' + (st.length - 1) + ' more' : ''}</span>${it.uniq ? `<span class="is" style="color:#ffb22e">${esc(UNIQUE_BY_ID[it.uniq].desc)}</span>` : ''}${extra || ''}</div>`;
+    return `<div class="item" style="position:relative;border-color:${rarColor(it.rar)}" ${attrs || ''}>${by ? `<span class="eq">${esc(heroName(by))}</span>` : ''}${it.isNew ? `<span class="eq" style="left:.35em;right:auto;background:#ff4f6d;color:#fff">${tr('NEW')}</span>` : ''}
+      <span class="in" style="color:${rarColor(it.rar)};${it.isNew || by ? 'margin-top:.8em' : ''}">${esc(itemName(it))}${it.up ? ' +' + it.up : ''}</span>
+      <span class="is">${tr(RARITY[it.rar].name)} ${tr(SLOT_NAME[it.slot])} · iLvl ${it.ilvl}</span>
+      <span class="is" style="color:#e8e4ff">${statLabel(st[0][0], st[0][1])}${st.length > 1 ? ' · ' + tr('+{n} more', { n: st.length - 1 }) : ''}</span>${it.uniq ? `<span class="is" style="color:#ffb22e">${esc(tr(UNIQUE_BY_ID[it.uniq].desc))}</span>` : ''}${extra || ''}</div>`;
   },
 
   // --- gear ---
@@ -6872,10 +7242,10 @@ const UI = {
     const s = Meta.s;
     filter = filter || 'all';
     const items = s.items.filter((i) => filter === 'all' || i.slot === filter).sort((a, b) => b.rar - a.rar || Meta.itemScore(b) - Meta.itemScore(a));
-    const tabs = ['all', ...SLOTS].map((f) => `<button class="btn sm ${filter === f ? 'y' : 'dark'}" data-act="gearf" data-arg="${f}">${f === 'all' ? 'All' : SLOT_NAME[f]}</button>`).join('');
+    const tabs = ['all', ...SLOTS].map((f) => `<button class="btn sm ${filter === f ? 'y' : 'dark'}" data-act="gearf" data-arg="${f}">${f === 'all' ? tr('All') : tr(SLOT_NAME[f])}</button>`).join('');
     const body = `<div class="row" style="margin-bottom:.6em">${tabs}<div style="flex:1"></div><span class="kv">${s.items.length}/${INV_MAX}</span></div>
-      ${items.length ? `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(12em,1fr))">${items.map((it) => this.itemCard(it, `data-act="item" data-arg="${it.uid}"`)).join('')}</div>` : '<p class="muted">No gear yet. Gear Chests, elite dens, bosses and daily rewards drop equipment.</p>'}`;
-    this.panel('Gear', body, { foot: `<span class="kv">Salvage unequipped:</span><button class="btn sm dark" data-act="salv" data-arg="0">Commons</button><button class="btn sm dark" data-act="salv" data-arg="1">Rare & below</button>` });
+      ${items.length ? `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(12em,1fr))">${items.map((it) => this.itemCard(it, `data-act="item" data-arg="${it.uid}"`)).join('')}</div>` : `<p class="muted">${tr('No gear yet. Gear Chests, elite dens, bosses and daily rewards drop equipment.')}</p>`}`;
+    this.panel(tr('Gear'), body, { foot: `<span class="kv">${tr('Salvage unequipped:')}</span><button class="btn sm dark" data-act="salv" data-arg="0">${tr('Commons')}</button><button class="btn sm dark" data-act="salv" data-arg="1">${tr('Rare & below')}</button>` });
   },
 
   p_item(uid) {
@@ -6889,32 +7259,32 @@ const UI = {
     const rows = st.map(([k, v]) => {
       let d = '';
       if (curSt) { const o = curSt.get(k) || 0; const df = Math.round((v - o) * 10) / 10; d = df ? ` <span class="${df > 0 ? 'up' : 'down'}">(${df > 0 ? '+' : ''}${df})</span>` : ''; }
-      return `<span>${GEAR_STATS[k][0]}</span><span class="v">+${v}${GEAR_STATS[k][3]}${d}</span>`;
+      return `<span>${tr(GEAR_STATS[k][0])}</span><span class="v">+${v}${GEAR_STATS[k][3]}${d}</span>`;
     }).join('');
-    const nextUp = it.up < 10 ? `<span class="kv">Upgrade +${it.up + 1}: all stats +10%</span>` : '';
+    const nextUp = it.up < 10 ? `<span class="kv">${tr('Upgrade +{n}: all stats +10%', { n: it.up + 1 })}</span>` : '';
     const by = Meta.equippedBy(it.uid);
     const body = `<div class="row" style="align-items:flex-start;gap:1em"><div style="flex:1;min-width:13em">
-      <div style="font-size:1.25em;font-weight:900;color:${rarColor(it.rar)}">${esc(it.name)}${it.up ? ' +' + it.up : ''}</div>
-      <div class="kv">${RARITY[it.rar].name} ${SLOT_NAME[it.slot]} · item level ${it.ilvl} · score ${Meta.itemScore(it)}</div>
-      ${it.uniq ? `<div class="kv" style="color:#ffb22e;margin:.4em 0">★ ${esc(UNIQUE_BY_ID[it.uniq].desc)}</div>` : ''}
+      <div style="font-size:1.3em;font-weight:900;color:${rarColor(it.rar)}">${esc(itemName(it))}${it.up ? ' +' + it.up : ''}</div>
+      <div class="kv">${tr(RARITY[it.rar].name)} ${tr(SLOT_NAME[it.slot])} · ${tr('item level {n}', { n: it.ilvl })} · ${tr('score {n}', { n: Meta.itemScore(it) })}</div>
+      ${it.uniq ? `<div class="kv" style="color:#ffb22e;margin:.4em 0">★ ${esc(tr(UNIQUE_BY_ID[it.uniq].desc))}</div>` : ''}
       <div class="statl" style="margin-top:.5em">${rows}</div>
-      ${by ? `<div class="kv" style="margin-top:.5em">Equipped by <b>${esc(HERO_BY_ID[by].name)}</b></div>` : ''}
-      ${cur && cur !== it ? `<div class="sec">Compared with ${esc(HERO_BY_ID[sel].name)}'s current ${SLOT_NAME[it.slot].toLowerCase()}</div>${this.itemCard(cur, '')}` : ''}
+      ${by ? `<div class="kv" style="margin-top:.5em">${tr('Equipped by {name}', { name: '<b>' + esc(heroName(by)) + '</b>' })}</div>` : ''}
+      ${cur && cur !== it ? `<div class="sec">${tr('Compared with what {name} wears now', { name: esc(heroName(sel)) })}</div>${this.itemCard(cur, '')}` : ''}
       ${nextUp}
     </div></div>`;
     const foot = `<div style="flex:1"></div>
-      <button class="btn sm dark" data-act="lock" data-arg="${it.uid}">${it.lock ? 'Unlock' : 'Lock'}</button>
-      <button class="btn sm r" data-act="salvage" data-arg="${it.uid}" ${it.lock ? 'disabled' : ''}>Salvage <span class="coin"></span> ${Meta.salvageValue(it)}</button>
-      ${it.up < 10 ? `<button class="btn sm b" data-act="upgrade" data-arg="${it.uid}" ${s.gold >= Meta.upCost(it) ? '' : 'disabled'}>Upgrade <span class="coin"></span> ${fmtNum(Meta.upCost(it))}</button>` : '<span class="tag">Max +10</span>'}
-      ${by === sel ? `<button class="btn sm dark" data-act="unequip" data-arg="${sel}:${it.slot}">Unequip</button>` : `<button class="btn sm g" data-act="equip" data-arg="${it.uid}">Equip on ${esc(HERO_BY_ID[sel].name)}</button>`}`;
-    this.panel('Item', body, { foot });
+      <button class="btn sm dark" data-act="lock" data-arg="${it.uid}">${it.lock ? tr('Unlock') : tr('Lock')}</button>
+      <button class="btn sm r" data-act="salvage" data-arg="${it.uid}" ${it.lock ? 'disabled' : ''}>${tr('Salvage')} <span class="coin"></span> ${Meta.salvageValue(it)}</button>
+      ${it.up < 10 ? `<button class="btn sm b" data-act="upgrade" data-arg="${it.uid}" ${s.gold >= Meta.upCost(it) ? '' : 'disabled'}>${tr('Upgrade')} <span class="coin"></span> ${fmtNum(Meta.upCost(it))}</button>` : `<span class="tag">${tr('Max +10')}</span>`}
+      ${by === sel ? `<button class="btn sm dark" data-act="unequip" data-arg="${sel}:${it.slot}">${tr('Unequip')}</button>` : `<button class="btn sm g" data-act="equip" data-arg="${it.uid}">${tr('Equip on {name}', { name: esc(heroName(sel)) })}</button>`}`;
+    this.panel(tr('Item'), body, { foot });
   },
 
   p_gearpick(arg) {
     const [hid, slot] = arg.split(':');
     const items = Meta.s.items.filter((i) => i.slot === slot).sort((a, b) => Meta.itemScore(b) - Meta.itemScore(a));
-    const body = items.length ? `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(12em,1fr))">${items.map((it) => this.itemCard(it, `data-act="equipon" data-arg="${hid}:${it.uid}"`)).join('')}</div>` : `<p class="muted">You have no ${SLOT_NAME[slot].toLowerCase()} yet.</p>`;
-    this.panel('Choose ' + SLOT_NAME[slot] + ' for ' + HERO_BY_ID[hid].name, body);
+    const body = items.length ? `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(12em,1fr))">${items.map((it) => this.itemCard(it, `data-act="equipon" data-arg="${hid}:${it.uid}"`)).join('')}</div>` : `<p class="muted">${tr('You have no {slot} yet.', { slot: tr(SLOT_NAME[slot]) })}</p>`;
+    this.panel(tr('Choose {slot} for {name}', { slot: tr(SLOT_NAME[slot]), name: heroName(hid) }), body);
   },
 
   // --- camp ---
@@ -6922,10 +7292,10 @@ const UI = {
     const s = Meta.s;
     const rows = TALENTS.map((t) => {
       const l = s.talents[t.id] || 0, c = Meta.talentCost(t.id);
-      const pips = Array.from({ length: t.max }, (_, i) => `<span style="display:inline-block;width:.6em;height:.6em;border-radius:.15em;margin-right:.15em;background:${i < l ? 'var(--gold)' : '#3a2f70'}"></span>`).join('');
-      return `<div class="ach${l >= t.max ? ' done' : ''}"><div class="ai">${l}</div><div class="at"><b>${esc(t.name)}</b><span>${esc(t.desc)}</span><div>${pips}</div></div>${c == null ? '<span class="tag">MAX</span>' : `<button class="btn sm y" data-act="talent" data-arg="${t.id}" ${s.gold >= c ? '' : 'disabled'}><span class="coin"></span> ${fmtNum(c)}</button>`}</div>`;
+      const pips = Array.from({ length: t.max }, (_, i) => `<span style="display:inline-block;width:.65em;height:.65em;border-radius:.15em;margin-right:.15em;background:${i < l ? 'var(--gold)' : '#3a2f70'}"></span>`).join('');
+      return `<div class="ach${l >= t.max ? ' done' : ''}"><div class="ai">${l}</div><div class="at"><b>${esc(tr(t.name))}</b><span>${esc(tr(t.desc))}</span><div>${pips}</div></div>${c == null ? '<span class="tag">MAX</span>' : `<button class="btn sm y" data-act="talent" data-arg="${t.id}" ${s.gold >= c ? '' : 'disabled'}><span class="coin"></span> ${fmtNum(c)}</button>`}</div>`;
     }).join('');
-    this.panel('Camp upgrades', `<p class="kv" style="margin-bottom:.5em">Permanent upgrades for every hero, paid with gold from your raids.</p>${rows}`);
+    this.panel(tr('Camp upgrades'), `<p class="kv" style="margin-bottom:.5em">${tr('Permanent upgrades for every hero, paid with gold from your raids.')}</p>${rows}`);
   },
 
   // --- achievements ---
@@ -6936,9 +7306,9 @@ const UI = {
       const ok = !!s.ach[a.id];
       let prog = '';
       if (!ok && a.prog) { const [v, n] = a.prog(s); prog = `<div class="row" style="gap:.4em"><div class="bar"><i style="width:${clamp(v / n, 0, 1) * 100}%"></i></div><span class="kv">${fmtNum(Math.min(v, n))}/${fmtNum(n)}</span></div>`; }
-      return `<div class="ach${ok ? ' done' : ''}"><div class="ai">${ok ? SVGI.star : SVGI.lock}</div><div class="at"><b>${esc(a.name)}</b><span>${esc(a.desc)}</span>${prog}</div><span class="tag"><span class="coin"></span> ${fmtNum(a.gold)}${a.hero ? ' + hero' : ''}</span></div>`;
+      return `<div class="ach${ok ? ' done' : ''}"><div class="ai">${ok ? SVGI.star : SVGI.lock}</div><div class="at"><b>${esc(tr(a.name))}</b><span>${esc(tr(a.desc))}</span>${prog}</div><span class="tag"><span class="coin"></span> ${fmtNum(a.gold)}${a.hero ? ' + ' + tr('hero') : ''}</span></div>`;
     }).join('');
-    this.panel('Achievements · ' + done + '/' + ACHIEVEMENTS.length, rows);
+    this.panel(tr('Achievements') + ' · ' + done + '/' + ACHIEVEMENTS.length, rows);
   },
 
   // --- quests ---
@@ -6948,31 +7318,34 @@ const UI = {
     const rows = d.quests.map((q, i) => {
       const Q = QUESTS.find((x) => x.id === q.id);
       const ok = q.prog >= q.n;
-      return `<div class="ach${q.claimed ? ' done' : ''}"><div class="ai">${q.claimed ? SVGI.star : i + 1}</div><div class="at"><b>${esc(Q.name.replace('{n}', fmtNum(q.n)))}</b><div class="row" style="gap:.4em"><div class="bar"><i style="width:${clamp(q.prog / q.n, 0, 1) * 100}%"></i></div><span class="kv">${fmtNum(q.prog)}/${fmtNum(q.n)}</span></div></div>${q.claimed ? '<span class="tag">Done</span>' : `<button class="btn sm y" data-act="claimq" data-arg="${i}" ${ok ? '' : 'disabled'}><span class="coin"></span> ${q.gold}</button>`}</div>`;
+      return `<div class="ach${q.claimed ? ' done' : ''}"><div class="ai">${q.claimed ? SVGI.star : i + 1}</div><div class="at"><b>${esc(tr(Q.name, { n: fmtNum(q.n) }))}</b><div class="row" style="gap:.4em"><div class="bar"><i style="width:${clamp(q.prog / q.n, 0, 1) * 100}%"></i></div><span class="kv">${fmtNum(q.prog)}/${fmtNum(q.n)}</span></div></div>${q.claimed ? `<span class="tag">${tr('Done')}</span>` : `<button class="btn sm y" data-act="claimq" data-arg="${i}" ${ok ? '' : 'disabled'}><span class="coin"></span> ${q.gold}</button>`}</div>`;
     }).join('');
-    const bonus = d.bonus ? '<span class="tag">Bonus chest claimed</span>' : `<button class="btn ${Meta.canBonus() ? 'y' : 'dark'}" data-act="bonus" ${Meta.canBonus() ? '' : 'disabled'}>${SVGI.chest} Finish all three: bonus gear chest</button>`;
-    this.panel('Daily quests', `<p class="kv" style="margin-bottom:.5em">New quests every day. Progress counts in every mode.</p>${rows}<div class="row" style="margin-top:.6em">${bonus}</div>`);
+    const bonus = d.bonus ? `<span class="tag">${tr('Bonus chest claimed')}</span>` : `<button class="btn ${Meta.canBonus() ? 'y' : 'dark'}" data-act="bonus" ${Meta.canBonus() ? '' : 'disabled'}>${SVGI.chest} ${tr('Finish all three: bonus gear chest')}</button>`;
+    this.panel(tr('Daily quests'), `<p class="kv" style="margin-bottom:.5em">${tr('New quests every day. Progress counts in every mode.')}</p>${rows}<div class="row" style="margin-top:.6em">${bonus}</div>`);
   },
 
   // --- settings ---
   p_settings() {
     const st = Meta.s.settings;
-    const sk = ['Easy', 'Normal', 'Hard'].map((n, i) => `<button class="btn sm ${st.botSkill === i ? 'y' : 'dark'}" data-act="botskill" data-arg="${i}">${n}</button>`).join('');
+    const sk = ['Easy', 'Normal', 'Hard'].map((n, i) => `<button class="btn sm ${st.botSkill === i ? 'y' : 'dark'}" data-act="botskill" data-arg="${i}">${tr(n)}</button>`).join('');
+    const lg = [['auto', tr('Automatic')], ['ko', '한국어'], ['en', 'English']].map(([k, n]) => `<button class="btn sm ${(st.lang || 'auto') === k ? 'y' : 'dark'}" data-act="setlang" data-arg="${k}">${n}</button>`).join('');
     const body = `
-      <div class="sec">Player</div><div class="row"><span>Name</span><input data-set="name" maxlength="16" value="${esc(Meta.s.name)}"></div>
-      <div class="sec">Sound</div>
-      <div class="row"><span style="width:6em">Effects</span><input type="range" min="0" max="1" step="0.05" value="${st.sfx}" data-set="sfx"></div>
-      <div class="row"><span style="width:6em">Music</span><input type="range" min="0" max="1" step="0.05" value="${st.music}" data-set="music"></div>
-      <div class="sec">Game</div>
-      <label class="row"><input type="checkbox" data-set="shake" ${st.shake ? 'checked' : ''}> Screen shake</label>
-      <label class="row"><input type="checkbox" data-set="nums" ${st.nums ? 'checked' : ''}> Damage numbers</label>
-      <label class="row"><input type="checkbox" data-set="autoSalvage" ${st.autoSalvage ? 'checked' : ''}> Auto-salvage Common items</label>
-      <div class="row" style="margin-top:.3em"><span>Bot skill</span>${sk}</div>
-      <div class="sec">Save</div>
-      <p class="kv">Your progress is saved on this device${Meta.cloud ? ' and in your Claude account' : ''}. Copy the save code to move it to another device.</p>
-      <div class="row"><button class="btn sm dark" data-act="export">Copy save code</button><button class="btn sm dark" data-act="import">Load a save code</button><button class="btn sm r" data-act="reset">Reset progress</button></div>
+      <div class="sec">${tr('Language')}</div><div class="row">${lg}</div>
+      <div class="sec">${tr('Player')}</div><div class="row"><span>${tr('Name')}</span><input data-set="name" maxlength="16" value="${esc(Meta.s.name)}"></div>
+      <div class="sec">${tr('Sound')}</div>
+      <div class="row"><span style="width:6em">${tr('Effects')}</span><input type="range" min="0" max="1" step="0.05" value="${st.sfx}" data-set="sfx"></div>
+      <div class="row"><span style="width:6em">${tr('Music')}</span><input type="range" min="0" max="1" step="0.05" value="${st.music}" data-set="music"></div>
+      <div class="sec">${tr('Game')}</div>
+      <div class="row"><span>${tr('Touch buttons')}</span>${[[0.35, tr('See-through')], [0.6, tr('Medium')], [0.9, tr('Solid')]].map(([v, n]) => `<button class="btn sm ${Math.abs((st.btnAlpha || 0.35) - v) < 0.01 ? 'y' : 'dark'}" data-act="btnalpha" data-arg="${v}">${n}</button>`).join('')}</div>
+      <label class="row"><input type="checkbox" data-set="shake" ${st.shake ? 'checked' : ''}> ${tr('Screen shake')}</label>
+      <label class="row"><input type="checkbox" data-set="nums" ${st.nums ? 'checked' : ''}> ${tr('Damage numbers')}</label>
+      <label class="row"><input type="checkbox" data-set="autoSalvage" ${st.autoSalvage ? 'checked' : ''}> ${tr('Auto-salvage Common items')}</label>
+      <div class="row" style="margin-top:.3em"><span>${tr('Bot skill')}</span>${sk}</div>
+      <div class="sec">${tr('Save')}</div>
+      <p class="kv">${Meta.cloud ? tr('Your progress is saved on this device and in your Claude account.') : tr('Your progress is saved on this device.')} ${tr('Copy the save code to move it to another device.')}</p>
+      <div class="row"><button class="btn sm dark" data-act="export">${tr('Copy save code')}</button><button class="btn sm dark" data-act="import">${tr('Load a save code')}</button><button class="btn sm r" data-act="reset">${tr('Reset progress')}</button></div>
       <textarea id="savecode" rows="3" style="width:100%;margin-top:.4em;display:none"></textarea>`;
-    this.panel('Settings', body);
+    this.panel(tr('Settings'), body);
   },
 
   setSetting(k, v) {
@@ -6986,19 +7359,19 @@ const UI = {
 
   p_help() {
     const body = `
-      <div class="sec">The basics</div>
-      <p class="kv">Your hero <b>attacks automatically</b> whatever is in range. You move, dodge, and choose when to use your <b>skill</b>, your <b>ultimate</b> (charges as you deal damage) and your <b>dash</b> (a quick roll you can't be hit during). Red areas are attacks about to land: step out of them!</p>
-      <div class="sec">Raids</div>
-      <p class="kv">Each realm has 7 rooms and a boss. After a room, pick a portal: each shows its reward (<b>Blessings</b> make you stronger for the run, <b>Gear chests</b> give equipment you keep, <b>Springs</b> heal). Fallen allies can be revived by standing next to them. Gold, gear and hero XP stay after the run, win or lose.</p>
-      <div class="sec">Touch</div>
-      <p class="kv">Drag on the left to move. Tap a button to use it at the nearest foe, or drag from a button to aim it, then let go.</p>
-      <div class="sec">Keyboard (up to 3 players on one keyboard)</div>
-      <p class="kv"><b>Player 1:</b> WASD move · Q skill · E ultimate · Space dash (alone you can also use arrows + J/K/L, and the mouse to aim: left click skill, right click ultimate)<br><b>Player 2:</b> IJKL move · U skill · O ultimate · ; dash<br><b>Player 3:</b> Arrows move · Numpad 1 skill · Numpad 2 ultimate · Numpad 0 dash</p>
-      <div class="sec">Gamepads (up to 4)</div>
-      <p class="kv">Left stick move · X or RB skill · B, Y or RT ultimate · A, LB or LT dash · right stick aims · Start for the menu.</p>
-      <div class="sec">Friends</div>
-      <p class="kv">On one screen: open Adventure, Abyss or Arena and have each friend press a key from their keys or a button on their gamepad to join. Online: one player creates a room under <b>Play with friends</b> and shares the 4-letter code; up to 4 players, bots fill the gaps.</p>`;
-    this.panel('How to play', body);
+      <div class="sec">${tr('The basics')}</div>
+      <p class="kv">${tr('HELP_BASICS')}</p>
+      <div class="sec">${tr('Raids')}</div>
+      <p class="kv">${tr('HELP_RAIDS')}</p>
+      <div class="sec">${tr('Touch')}</div>
+      <p class="kv">${tr('HELP_TOUCH')}</p>
+      <div class="sec">${tr('Keyboard (up to 3 players on one keyboard)')}</div>
+      <p class="kv">${tr('HELP_KEYS')}</p>
+      <div class="sec">${tr('Gamepads (up to 4)')}</div>
+      <p class="kv">${tr('HELP_PADS')}</p>
+      <div class="sec">${tr('Friends')}</div>
+      <p class="kv">${tr('HELP_FRIENDS')}</p>`;
+    this.panel(tr('How to play'), body);
   },
 
   // --- setup (adventure / abyss / arena) ---
@@ -7019,25 +7392,25 @@ const UI = {
     const S = this.setup;
     let top = '';
     if (mode === 'adventure') {
-      top = `<div class="sec">Realm</div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(9em,1fr))">${REALMS.map((r) => {
+      top = `<div class="sec">${tr('Realm')}</div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(9.5em,1fr))">${REALMS.map((r) => {
         const un = Meta.realmUnlocked(r.id), cl = s.realms[r.id] || 0;
-        return `<div class="card realm${S.realm === r.id ? ' sel' : ''}${un ? '' : ' lock'}" style="background:linear-gradient(${r.pal.f2},${r.pal.wall})" ${un ? `data-act="realm" data-arg="${r.id}"` : ''}><b style="color:${r.pal.accent}">${r.id}. ${esc(r.name)}</b><span class="bs">Boss: ${esc(BOSSES[r.boss].name)}</span><span class="bs">Power ${(r.power - 1) * 22 + 100}+</span><span class="bs">${un ? (cl ? '★'.repeat(cl) + ' cleared' : 'Not cleared') : SVGI.lock + ' Clear realm ' + (r.id - 1)}</span></div>`;
+        return `<div class="card realm${S.realm === r.id ? ' sel' : ''}${un ? '' : ' lock'}" style="background:linear-gradient(${r.pal.f2},${r.pal.wall})" ${un ? `data-act="realm" data-arg="${r.id}"` : ''}><b style="color:${r.pal.accent}">${r.id}. ${esc(tr(r.name))}</b><span class="bs">${tr('Boss')}: ${esc(tr(BOSSES[r.boss].name))}</span><span class="bs">${tr('Power')} ${(r.power - 1) * 22 + 100}+</span><span class="bs">${un ? (cl ? '★'.repeat(cl) + ' ' + tr('cleared') : tr('Not cleared')) : SVGI.lock + ' ' + tr('Clear realm {n}', { n: r.id - 1 })}</span></div>`;
       }).join('')}</div>
-      <div class="sec">Difficulty</div><div class="tabs">${DIFFS.map((d, i) => `<button class="btn sm ${S.diff === i ? 'on' : 'dark'}" data-act="diff" data-arg="${i}" ${Meta.diffUnlocked(S.realm, i) ? '' : 'disabled'}>${d.name}</button>`).join('')}<span class="kv" style="margin-left:.4em">${S.diff ? 'Tougher monsters, more gold and better loot' : 'Clear a realm to unlock Heroic, clear Heroic for Mythic'}</span></div>`;
+      <div class="sec">${tr('Difficulty')}</div><div class="tabs">${DIFFS.map((d, i) => `<button class="btn sm ${S.diff === i ? 'on' : 'dark'}" data-act="diff" data-arg="${i}" ${Meta.diffUnlocked(S.realm, i) ? '' : 'disabled'}>${tr(d.name)}</button>`).join('')}<span class="kv" style="margin-left:.4em">${S.diff ? tr('Tougher monsters, more gold and better loot') : tr('Clear a realm to unlock Heroic, clear Heroic for Mythic')}</span></div>`;
     } else if (mode === 'abyss') {
-      top = `<p class="kv">Endless floors of mixed monsters with a boss every 5th floor. How deep can you go? Best: <b>floor ${s.stats.abyssBest}</b>.</p>`;
+      top = `<p class="kv">${tr('Endless floors of mixed monsters with a boss every 5th floor. How deep can you go? Best: floor {n}.', { n: '<b>' + s.stats.abyssBest + '</b>' })}</p>`;
     } else {
-      top = `<div class="sec">Arena</div><div class="tabs">${[[2, 1], [2, 2], [2, 3], [2, 4], [0, 4], [0, 6]].map(([t, n]) => `<button class="btn sm ${S.teams === t && S.size === n ? 'on' : 'dark'}" data-act="arenasize" data-arg="${t}:${n}">${t ? n + 'v' + n : 'FFA ' + n}</button>`).join('')}</div>
-        <div class="row" style="margin-top:.4em"><span class="kv">Knockouts to win</span>${[5, 10, 15].map((k) => `<button class="btn sm ${S.target === k ? 'y' : 'dark'}" data-act="target" data-arg="${k}">${k}</button>`).join('')}<span class="kv">Heroes are evened out in the arena: level and gear don't count.</span></div>`;
+      top = `<div class="sec">${tr('Arena')}</div><div class="tabs">${[[2, 1], [2, 2], [2, 3], [2, 4], [0, 4], [0, 6]].map(([t, n]) => `<button class="btn sm ${S.teams === t && S.size === n ? 'on' : 'dark'}" data-act="arenasize" data-arg="${t}:${n}">${t ? n + 'v' + n : tr('FFA') + ' ' + n}</button>`).join('')}</div>
+        <div class="row" style="margin-top:.4em"><span class="kv">${tr('Knockouts to win')}</span>${[5, 10, 15].map((k) => `<button class="btn sm ${S.target === k ? 'y' : 'dark'}" data-act="target" data-arg="${k}">${k}</button>`).join('')}<span class="kv">${tr("Heroes are evened out in the arena: level and gear don't count.")}</span></div>`;
       this.fitArena();
     }
     const slots = this.party.map((p, i) => this.slotHtml(p, i, mode)).join('');
     const maxN = mode === 'arena' ? (S.teams ? S.size * 2 : S.size) : 4;
-    const add = this.party.length < maxN && mode !== 'arena' ? `<div class="slot" data-act="addbot"><b>+ Add bot</b><span class="dv">or press a key / gamepad button to join</span></div>` : '';
-    const body = `${top}<div class="sec">Party ${mode === 'arena' ? '' : '(up to 4)'}</div><div class="slots">${slots}${add}</div>
-      <p class="kv" style="margin-top:.5em">Friends on this device: press <b>U</b> (right keyboard), <b>Numpad 1</b> (arrows) or <b>A</b> on a gamepad to join.</p>`;
-    const title = mode === 'adventure' ? 'Adventure' : mode === 'abyss' ? 'The Abyss' : 'Arena';
-    this.panel(title, body, { foot: `<div style="flex:1"></div><button class="btn y" data-act="start">${SVGI.play} Start</button>` });
+    const add = this.party.length < maxN && mode !== 'arena' ? `<div class="slot" data-act="addbot"><b>+ ${tr('Add bot')}</b><span class="dv">${tr('or press a key / gamepad button to join')}</span></div>` : '';
+    const body = `${top}<div class="sec">${tr('Party')} ${mode === 'arena' ? '' : tr('(up to 4)')}</div><div class="slots">${slots}${add}</div>
+      <p class="kv" style="margin-top:.5em">${tr('Friends on this device: press U (right keyboard), Numpad 1 (arrows) or A on a gamepad to join.')}</p>`;
+    const title = mode === 'adventure' ? tr('Adventure') : mode === 'abyss' ? tr('The Abyss') : tr('Arena');
+    this.panel(title, body, { foot: `<div style="flex:1"></div><button class="btn y" data-act="start">${SVGI.play} ${tr('Start')}</button>` });
   },
 
   fitArena() {
@@ -7062,12 +7435,12 @@ const UI = {
 
   slotHtml(p, i, mode) {
     const h = HERO_BY_ID[p.hero];
-    const team = mode === 'arena' && this.setup.teams ? `<button class="btn sm ${p.team ? 'r' : 'b'}" data-act="team" data-arg="${i}">${p.team ? 'Red' : 'Blue'} team</button>` : '';
-    const nav = `<div class="row" style="justify-content:center;gap:.3em"><button class="btn sm dark" data-act="slothero" data-arg="${i}:-1">‹</button><span>${esc(h.name)}</span><button class="btn sm dark" data-act="slothero" data-arg="${i}:1">›</button></div>`;
+    const team = mode === 'arena' && this.setup.teams ? `<button class="btn sm ${p.team ? 'r' : 'b'}" data-act="team" data-arg="${i}">${p.team ? tr('Red team') : tr('Blue team')}</button>` : '';
+    const nav = `<div class="row" style="justify-content:center;gap:.3em"><button class="btn sm dark" data-act="slothero" data-arg="${i}:-1">‹</button><span>${esc(tr(h.name))}</span><button class="btn sm dark" data-act="slothero" data-arg="${i}:1">›</button></div>`;
     if (p.kind === 'local') {
-      return `<div class="slot hum"><canvas data-hero="${h.id}"></canvas><b style="color:${PLAYER_COLORS[i % 4]}">P${this.party.slice(0, i + 1).filter((x) => x.kind === 'local').length}${i === 0 ? ' · You' : ''}</b>${nav}<span class="dv">${esc(KEY_HINT[p.dev] || p.dev)}</span>${team}${i > 0 ? `<button class="btn sm dark" data-act="kick" data-arg="${i}">Remove</button>` : `<button class="btn sm dark" data-act="dev" data-arg="0">Controls: ${esc(DEV_NAME[p.dev])}</button>`}</div>`;
+      return `<div class="slot hum"><canvas data-hero="${h.id}"></canvas><b style="color:${PLAYER_COLORS[i % 4]}">P${this.party.slice(0, i + 1).filter((x) => x.kind === 'local').length}${i === 0 ? ' · ' + tr('You') : ''}</b>${nav}<span class="dv">${esc(trx(KEY_HINT[p.dev] || p.dev))}</span>${team}${i > 0 ? `<button class="btn sm dark" data-act="kick" data-arg="${i}">${tr('Remove')}</button>` : `<button class="btn sm dark" data-act="dev" data-arg="0">${tr('Controls')}: ${esc(trx(DEV_NAME[p.dev]))}</button>`}</div>`;
     }
-    return `<div class="slot bot"><canvas data-hero="${h.id}"></canvas><b class="muted">Bot</b>${nav}${team}${mode !== 'arena' ? `<button class="btn sm dark" data-act="kick" data-arg="${i}">Remove</button>` : ''}</div>`;
+    return `<div class="slot bot"><canvas data-hero="${h.id}"></canvas><b class="muted">${tr('Bot')}</b>${nav}${team}${mode !== 'arena' ? `<button class="btn sm dark" data-act="kick" data-arg="${i}">${tr('Remove')}</button>` : ''}</div>`;
   },
 
   // Called every frame while a setup panel is open: friends join by pressing a key.
@@ -7090,7 +7463,7 @@ const UI = {
     else return;
     Input.soloKb = !this.party.some((p) => p.kind === 'local' && (p.dev === 'kb2' || p.dev === 'kb3'));
     Sound.play('pickup', 0.6);
-    this.toast(`<b>${DEV_NAME[dev]}</b> joined!`);
+    this.toast(tr('{dev} joined!', { dev: '<b>' + esc(trx(DEV_NAME[dev])) + '</b>' }));
     this.refresh();
   },
 
@@ -7100,35 +7473,35 @@ const UI = {
     this.online = o;
     let body = '';
     if (o.step === 'menu') {
-      body = `<p class="kv">Play the same game together on different phones or computers. One player creates a room; the others join with its code. Up to 4 heroes, bots fill the empty places.</p>
-        <div class="row" style="margin:.6em 0"><span>Your name</span><input data-set="name" maxlength="16" value="${esc(Meta.s.name)}"></div>
+      body = `<p class="kv">${tr('Play the same game together on different phones or computers. One player creates a room; the others join with its code. Up to 4 heroes, bots fill the empty places.')}</p>
+        <div class="row" style="margin:.6em 0"><span>${tr('Your name')}</span><input data-set="name" maxlength="16" value="${esc(Meta.s.name)}"></div>
         <div class="row" style="gap:1em;align-items:stretch">
-          <div class="card" style="flex:1;min-width:13em;cursor:default"><div class="sec">Host</div><p class="kv">Create a room and share the code.</p><button class="btn y" style="margin-top:.4em" data-act="host">Create room</button></div>
-          <div class="card" style="flex:1;min-width:13em;cursor:default"><div class="sec">Join</div><div class="row"><input id="joincode" maxlength="4" placeholder="CODE" style="width:6em;text-transform:uppercase;letter-spacing:.2em;font-weight:900"><button class="btn b" data-act="join">Join</button></div></div>
+          <div class="card" style="flex:1;min-width:13em;cursor:default"><div class="sec">${tr('Host')}</div><p class="kv">${tr('Create a room and share the code.')}</p><button class="btn y" style="margin-top:.4em" data-act="host">${tr('Create room')}</button></div>
+          <div class="card" style="flex:1;min-width:13em;cursor:default"><div class="sec">${tr('Join')}</div><div class="row"><input id="joincode" maxlength="4" placeholder="CODE" style="width:6em;text-transform:uppercase;letter-spacing:.2em;font-weight:900"><button class="btn b" data-act="join">${tr('Join')}</button></div></div>
         </div>
-        <p class="kv" style="margin-top:.6em">Online play connects your devices directly (WebRTC) and needs an internet connection. It works from the GitHub Pages version of the game, not inside the Claude preview. On mobile data, if a connection fails, try Wi-Fi. Friends on the same screen can also just join from Adventure, Abyss or Arena.</p>`;
+        <p class="kv" style="margin-top:.6em">${tr('ONLINE_NOTE')}</p>`;
     } else if (o.step === 'wait') {
-      body = `<p class="kv">${esc(o.msg || 'Connecting...')}</p>`;
+      body = `<p class="kv">${esc(trx(o.msg || 'Connecting...'))}</p>`;
     } else if (o.step === 'error') {
-      body = `<p style="color:#ff8a9a">${esc(o.msg)}</p><div class="row" style="margin-top:.6em"><button class="btn" data-act="onlinemenu">Back</button></div>`;
+      body = `<p style="color:#ff8a9a">${esc(trx(o.msg))}</p><div class="row" style="margin-top:.6em"><button class="btn" data-act="onlinemenu">${tr('Back')}</button></div>`;
     } else if (o.step === 'lobby') {
       const L = o.lobby || { players: [], cfg: {} };
       const isHost = o.role === 'host';
       const cfg = L.cfg || {};
-      const rows = L.players.map((p) => { const h = HERO_BY_ID[p.hero] || HEROES[0]; return `<div class="slot ${p.kind === 'bot' ? 'bot' : 'hum'}"><canvas data-hero="${h.id}"></canvas><b style="color:${p.kind === 'bot' ? '#a0a8c0' : PLAYER_COLORS[p.slot % 4]}">${esc(p.kind === 'bot' ? 'Bot' : p.name)}${p.slot === o.slot ? ' (you)' : ''}</b><span>${esc(h.name)} · Lv ${p.lvl || 1}</span>${p.slot === o.slot ? `<div class="row" style="justify-content:center"><button class="btn sm dark" data-act="onhero" data-arg="-1">‹</button><button class="btn sm dark" data-act="onhero" data-arg="1">›</button></div>` : ''}</div>`; }).join('');
+      const rows = L.players.map((p) => { const h = HERO_BY_ID[p.hero] || HEROES[0]; return `<div class="slot ${p.kind === 'bot' ? 'bot' : 'hum'}"><canvas data-hero="${h.id}"></canvas><b style="color:${p.kind === 'bot' ? '#a0a8c0' : PLAYER_COLORS[p.slot % 4]}">${esc(p.kind === 'bot' ? tr('Bot') : p.name)}${p.slot === o.slot ? ' (' + tr('you') + ')' : ''}</b><span>${esc(tr(h.name))} · Lv ${p.lvl || 1}</span>${p.slot === o.slot ? `<div class="row" style="justify-content:center"><button class="btn sm dark" data-act="onhero" data-arg="-1">‹</button><button class="btn sm dark" data-act="onhero" data-arg="1">›</button></div>` : ''}</div>`; }).join('');
       let conf = '';
       if (isHost) {
-        conf = `<div class="sec">Mode</div><div class="tabs">${['adventure', 'abyss', 'arena'].map((m) => `<button class="btn sm ${cfg.mode === m ? 'on' : 'dark'}" data-act="onmode" data-arg="${m}" ${m === 'abyss' && !Meta.abyssUnlocked() ? 'disabled' : ''}>${m === 'adventure' ? 'Adventure' : m === 'abyss' ? 'Abyss' : 'Arena'}</button>`).join('')}</div>`;
-        if (cfg.mode === 'adventure') conf += `<div class="row" style="margin-top:.4em">${REALMS.map((r) => `<button class="btn sm ${cfg.realm === r.id ? 'y' : 'dark'}" data-act="onrealm" data-arg="${r.id}" ${Meta.realmUnlocked(r.id) ? '' : 'disabled'}>${r.id}. ${esc(r.name)}</button>`).join('')}</div><div class="tabs" style="margin-top:.4em">${DIFFS.map((d, i) => `<button class="btn sm ${cfg.diff === i ? 'on' : 'dark'}" data-act="ondiff" data-arg="${i}" ${Meta.diffUnlocked(cfg.realm, i) ? '' : 'disabled'}>${d.name}</button>`).join('')}</div>`;
-        if (cfg.mode === 'arena') conf += `<div class="tabs" style="margin-top:.4em">${[['team', 'Friends vs bots'], ['versus', 'Friends vs friends'], ['ffa', 'Free for all']].map(([k, n]) => `<button class="btn sm ${cfg.arena === k ? 'on' : 'dark'}" data-act="onarena" data-arg="${k}">${n}</button>`).join('')}</div>`;
-        conf += `<label class="row" style="margin-top:.4em"><input type="checkbox" id="onbots" ${cfg.bots ? 'checked' : ''} data-act="onbots"> Fill empty places with bots</label>`;
-      } else conf = `<p class="kv">The host picks the mode: <b>${esc(cfg.mode === 'adventure' ? 'Adventure · ' + (REALMS[(cfg.realm || 1) - 1].name) + ' · ' + DIFFS[cfg.diff || 0].name : cfg.mode === 'abyss' ? 'The Abyss' : 'Arena')}</b></p>`;
-      body = `${isHost ? `<div class="row" style="justify-content:center;flex-direction:column;align-items:center"><span class="kv">Room code</span><span class="code o">${esc(o.code || '····')}</span><span class="kv">Tell your friends to open Play with friends → Join</span></div>` : ''}${conf}<div class="sec">Players</div><div class="slots">${rows}</div>`;
-      const foot = isHost ? `<div style="flex:1"></div><button class="btn y" data-act="onstart">${SVGI.play} Start</button>` : '<span class="kv">Waiting for the host to start...</span>';
-      this.panel('Play with friends', body, { foot });
+        conf = `<div class="sec">${tr('Mode')}</div><div class="tabs">${['adventure', 'abyss', 'arena'].map((m) => `<button class="btn sm ${cfg.mode === m ? 'on' : 'dark'}" data-act="onmode" data-arg="${m}" ${m === 'abyss' && !Meta.abyssUnlocked() ? 'disabled' : ''}>${m === 'adventure' ? tr('Adventure') : m === 'abyss' ? tr('Abyss') : tr('Arena')}</button>`).join('')}</div>`;
+        if (cfg.mode === 'adventure') conf += `<div class="row" style="margin-top:.4em">${REALMS.map((r) => `<button class="btn sm ${cfg.realm === r.id ? 'y' : 'dark'}" data-act="onrealm" data-arg="${r.id}" ${Meta.realmUnlocked(r.id) ? '' : 'disabled'}>${r.id}. ${esc(tr(r.name))}</button>`).join('')}</div><div class="tabs" style="margin-top:.4em">${DIFFS.map((d, i) => `<button class="btn sm ${cfg.diff === i ? 'on' : 'dark'}" data-act="ondiff" data-arg="${i}" ${Meta.diffUnlocked(cfg.realm, i) ? '' : 'disabled'}>${tr(d.name)}</button>`).join('')}</div>`;
+        if (cfg.mode === 'arena') conf += `<div class="tabs" style="margin-top:.4em">${[['team', 'Friends vs bots'], ['versus', 'Friends vs friends'], ['ffa', 'Free for all']].map(([k, n]) => `<button class="btn sm ${cfg.arena === k ? 'on' : 'dark'}" data-act="onarena" data-arg="${k}">${tr(n)}</button>`).join('')}</div>`;
+        conf += `<label class="row" style="margin-top:.4em"><input type="checkbox" id="onbots" ${cfg.bots ? 'checked' : ''} data-act="onbots"> ${tr('Fill empty places with bots')}</label>`;
+      } else conf = `<p class="kv">${tr('The host picks the mode:')} <b>${esc(cfg.mode === 'adventure' ? tr('Adventure') + ' · ' + tr(REALMS[(cfg.realm || 1) - 1].name) + ' · ' + tr(DIFFS[cfg.diff || 0].name) : cfg.mode === 'abyss' ? tr('The Abyss') : tr('Arena'))}</b></p>`;
+      body = `${isHost ? `<div class="row" style="justify-content:center;flex-direction:column;align-items:center"><span class="kv">${tr('Room code')}</span><span class="code o">${esc(o.code || '····')}</span><span class="kv">${tr('Tell your friends to open Play with friends → Join')}</span></div>` : ''}${conf}<div class="sec">${tr('Players')}</div><div class="slots">${rows}</div>`;
+      const foot = isHost ? `<div style="flex:1"></div><button class="btn y" data-act="onstart">${SVGI.play} ${tr('Start')}</button>` : `<span class="kv">${tr('Waiting for the host to start...')}</span>`;
+      this.panel(tr('Play with friends'), body, { foot });
       return;
     }
-    this.panel('Play with friends', body);
+    this.panel(tr('Play with friends'), body);
   },
 
   // ---------- actions ----------
@@ -7137,10 +7510,13 @@ const UI = {
     switch (a) {
       case 'open': this.open(arg); break;
       case 'back': this.back(); break;
+      case 'lang': s.settings.lang = Lang.ko ? 'en' : 'ko'; applySettings(); Meta.save(); if ($('pause').classList.contains('show')) this.showPause(); else this.showMenu(); break;
+      case 'setlang': s.settings.lang = arg; applySettings(); Meta.save(); this.refresh(); break;
+      case 'btnalpha': s.settings.btnAlpha = +arg; applySettings(); Meta.save(); this.refresh(); break;
       case 'setup': this.setup = null; this.open('setup', arg); break;
       case 'hero': this.open('hero', arg); break;
-      case 'select': s.sel = arg; Meta.save(); if (this.party && this.party[0]) this.party[0].hero = arg; this.toast(`Now playing <b>${esc(HERO_BY_ID[arg].name)}</b>`); this.back(); break;
-      case 'unlock': if (Meta.unlock(arg)) { Sound.play('level', 0.7); this.toast(`<b>${esc(HERO_BY_ID[arg].name)}</b> joined your guild!`); s.sel = arg; Meta.save(); this.refresh(); } break;
+      case 'select': s.sel = arg; Meta.save(); if (this.party && this.party[0]) this.party[0].hero = arg; this.toast(tr('Now playing {name}', { name: '<b>' + esc(heroName(arg)) + '</b>' })); this.back(); break;
+      case 'unlock': if (Meta.unlock(arg)) { Sound.play('level', 0.7); this.toast(tr('{name} joined your guild!', { name: '<b>' + esc(heroName(arg)) + '</b>' })); s.sel = arg; Meta.save(); this.refresh(); } break;
       case 'item': this.open('item', arg); break;
       case 'gearf': this.cur = 'gear'; this.arg = arg; this.refresh(); break;
       case 'gearpick': this.open('gearpick', arg); break;
@@ -7148,17 +7524,17 @@ const UI = {
       case 'equip': Meta.equip(s.sel, +arg); Sound.play('pickup', 0.5); this.refresh(); break;
       case 'unequip': { const [h, sl] = arg.split(':'); Meta.unequip(h, sl); this.refresh(); break; }
       case 'upgrade': if (Meta.upgrade(+arg)) { Sound.play('buy', 0.7); this.refresh(); } break;
-      case 'salvage': { const v = Meta.salvage(+arg); if (v) { Sound.play('coin', 0.7); this.toast(`Salvaged for <span class="coin"></span> <b>${v}</b>`); this.back(); this.refresh(); } break; }
+      case 'salvage': { const v = Meta.salvage(+arg); if (v) { Sound.play('coin', 0.7); this.toast(tr('Salvaged for {g}', { g: '<span class="coin"></span> <b>' + v + '</b>' })); this.back(); this.refresh(); } break; }
       case 'lock': { const it = Meta.item(+arg); if (it) { it.lock = !it.lock; Meta.save(); this.refresh(); } break; }
-      case 'salv': this.confirm(`Salvage every unequipped, unlocked ${+arg ? 'Rare or Common' : 'Common'} item?`, 'Salvage').then((ok) => { if (!ok) return; const r = Meta.salvageBelow(+arg); this.toast(`Salvaged ${r.n} items for <span class="coin"></span> <b>${r.g}</b>`); this.refresh(); }); break;
+      case 'salv': this.confirm(+arg ? tr('Salvage every unequipped, unlocked Rare or Common item?') : tr('Salvage every unequipped, unlocked Common item?'), tr('Salvage')).then((ok) => { if (!ok) return; const r = Meta.salvageBelow(+arg); this.toast(tr('Salvaged {n} items for {g}', { n: r.n, g: '<span class="coin"></span> <b>' + r.g + '</b>' })); this.refresh(); }); break;
       case 'talent': if (Meta.buyTalent(arg)) { Sound.play('buy', 0.7); this.refresh(); } break;
-      case 'claimq': { const g = Meta.claimQuest(+arg); if (g) { Sound.play('coin', 0.8); this.toast(`Quest complete! <span class="coin"></span> <b>${g}</b>`); this.refresh(); } break; }
+      case 'claimq': { const g = Meta.claimQuest(+arg); if (g) { Sound.play('coin', 0.8); this.toast(tr('Quest complete! {g}', { g: '<span class="coin"></span> <b>' + g + '</b>' })); this.refresh(); } break; }
       case 'bonus': { const it = Meta.claimBonus(); if (it) { this.lootToast(it); this.refresh(); } break; }
-      case 'chest': { const r = Meta.claimChest(); if (r) { Sound.play('chest', 0.8); this.toast(`Daily chest: <span class="coin"></span> <b>${r.gold}</b>`); this.lootToast(r.item); this.showMenu(); } else this.toast('Come back tomorrow for another chest'); break; }
+      case 'chest': { const r = Meta.claimChest(); if (r) { Sound.play('chest', 0.8); this.toast(tr('Daily chest: {g}', { g: '<span class="coin"></span> <b>' + r.gold + '</b>' })); this.lootToast(r.item); this.showMenu(); } else this.toast(tr('Come back tomorrow for another chest')); break; }
       case 'botskill': s.settings.botSkill = +arg; Meta.save(); this.refresh(); break;
-      case 'export': { const ta = $('savecode'); ta.style.display = 'block'; ta.value = Meta.exportCode(); ta.select(); try { navigator.clipboard.writeText(ta.value).then(() => this.toast('Save code copied'), () => {}); } catch (e) { /* manual copy */ } break; }
-      case 'import': { const ta = $('savecode'); if (ta.style.display !== 'block') { ta.style.display = 'block'; ta.value = ''; ta.placeholder = 'Paste a save code, then press Load again'; ta.focus(); break; } if (Meta.importCode(ta.value)) { applySettings(); this.toast('Save loaded'); this.closePanels(); this.showMenu(); } else this.toast('That save code is not valid'); break; }
-      case 'reset': this.confirm('Reset all progress? Heroes, gear, gold and achievements will be lost.', 'Reset').then((ok) => { if (ok) { Meta.reset(); applySettings(); this.closePanels(); this.showMenu(); } }); break;
+      case 'export': { const ta = $('savecode'); ta.style.display = 'block'; ta.value = Meta.exportCode(); ta.select(); try { navigator.clipboard.writeText(ta.value).then(() => this.toast(tr('Save code copied')), () => {}); } catch (e) { /* manual copy */ } break; }
+      case 'import': { const ta = $('savecode'); if (ta.style.display !== 'block') { ta.style.display = 'block'; ta.value = ''; ta.placeholder = tr('Paste a save code, then press Load again'); ta.focus(); break; } if (Meta.importCode(ta.value)) { applySettings(); this.toast(tr('Save loaded')); this.closePanels(); this.showMenu(); } else this.toast(tr('That save code is not valid')); break; }
+      case 'reset': this.confirm(tr('Reset all progress? Heroes, gear, gold and achievements will be lost.'), tr('Reset')).then((ok) => { if (ok) { Meta.reset(); applySettings(); this.closePanels(); this.showMenu(); } }); break;
       case 'realm': this.setup.realm = +arg; if (!Meta.diffUnlocked(this.setup.realm, this.setup.diff)) this.setup.diff = 0; this.refresh(); break;
       case 'diff': this.setup.diff = +arg; this.refresh(); break;
       case 'arenasize': { const [t, n] = arg.split(':').map(Number); this.setup.teams = t; this.setup.size = n; this.fitArena(); this.refresh(); break; }
@@ -7181,7 +7557,7 @@ const UI = {
       case 'start': this.startSetup(); break;
       // online
       case 'host': Game.hostOnline(); break;
-      case 'join': { const c = ($('joincode').value || '').trim().toUpperCase(); if (c.length !== 4) { this.toast('Enter the 4-letter room code'); break; } Game.joinOnline(c); break; }
+      case 'join': { const c = ($('joincode').value || '').trim().toUpperCase(); if (c.length !== 4) { this.toast(tr('Enter the 4-letter room code')); break; } Game.joinOnline(c); break; }
       case 'onlinemenu': Game.leaveOnline(); this.online = { step: 'menu' }; this.refresh(); break;
       case 'onmode': Game.lobbyCfg({ mode: arg }); break;
       case 'onrealm': Game.lobbyCfg({ realm: +arg, diff: 0 }); break;
@@ -7192,7 +7568,7 @@ const UI = {
       case 'onstart': Game.hostStart(); break;
       // in game
       case 'resume': this.hidePause(); break;
-      case 'abandon': this.confirm('Leave this run? You keep the gold and gear found so far.', 'Leave').then((ok) => { if (ok) { this.hidePause(); Game.abandon(); } }); break;
+      case 'abandon': this.confirm(tr('Leave this run? You keep the gold and gear found so far.'), tr('Leave')).then((ok) => { if (ok) { this.hidePause(); Game.abandon(); } }); break;
       case 'pick': this.pickOffer(+arg.split(':')[0], +arg.split(':')[1]); break;
       case 'reroll': this.rerollOffer(+arg); break;
       case 'again': this.show('results', false); Game.again(); break;
@@ -7203,7 +7579,7 @@ const UI = {
   },
 
   startSetup() {
-    const S = this.setup, s = Meta.s;
+    const S = this.setup;
     const cfg = { mode: S.mode, realm: S.realm, diff: S.diff, teams: S.teams, target: S.target };
     if (S.mode === 'adventure' && !Meta.realmUnlocked(S.realm)) return;
     const party = this.party.map((p) => Object.assign({}, p));
@@ -7217,7 +7593,7 @@ const UI = {
     return new Promise((res) => {
       const d = document.createElement('div');
       d.className = 'dialog';
-      d.innerHTML = `<div class="mbox" style="width:min(90vw,26em)"><p style="text-align:center">${esc(msg)}</p><div class="row" style="justify-content:center"><button class="btn dark" data-act="dlg" data-arg="0">Cancel</button><button class="btn r" data-act="dlg" data-arg="1">${esc(yes || 'OK')}</button></div></div>`;
+      d.innerHTML = `<div class="mbox" style="width:min(calc(var(--vw,1vw)*90),26em)"><p style="text-align:center">${esc(msg)}</p><div class="row" style="justify-content:center"><button class="btn dark" data-act="dlg" data-arg="0">${tr('Cancel')}</button><button class="btn r" data-act="dlg" data-arg="1">${esc(yes || 'OK')}</button></div></div>`;
       $('ui').appendChild(d);
       this.dlg = (ok) => { d.remove(); res(ok); };
     });
@@ -7231,19 +7607,19 @@ const UI = {
     t.innerHTML = html;
     const box = $('toasts');
     box.appendChild(t);
-    while (box.children.length > 4) box.firstChild.remove();
-    setTimeout(() => t.remove(), 3200);
+    while (box.children.length > 3) box.firstChild.remove();
+    setTimeout(() => t.remove(), 3400);
   },
 
   lootToast(it) {
-    this.toast(`<span style="color:${rarColor(it.rar)}">${RARITY[it.rar].name}</span> <b style="color:${rarColor(it.rar)}">${esc(it.name)}</b>`, rarColor(it.rar));
+    this.toast(`<span style="color:${rarColor(it.rar)}">${tr(RARITY[it.rar].name)}</span> <b style="color:${rarColor(it.rar)}">${esc(itemName(it))}</b>`, rarColor(it.rar));
     Sound.play(it.rar >= 3 ? 'legend' : 'chest', 0.7);
   },
 
   tickToasts() {
     while (Meta.toasts.length) {
       const t = Meta.toasts.shift();
-      if (t.kind === 'ach') { this.toast(`${SVGI.star} Achievement: <b>${esc(t.a.name)}</b> <span class="coin"></span> ${t.a.gold}${t.a.hero ? ' · ' + esc(HERO_BY_ID[t.a.hero].name) + ' unlocked!' : ''}`); Sound.play('ach', 0.8); }
+      if (t.kind === 'ach') { this.toast(`${SVGI.star} ${tr('Achievement')}: <b>${esc(tr(t.a.name))}</b> <span class="coin"></span> ${t.a.gold}${t.a.hero ? ' · ' + tr('{name} unlocked!', { name: esc(heroName(t.a.hero)) }) : ''}`); Sound.play('ach', 0.8); }
     }
   },
 
@@ -7266,10 +7642,10 @@ const UI = {
     const rows = O.rows.filter((r) => !r.done);
     if (!rows.length) { this.show('offers', false); this.offer = null; return; }
     const compact = rows.length > 1;
-    $('offers').innerHTML = `<div class="o" style="font-size:1.4em;font-weight:900;color:var(--gold)">Choose a blessing</div>` + rows.map((r) => `<div class="orow"><h3 class="o" style="color:${PLAYER_COLORS[r.slot % 4]}">${esc(r.name)} · ${esc(HERO_BY_ID[r.hero].name)}${compact ? ` <span class="kv">(${esc(KEY_HINT[r.dev] || '')})</span>` : ''}</h3><div class="ocards">${r.ids.map((id, i) => {
+    $('offers').innerHTML = `<div class="o" style="font-size:1.5em;font-weight:900;color:var(--gold)">${tr('Choose a blessing')}</div>` + rows.map((r) => `<div class="orow"><h3 class="o" style="color:${PLAYER_COLORS[r.slot % 4]}">${esc(r.name)} · ${esc(heroName(r.hero))}${compact ? ` <span class="kv">(${esc(trx(KEY_HINT[r.dev] || ''))})</span>` : ''}</h3><div class="ocards">${r.ids.map((id, i) => {
       const b = BLESS_BY_ID[id], have = r.have ? (r.have[id] || 0) : 0;
-      return `<div class="bc${i === r.cur && r.dev !== 'touch' ? ' cur' : ''}" style="border-color:${RARITY[b.rar].color}${compact ? ';min-height:6.5em' : ''}" data-act="pick" data-arg="${r.slot}:${i}"><span class="br" style="color:${RARITY[b.rar].color}">${RARITY[b.rar].name}</span><span class="bstar" style="color:${RARITY[b.rar].color}">${SVGI.star}</span><b>${esc(b.name)}</b><span class="bd">${esc(b.desc)}</span>${have ? `<span class="bn">You have ${have}/${b.max}</span>` : ''}</div>`;
-    }).join('')}</div>${r.rerolls > 0 ? `<button class="btn sm dark" data-act="reroll" data-arg="${r.slot}">Reroll (${r.rerolls} left)</button>` : ''}</div>`).join('');
+      return `<div class="bc${i === r.cur && r.dev !== 'touch' ? ' cur' : ''}" style="border-color:${RARITY[b.rar].color}${compact ? ';min-height:6.5em' : ''}" data-act="pick" data-arg="${r.slot}:${i}"><span class="br" style="color:${RARITY[b.rar].color}">${tr(RARITY[b.rar].name)}</span><span class="bstar" style="color:${RARITY[b.rar].color}">${SVGI.star}</span><b>${esc(tr(b.name))}</b><span class="bd">${esc(tr(b.desc))}</span>${have ? `<span class="bn">${tr('You have {a}/{b}', { a: have, b: b.max })}</span>` : ''}</div>`;
+    }).join('')}</div>${r.rerolls > 0 ? `<button class="btn sm dark" data-act="reroll" data-arg="${r.slot}">${tr('Reroll ({n} left)', { n: r.rerolls })}</button>` : ''}</div>`).join('');
     this.show('offers', true);
   },
 
@@ -7308,13 +7684,14 @@ const UI = {
   showPause() {
     const locals = Game.localUnits();
     const bl = locals.map((u) => {
-      const list = Object.keys(u.bless || {}).map((id) => `<span class="tag" style="background:${RARITY[BLESS_BY_ID[id].rar].color};color:#100a20">${esc(BLESS_BY_ID[id].name)}${u.bless[id] > 1 ? ' ×' + u.bless[id] : ''}</span>`).join(' ');
-      return `<div><b style="color:${u.hero.color}">${esc(u.hero.name)}</b> <span class="kv">${list || 'No blessings yet'}</span></div>`;
+      const list = Object.keys(u.bless || {}).map((id) => `<span class="tag" style="background:${RARITY[BLESS_BY_ID[id].rar].color};color:#100a20">${esc(tr(BLESS_BY_ID[id].name))}${u.bless[id] > 1 ? ' ×' + u.bless[id] : ''}</span>`).join(' ');
+      return `<div><b style="color:${u.hero.color}">${esc(tr(u.hero.name))}</b> <span class="kv">${list || tr('No blessings yet')}</span></div>`;
     }).join('');
-    $('pause').innerHTML = `<div class="mbox"><h1 class="o">Paused</h1>${Game.online ? '<p class="kv" style="text-align:center">Online games keep running while this menu is open.</p>' : ''}<div class="sec">Blessings</div>${bl}
-      <button class="btn g" data-act="resume">Resume</button>
-      <button class="btn dark" data-act="mute">${Meta.s.settings.sfx > 0 ? 'Mute sound' : 'Unmute sound'}</button>
-      <button class="btn r" data-act="abandon">Leave run</button></div>`;
+    $('pause').innerHTML = `<div class="mbox"><h1 class="o">${tr('Paused')}</h1>${Game.online ? `<p class="kv" style="text-align:center">${tr('Online games keep running while this menu is open.')}</p>` : ''}<div class="sec">${tr('Blessings')}</div>${bl}
+      <button class="btn g" data-act="resume">${tr('Resume')}</button>
+      <button class="btn dark" data-act="lang">${SVGI.globe} ${Lang.ko ? 'English' : '한국어'}</button>
+      <button class="btn dark" data-act="mute">${Meta.s.settings.sfx > 0 ? tr('Mute sound') : tr('Unmute sound')}</button>
+      <button class="btn r" data-act="abandon">${tr('Leave run')}</button></div>`;
     this.show('pause', true);
     Game.paused = true;
   },
@@ -7325,18 +7702,18 @@ const UI = {
   showResults(r) {
     const o = r.out || { gold: 0, xp: 0, items: [], ach: [] };
     const lv = o.lvl;
-    const stats = [['Rooms', r.ws.rooms || 0], ['Kills', fmtNum(r.ws.kills || 0)], ['Best combo', r.ws.bestCombo || 0], ['Time', fmtTime(r.time || 0)], ['Gold', '+' + fmtNum(o.gold)], ['Hero XP', '+' + fmtNum(o.xp)]];
-    if (r.kind === 'abyss') stats.unshift(['Floors', r.res.floor || 0]);
-    if (r.kind === 'arena') { stats.length = 0; stats.push(['Knockouts', r.kos || 0], ['Falls', r.deaths || 0], ['Gold', '+' + fmtNum(o.gold)], ['Hero XP', '+' + fmtNum(o.xp)]); }
+    const stats = [[tr('Rooms'), r.ws.rooms || 0], [tr('Kills'), fmtNum(r.ws.kills || 0)], [tr('Best combo'), r.ws.bestCombo || 0], [tr('Time'), fmtTime(r.time || 0)], [tr('Gold'), '+' + fmtNum(o.gold)], [tr('Hero XP'), '+' + fmtNum(o.xp)]];
+    if (r.kind === 'abyss') stats.unshift([tr('Floors'), r.res.floor || 0]);
+    if (r.kind === 'arena') { stats.length = 0; stats.push([tr('Knockouts'), r.kos || 0], [tr('Falls'), r.deaths || 0], [tr('Gold'), '+' + fmtNum(o.gold)], [tr('Hero XP'), '+' + fmtNum(o.xp)]); }
     const loot = (o.items || []).map((it) => this.itemCard(it, '')).join('');
-    const ach = (o.ach || []).map((a) => `<span class="tag" style="background:var(--gold);color:#3a2300">${esc(a.name)}</span>`).join(' ');
+    const ach = (o.ach || []).map((a) => `<span class="tag" style="background:var(--gold);color:#3a2300">${esc(tr(a.name))}</span>`).join(' ');
     $('results').innerHTML = `<div class="mbox res"><h1 class="o" style="color:${r.win ? 'var(--gold)' : '#ff8a9a'}">${esc(r.title)}</h1>${r.sub ? `<p class="kv" style="text-align:center">${esc(r.sub)}</p>` : ''}
       <div class="rgrid">${stats.map(([k, v]) => `<div class="rstat"><b>${v}</b><span>${k}</span></div>`).join('')}</div>
-      ${lv ? `<p style="text-align:center">${esc(HERO_BY_ID[r.hero].name)} ${lv.after > lv.before ? `<b style="color:var(--gold)">reached level ${lv.after}!</b>` : 'level ' + lv.after}</p>` : ''}
-      ${o.realmUnlock ? `<p style="text-align:center;color:var(--gold)">New realm unlocked: ${esc(REALMS[o.realmUnlock - 1].name)}!</p>` : ''}
-      ${loot ? `<div class="sec">Loot</div><div class="loot">${loot}</div>` : ''}
-      ${ach ? `<div class="sec">Achievements</div><div>${ach}</div>` : ''}
-      <div class="row" style="flex-wrap:nowrap">${r.canAgain ? '<button class="btn y" data-act="again">Play again</button>' : ''}<button class="btn" data-act="tomenu">Camp</button></div></div>`;
+      ${lv ? `<p style="text-align:center">${lv.after > lv.before ? `<b style="color:var(--gold)">${tr('{name} reached level {n}!', { name: esc(heroName(r.hero)), n: lv.after })}</b>` : esc(tr('{name} · level {n}', { name: heroName(r.hero), n: lv.after }))}</p>` : ''}
+      ${o.realmUnlock ? `<p style="text-align:center;color:var(--gold)">${tr('New realm unlocked: {name}!', { name: esc(tr(REALMS[o.realmUnlock - 1].name)) })}</p>` : ''}
+      ${loot ? `<div class="sec">${tr('Loot')}</div><div class="loot">${loot}</div>` : ''}
+      ${ach ? `<div class="sec">${tr('Achievements')}</div><div>${ach}</div>` : ''}
+      <div class="row" style="flex-wrap:nowrap">${r.canAgain ? `<button class="btn y" data-act="again">${tr('Play again')}</button>` : ''}<button class="btn" data-act="tomenu">${Game.online ? tr('Back to lobby') : tr('Camp')}</button></div></div>`;
     this.show('results', true);
     if (lv && lv.after > lv.before) Sound.play('level', 0.8);
   },
@@ -7344,17 +7721,23 @@ const UI = {
 
 function basicDesc(h) {
   const b = h.basic;
-  if (b.kind === 'melee') return 'Strikes nearby foes in an arc' + (b.knock > 100 ? ', knocking them back' : '') + '.';
+  if (b.kind === 'melee') return b.knock > 100 ? 'Strikes nearby foes in an arc, knocking them back.' : 'Strikes nearby foes in an arc.';
   if (b.kind === 'chain') return 'Lightning that jumps between foes.';
   if (b.kind === 'thrust') return 'A spear thrust that pierces a line of foes.';
-  const extra = b.splash ? ' that explode and burn' : b.poison ? ' that poison' : b.slow ? ' that slow' : b.pierce ? ' that pierce' : b.homing ? ' that seek their target' : '';
-  return 'Fires bolts' + extra + ' at range.';
+  if (b.splash) return 'Fires bolts that explode and burn at range.';
+  if (b.poison) return 'Fires bolts that poison at range.';
+  if (b.slow) return 'Fires bolts that slow at range.';
+  if (b.pierce) return 'Fires bolts that pierce at range.';
+  if (b.homing) return 'Fires bolts that seek their target at range.';
+  return 'Fires bolts at range.';
 }
 
 function applySettings() {
   const st = Meta.s.settings;
+  setLang(st.lang || 'auto');
   Settings.nums = st.nums;
   Settings.shake = st.shake;
+  Settings.btnAlpha = st.btnAlpha || 0.35;
   Sound.setVol(st.sfx);
   Music.setVol(st.music);
 }
@@ -7377,11 +7760,12 @@ const Game = {
     const unlock = () => { Sound.unlock(); Music.start(this.mood || 'menu'); };
     addEventListener('pointerdown', unlock, true);
     addEventListener('keydown', unlock, true);
+    addEventListener('orientationchange', () => setTimeout(() => View.resize(), 250));
     document.addEventListener('visibilitychange', () => { if (document.hidden && this.scene === 'play' && !this.online && !this.paused) UI.showPause(); });
     this.makeDemo();
     UI.showMenu();
     this.setMood('menu');
-    Meta.connectCloud().then((r) => { if (r === 'loaded') { applySettings(); if (this.scene === 'menu' && !UI.cur) UI.showMenu(); UI.toast('Progress loaded from your Claude account'); } });
+    Meta.connectCloud().then((r) => { if (r === 'loaded') { applySettings(); if (this.scene === 'menu' && !UI.cur) UI.showMenu(); UI.toast(tr('Progress loaded from your Claude account')); } });
     try {
       if ('serviceWorker' in navigator && /^https?:/.test(location.protocol) && !/claude\.(ai|site)|claudeusercontent/.test(location.hostname)) navigator.serviceWorker.register('sw.js').catch(() => {});
     } catch (e) { /* not available */ }
@@ -7420,7 +7804,7 @@ const Game = {
       else this.menuFrame(now, dt);
     } catch (e) {
       console.error(e);
-      if (!this.crashed) { this.crashed = true; UI.toast('Something went wrong: ' + esc(e.message)); }
+      if (!this.crashed) { this.crashed = true; UI.toast(tr('Something went wrong: ') + esc(e.message)); }
     }
     Input.endFrame();
   },
@@ -7573,7 +7957,7 @@ const Game = {
     party.forEach((p, i) => {
       const info = p.kind === 'local' ? Meta.playerInfo(p.hero) : Meta.botInfo(p.hero);
       const pl = Object.assign(info, { slot: i, kind: p.kind, dev: p.dev, team: cfg.mode === 'arena' ? p.team || 0 : 0 });
-      pl.name = p.kind === 'local' ? (li === 0 ? Meta.s.name : 'Player ' + (li + 1)) : BOT_NAMES[(seed + bi++ * 7) % BOT_NAMES.length];
+      pl.name = p.kind === 'local' ? (li === 0 ? Meta.s.name : 'P' + (li + 1)) : BOT_NAMES[(seed + bi++ * 7) % BOT_NAMES.length];
       if (p.kind === 'local') li++;
       if (p.kind === 'bot') pl.bot = new HeroBot(Meta.s.settings.botSkill, seed + i);
       players.push(pl);
@@ -7611,9 +7995,9 @@ const Game = {
       Meta.s.tutorial = true;
       Meta.save();
       const d = this.locals[0].dev;
-      const how = d === 'touch' ? 'Drag on the left to move. Tap SKILL, ULT and the dash button, or drag them to aim.' : d.startsWith('pad') ? 'Left stick moves. X skill, B ultimate, A dash.' : 'WASD to move. Q skill, E ultimate, Space dash. The mouse aims.';
-      setTimeout(() => UI.toast('Your hero attacks on its own. ' + how), 1800);
-      setTimeout(() => UI.toast('Step out of <b>red areas</b>: they are attacks about to land!'), 6500);
+      const how = d === 'touch' ? 'Drag on the left to move. Tap the skill, ultimate and dash buttons, or drag them to aim.' : d.startsWith('pad') ? 'Left stick moves. X skill, B ultimate, A dash.' : 'WASD to move. Q skill, E ultimate, Space dash. The mouse aims.';
+      setTimeout(() => UI.toast(tr('Your hero attacks on its own.') + ' ' + tr(how)), 1800);
+      setTimeout(() => UI.toast(tr('Step out of <b>red areas</b>: they are attacks about to land!')), 6500);
     }
   },
 
@@ -7645,11 +8029,11 @@ const Game = {
       const sc = res.score || {};
       if (this.cfg && !this.cfg.teams && unit) {
         const place = 1 + Object.values(sc).filter((v) => v > (sc[unit.team] || 0)).length;
-        title = place === 1 ? 'Champion!' : 'Place #' + place;
-      } else title = won ? 'Victory!' : 'Defeat';
-      sub = 'Score ' + Object.values(sc).join(' : ');
-    } else if (res.kind === 'abyss') { title = 'The Abyss'; sub = 'You cleared ' + (res.floor || 0) + ' floors'; }
-    else { title = res.win ? 'Realm cleared!' : 'Defeated'; sub = REALMS[(res.realm || 1) - 1].name + ' · ' + DIFFS[res.diff || 0].name; }
+        title = place === 1 ? tr('Champion!') : tr('Place #{n}', { n: place });
+      } else title = won ? tr('Victory!') : tr('Defeat');
+      sub = tr('Score') + ' ' + Object.values(sc).join(' : ');
+    } else if (res.kind === 'abyss') { title = tr('The Abyss'); sub = tr('You cleared {n} floors', { n: res.floor || 0 }); }
+    else { title = res.win ? tr('Realm cleared!') : tr('Defeated'); sub = tr(REALMS[(res.realm || 1) - 1].name) + ' · ' + tr(DIFFS[res.diff || 0].name); }
     UI.showResults({ title, sub, win: res.kind === 'arena' ? won : res.win || res.kind === 'abyss', res, ws, out, hero, kind: res.kind, time: res.time, canAgain: canAgain, kos: unit ? unit.kos : 0, deaths: unit ? unit.deaths : 0 });
     Sound.play(res.win || won ? 'win' : 'lose', 0.8);
   },
@@ -7853,15 +8237,15 @@ const Game = {
     const wasPlaying = this.scene === 'play';
     if (wasPlaying) { for (const it of this.loot) Meta.addItem(it); Meta.save(); }
     this.leaveOnline(true);
-    if (wasPlaying || this.scene === 'results') { this.scene = 'menu'; this.mirror = null; UI.hideAll(); UI.showMenu(); UI.toast('The host left the game' + (this.loot.length ? '. Your loot was saved.' : '.')); this.setMood('menu'); return; }
-    UI.online = { step: 'error', msg: why === 'version' ? 'Your friend runs a different version. Both of you should reload.' : 'The room was closed.' };
+    if (wasPlaying || this.scene === 'results') { this.scene = 'menu'; this.mirror = null; UI.hideAll(); UI.showMenu(); UI.toast(this.loot.length ? tr('The host left the game. Your loot was saved.') : tr('The host left the game.')); this.setMood('menu'); return; }
+    UI.online = { step: 'error', msg: why === 'version' ? 'Your friend is running a different version. Both of you should reload.' : 'The room was closed.' };
     if (UI.cur === 'online') UI.refresh();
   },
 
   onGuestLeft(g) {
     if (this.scene === 'play' && this.world) {
       const pl = this.playerBySlot(g.slot);
-      if (pl && pl.kind === 'remote') { pl.kind = 'bot'; pl.bot = new HeroBot(1, g.slot + 99); UI.toast(esc(g.name) + ' left. A bot takes over.'); }
+      if (pl && pl.kind === 'remote') { pl.kind = 'bot'; pl.bot = new HeroBot(1, g.slot + 99); UI.toast(tr('{name} left. A bot takes over.', { name: esc(g.name) })); }
       return;
     }
     this.onLobbyChange();

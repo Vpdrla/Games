@@ -1,6 +1,6 @@
 // Service worker: caches the game so it launches and plays with no internet connection.
 // Online games still need a connection; everything else works offline.
-const CACHE = 'realm-raiders-c83ea55ad02b';
+const CACHE = 'realm-raiders-511dc39ef62a';
 const ASSETS = [
   './',
   './index.html',

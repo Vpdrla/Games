@@ -11,7 +11,7 @@ function freshSave() {
     stats: { kills: 0, boss: {}, heroicClears: 0, mythicClears: 0, abyssBest: 0, bestRar: 0, maxUp: 0, flawless: 0, bossNoDown: 0, bestCombo: 0,
       bestMulti: 0, ults: 0, revives: 0, maxBless: 0, legBless: 0, goldEarned: 0, fastClear: 0, coopRuns: 0, onlineGames: 0, arenaWins: 0,
       bestStreak: 0, quests: 0, runs: 0, rooms: 0, wins: 0 },
-    settings: { sfx: 0.8, music: 0.45, shake: 1, nums: 1, botSkill: 1, bots: 2, autoSalvage: false },
+    settings: { sfx: 0.8, music: 0.45, shake: 1, nums: 1, botSkill: 1, bots: 2, autoSalvage: false, lang: 'auto', btnAlpha: 0.35 },
     created: Date.now(), savedAt: 0, tutorial: false,
   };
   for (const h of HEROES) s.heroes[h.id] = { unlocked: h.unlock.gold === 0, lvl: 1, xp: 0, gear: { weapon: null, armor: null, charm: null }, runs: 0, kills: 0, best: 0 };
@@ -441,4 +441,4 @@ const Meta = {
 };
 
 // Display settings read by the renderer and effects (kept in sync by applySettings).
-const Settings = { nums: 1, shake: 1 };
+const Settings = { nums: 1, shake: 1, btnAlpha: 0.35 };
