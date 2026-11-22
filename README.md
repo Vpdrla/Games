@@ -24,6 +24,11 @@ no ads and no internet needed once it's on your device.
 > climb a ranked ladder from Bronze to Legend, defeat six bosses, open packs and build decks,
 > or play a friend on the same phone. Fully offline. It lives at
 > `https://<your-user>.github.io/<repo>/runebound/`.
+>
+> **And [Realm Raiders](realm-raiders/)**, a co-op action RPG: 18 heroes with their own powers,
+> five realms with bosses, loot, blessings and 44 achievements. Play with bots, with friends on
+> one screen (keyboards and gamepads), or online with a room code. It lives at
+> `https://<your-user>.github.io/<repo>/realm-raiders/`.
 
 ## Play it on your phone
 
@@ -128,3 +133,5 @@ NODE_PATH=$(npm root -g) node tools/make-icons.cjs                   # regenerat
   오프라인으로 AI와 대전하거나, 방 코드로 친구와 온라인 대전을 할 수 있습니다.
 - **또 다른 게임:** [`dawnkeeper/`](dawnkeeper/) 폴더에 한 손가락으로 즐기는 로그라이트 서바이버 게임 **Dawnkeeper(던키퍼)** 가 있습니다.
   끝없이 몰려오는 괴물들을 막아내며 새벽까지 버티고, 레벨업마다 무기를 고르고 진화시키세요. 인터넷 없이 플레이됩니다.
+- **또 다른 게임:** [`realm-raiders/`](realm-raiders/) 폴더에 협동 액션 RPG **Realm Raiders(렐름 레이더스)** 가 있습니다.
+  능력이 다른 영웅 18명, 보스가 있는 영역 5곳, 장비와 축복, 업적 44개. 봇과 함께, 한 화면에서 친구와, 또는 방 코드로 온라인으로 즐기세요.
