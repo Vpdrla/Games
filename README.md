@@ -19,6 +19,11 @@ no ads and no internet needed once it's on your device.
 > Blast Ball, Knockout and Bounty, with AI teammates and opponents that play like people, plus
 > friendly battles with a friend's phone. It lives at
 > `https://<your-user>.github.io/<repo>/blast-squad/`.
+>
+> **And [Runebound: Card Duels](runebound/)**, a fantasy card battler in Korean and English:
+> climb a ranked ladder from Bronze to Legend, defeat six bosses, open packs and build decks,
+> or play a friend on the same phone. Fully offline. It lives at
+> `https://<your-user>.github.io/<repo>/runebound/`.
 
 ## Play it on your phone
 
