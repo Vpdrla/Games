@@ -21,6 +21,15 @@ file: no downloads, no ads, no accounts.
 4. Launch it from the home-screen icon. It opens full screen in landscape and keeps working with no
    connection (online play still needs one).
 
+The game always plays sideways: if you hold your phone upright, it turns itself so you can just
+rotate the phone.
+
+### Languages
+
+English and Korean (한국어). Korean phones start in Korean; switch any time with the language
+button on the main menu, in the pause menu, or in Settings. Online, each player sees their own
+language.
+
 ### Option B: just open the file
 
 `index.html` is completely self-contained (all code, graphics, sound and music are generated in the
@@ -41,7 +50,8 @@ you can't be hit during). Red areas are attacks about to land: step out of them.
 | Gamepad (up to 4) | Left stick | X / RB | B / Y / RT | A / LB / LT |
 
 Alone at a keyboard you can also use the arrows with J/K/L, and the mouse to aim. Esc or Start opens
-the menu.
+the menu. The touch buttons are see-through so they don't hide the fight; Settings → Touch buttons
+switches between See-through, Medium and Solid.
 
 ## Modes
 
@@ -140,6 +150,7 @@ node realm-raiders/build.mjs   # bundle src/ -> index.html and stamp sw.js
 
 - `src/js/*.js`: game modules, concatenated in file-name order into one scope:
   - `02-data.js`: heroes, monsters, bosses, realms, blessings, gear, achievements, quests
+  - `02b-lang.js`: Korean translations (`tr()` for fixed text, `trx()` for labels built in game)
   - `03-world.js`: the 60 Hz combat simulation (units, statuses, projectiles, areas, pickups)
   - `04-abilities.js`: every hero's attack, skill, ultimate and passive
   - `05-enemies.js`: monster and boss behaviour
@@ -156,8 +167,10 @@ Tests (Node 22; the browser tests use Playwright with Chromium):
 
 ```bash
 node realm-raiders/tools/net-test.cjs                                      # host/guest sync over an in-memory link
+node realm-raiders/tools/lang-test.cjs                                     # every text shown has a Korean translation
 NODE_PATH=$(npm root -g) node realm-raiders/tools/smoke-test.cjs [shots]   # menus, an adventure and an arena match on autopilot
 NODE_PATH=$(npm root -g) node realm-raiders/tools/smoke-test.cjs [shots] --desktop
+NODE_PATH=$(npm root -g) node realm-raiders/tools/smoke-test.cjs [shots] --portrait --ko   # upright phone, Korean
 NODE_PATH=$(npm root -g) node realm-raiders/tools/online-test.cjs [shots]  # two tabs play online together
 NODE_PATH=$(npm root -g) node realm-raiders/tools/make-icons.cjs           # regenerates the app icons
 ```
@@ -168,6 +181,11 @@ NODE_PATH=$(npm root -g) node realm-raiders/tools/make-icons.cjs           # reg
 
 **Realm Raiders(렐름 레이더스)** 는 휴대폰과 컴퓨터에서 하는 협동 액션 RPG입니다. 각자 다른 능력을 가진
 영웅 18명 중 하나를 골라 다섯 개의 영역을 공략하고, 보스를 쓰러뜨리고, 축복과 장비를 모아 성장하세요.
+
+- **한국어 지원:** 게임 전체가 한국어로 나옵니다. 한국어 휴대폰에서는 자동으로 한국어로 시작하고, 메인 메뉴·일시 정지
+  메뉴·설정의 언어 버튼으로 언제든 바꿀 수 있습니다. 온라인에서도 각자 자기 언어로 보입니다.
+- **항상 가로 화면:** 휴대폰을 세로로 들고 있으면 게임이 알아서 옆으로 돌아갑니다. 휴대폰만 돌려서 하면 됩니다.
+- **반투명 버튼:** 터치 버튼이 반투명이라 전투 화면을 가리지 않습니다. 설정 → 터치 버튼에서 반투명 · 중간 · 진하게 중에 고를 수 있습니다.
 
 - **설치해서 하기 (추천):** 저장소 **Settings → Pages** 에서 이 게임이 있는 브랜치와 `/ (root)` 를 선택해
   저장하면 `https://<사용자명>.github.io/<저장소>/realm-raiders/` 주소가 생깁니다. 휴대폰으로 열고

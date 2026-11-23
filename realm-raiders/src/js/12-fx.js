@@ -49,7 +49,7 @@ const FX = {
     if (!Settings.nums) return;
     if (this.nums.length > 70) this.nums.shift();
     const color = hurt ? '#ff5a5a' : kind === 2 ? '#a8f05a' : kind === 3 ? '#ffa040' : crit ? '#ffd23f' : '#ffffff';
-    this.nums.push({ x, y, vy: -60 - Math.random() * 30, vx: (Math.random() - 0.5) * 30, t: 0, life: crit ? 0.9 : 0.65, v: fmtNum(v), size: crit ? 22 : kind ? 12 : hurt ? 15 : 14, color, crit });
+    this.nums.push({ x, y, vy: -60 - Math.random() * 30, vx: (Math.random() - 0.5) * 30, t: 0, life: crit ? 0.9 : 0.65, v: fmtNum(v), size: crit ? 24 : kind ? 13 : hurt ? 17 : 15, color, crit });
   },
 
   text(x, y, s, color, size) { this.texts.push({ x, y, s, color, size: size || 16, t: 0, life: 1.1 }); },
@@ -77,7 +77,7 @@ const FX = {
         case 'die': this.burst(e[1], e[2], 14, e[3], 180, 0.55, 5); this.burst(e[1], e[2], 6, '#ffffff', 120, 0.3, 3); Sound.play('die', 0.35); break;
         case 'bossdie': this.burst(e[1], e[2], 80, e[3], 420, 1.2, 7); this.ring(e[1], e[2], 300, e[3], 1, 14); this.shake = 18; this.slowmo = 1.2; Sound.play('bossdie', 0.9); break;
         case 'text': this.text(e[1], e[2], e[3], e[4], e[5]); break;
-        case 'heal': if (Settings.nums) this.nums.push({ x: e[1], y: e[2], vy: -40, vx: 0, t: 0, life: 0.8, v: '+' + e[3], size: 13, color: '#5df0b0' }); break;
+        case 'heal': if (Settings.nums) this.nums.push({ x: e[1], y: e[2], vy: -40, vx: 0, t: 0, life: 0.8, v: '+' + e[3], size: 14, color: '#5df0b0' }); break;
         case 'coin': this.burst(e[1], e[2], 2, '#ffd23f', 60, 0.25, 3); Sound.play('coin', 0.25); break;
         case 'pick': this.text(e[1], e[2] - 30, e[4], e[3], 15); this.ring(e[1], e[2], 40, e[3], 0.35, 5); Sound.play('pickup', 0.5); break;
         case 'shake': this.shake = Math.max(this.shake, e[1] * Settings.shake); break;
@@ -216,17 +216,18 @@ const FX = {
       ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 0.82, a0, a1); ctx.stroke();
     }
     ctx.globalAlpha = 1;
+    const tk = View.textK();
     for (const t of this.texts) {
       if (t.screen) continue;
       const k = t.t / t.life;
       ctx.globalAlpha = 1 - k * k;
-      outlineText(ctx, t.s, t.x, t.y - k * 30, t.size, t.color);
+      outlineText(ctx, trx(t.s), t.x, t.y - k * 30, t.size * tk, t.color);
     }
     for (const n of this.nums) {
       const k = n.t / n.life;
       ctx.globalAlpha = k > 0.7 ? (1 - k) / 0.3 : 1;
       const sc = n.crit ? 1 + Math.max(0, 0.4 - n.t) * 1.5 : 1;
-      outlineText(ctx, n.v, n.x, n.y, n.size * sc, n.color);
+      outlineText(ctx, n.v, n.x, n.y, n.size * sc * tk, n.color);
     }
     ctx.restore();
   },

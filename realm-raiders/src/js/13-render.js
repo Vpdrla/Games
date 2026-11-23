@@ -19,19 +19,41 @@ const View = {
     addEventListener('resize', () => this.resize());
   },
 
+  // A phone held upright still plays sideways: the whole game is turned 90 degrees.
   resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-    const W = innerWidth, H = innerHeight;
+    const vw = innerWidth, vh = innerHeight;
+    const touch = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
+    const rot = vh > vw && touch;
+    const W = rot ? vh : vw, H = rot ? vw : vh;
+    this.rot = rot;
     this.W = W; this.H = H; this.dpr = dpr;
+    const app = document.getElementById('app');
+    if (app) {
+      app.style.width = W + 'px'; app.style.height = H + 'px';
+      app.style.transform = rot ? 'rotate(90deg) translateY(-100%)' : 'none';
+    }
     this.cv.width = Math.round(W * dpr); this.cv.height = Math.round(H * dpr);
     this.cv.style.width = W + 'px'; this.cv.style.height = H + 'px';
     const p = document.getElementById('safe-probe');
-    if (p) { const cs = getComputedStyle(p); this.safe = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 }; }
+    let sf = { t: 0, r: 0, b: 0, l: 0 };
+    if (p) { const cs = getComputedStyle(p); sf = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 }; }
+    this.safe = rot ? { l: sf.t, r: sf.b, t: sf.r, b: sf.l } : sf;
+    if (app) {
+      for (const k of ['t', 'r', 'b', 'l']) app.style.setProperty('--sa' + k, this.safe[k] + 'px');
+      app.style.setProperty('--vw', W / 100 + 'px');
+      app.style.setProperty('--vh', H / 100 + 'px');
+      app.style.setProperty('--fs', clamp(Math.min(H * 0.041, W * 0.022), 14, 22).toFixed(1) + 'px');
+    }
+    Input.rot = rot;
     Input.setLayout(W, H, this.safe);
-    this.ui = clamp(Math.min(W, H) / 400, 0.75, 1.4);
+    this.ui = clamp(Math.min(W, H) / 330, 1, 1.7);
   },
 
-  baseZoom() { return Math.min(this.H / 540, this.W / 940); },
+  baseZoom() { return Math.min(this.H / 430, this.W / 760); },
+
+  // world-space text is scaled so it stays readable on small screens
+  textK() { return clamp(1 / (this.cam.z || 1), 0.9, 1.8); },
 
   updateCam(view, locals, dt, snap) {
     const room = view.room;
@@ -800,7 +822,7 @@ const View = {
     x.fillStyle = 'rgba(10,8,20,0.7)'; circle(x, p.x, by, 24); x.fill();
     x.strokeStyle = col; x.lineWidth = 3; circle(x, p.x, by, 24); x.stroke();
     this.icon(x, REWARD_ICON[p.reward] || 'skull', p.x, by, 13);
-    outlineText(x, p.reward === 'boss' ? 'BOSS' : R.name, p.x, p.y + 40, 15, col);
+    outlineText(x, p.reward === 'boss' ? tr('BOSS') : tr(R.name), p.x, p.y + 40, 16 * this.textK(), col);
   },
 
   // ---------- world ----------
@@ -849,7 +871,7 @@ const View = {
         x.fillStyle = 'rgba(10,8,20,0.75)'; x.fillRect(u.x - w / 2 - 1, y - 1, w + 2, 6);
         x.fillStyle = u.elite ? '#ff9a4a' : '#ff4f5a'; x.fillRect(u.x - w / 2, y, w * clamp(u.hp / u.maxHp, 0, 1), 4);
         if (u.shield > 0 && u.maxShield) { x.fillStyle = '#c8f0ff'; x.fillRect(u.x - w / 2, y - 3, w * clamp(u.shield / u.maxShield, 0, 1), 2); }
-        if (u.elite) { const ea = ELITE_AFFIX.find((e) => e.key === u.elite); outlineText(x, ea ? ea.name : '', u.x, y - 9, 11, ea ? ea.color : '#fff'); }
+        if (u.elite) { const ea = ELITE_AFFIX.find((e) => e.key === u.elite); outlineText(x, ea ? tr(ea.name) : '', u.x, y - 10, 12 * this.textK(), ea ? ea.color : '#fff'); }
       } else if (u.kind === 'summon' && u.stype !== 'wisp' && u.hp < u.maxHp) {
         const w = 22, y = u.y - u.r - 9;
         x.fillStyle = 'rgba(10,8,20,0.75)'; x.fillRect(u.x - w / 2 - 1, y - 1, w + 2, 5);
@@ -870,8 +892,8 @@ const View = {
     if (u.shield > 0) { x.fillStyle = 'rgba(160,230,255,0.9)'; x.fillRect(u.x - w / 2, y, w * clamp(u.shield / u.maxHp, 0, 1), 2); }
     x.fillStyle = u.ult >= 100 ? '#ffd23f' : 'rgba(255,210,63,0.55)';
     x.fillRect(u.x - w / 2, y + 5, w * clamp(u.ult / 100, 0, 1), 1.5);
-    const tag = isBot ? 'BOT' : (u.pl && u.pl.name ? u.pl.name : 'P' + (slot + 1));
-    outlineText(x, tag, u.x, y - 8, 11, col);
+    const tag = isBot ? tr('BOT') : (u.pl && u.pl.name ? trx(u.pl.name) : 'P' + (slot + 1));
+    outlineText(x, tag, u.x, y - 9, 13 * this.textK(), col);
   },
 
   // ---------- HUD ----------
@@ -881,7 +903,7 @@ const View = {
     if (view.timeStop) {
       x.save(); x.globalCompositeOperation = 'saturation'; x.fillStyle = '#808080'; x.globalAlpha = 0.85; x.fillRect(0, 0, W, H); x.restore();
       x.fillStyle = 'rgba(40,200,190,0.10)'; x.fillRect(0, 0, W, H);
-      outlineText(x, 'TIME STOP ' + Math.ceil(view.timeStop.t), W / 2, 92 * s, 18 * s, '#53e0d0');
+      outlineText(x, tr('TIME STOP') + ' ' + Math.ceil(view.timeStop.t), W / 2, 92 * s, 18 * s, '#53e0d0');
     }
     if (FX.flash) { x.globalAlpha = FX.flash.a * (1 - FX.flash.t / FX.flash.life); x.fillStyle = FX.flash.color; x.fillRect(0, 0, W, H); x.globalAlpha = 1; }
     const me = locals[0];
@@ -889,32 +911,34 @@ const View = {
       const g = x.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7);
       g.addColorStop(0, 'rgba(120,0,0,0)'); g.addColorStop(1, 'rgba(160,0,0,0.5)');
       x.fillStyle = g; x.fillRect(0, 0, W, H);
-      outlineText(x, me.deadOut ? 'You are out until the next room' : me.autoRev ? 'Rising again...' : 'You are down! Allies can revive you', W / 2, H * 0.32, 17 * s, '#ffb0b0');
+      outlineText(x, tr(me.deadOut ? 'You are out until the next room' : me.autoRev ? 'Rising again...' : 'You are down! Allies can revive you'), W / 2, H * 0.32, 17 * s, '#ffb0b0');
     }
     // party frames
     const hs = view.units.filter((u) => u.kind === 'hero');
     hs.sort((a, b) => (locals.includes(b) ? 1 : 0) - (locals.includes(a) ? 1 : 0) || a.pl.slot - b.pl.slot);
     let fy = 10 * s + sf.t, fx = 10 * s + sf.l;
-    const fw = 132 * s, fh = 30 * s;
+    const fw = 140 * s, fh = 31 * s;
     const maxFrames = view.arena ? 0 : 4;
     for (let i = 0; i < Math.min(hs.length, maxFrames); i++) {
       const u = hs[i], loc = locals.includes(u);
-      x.fillStyle = loc ? 'rgba(20,16,40,0.78)' : 'rgba(10,8,20,0.6)';
+      x.fillStyle = loc ? 'rgba(20,16,40,0.42)' : 'rgba(10,8,20,0.28)';
       roundRect(x, fx, fy, fw, fh, 8 * s); x.fill();
       if (loc) { x.strokeStyle = PLAYER_COLORS[u.pl.slot % 4]; x.lineWidth = 2; x.stroke(); }
       const pr = 11 * s;
       this.body(x, fx + pr + 4 * s, fy + fh / 2, pr, u.hero.color);
-      outlineText(x, u.hero.name[0], fx + pr + 4 * s, fy + fh / 2 + 1, 11 * s, '#fff');
+      outlineText(x, tr(u.hero.name)[0], fx + pr + 4 * s, fy + fh / 2 + 1, 12 * s, '#fff');
       const bx = fx + pr * 2 + 9 * s, bw = fw - (bx - fx) - 7 * s;
-      const nm = u.pl.kind === 'bot' ? u.hero.name + ' · BOT' : (u.pl.name || 'P' + (u.pl.slot + 1)) + ' · ' + u.hero.name;
-      x.font = `800 ${9.5 * s}px system-ui,sans-serif`; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillStyle = '#e8e4ff';
-      x.fillText(nm.length > 20 ? nm.slice(0, 19) + '…' : nm, bx, fy + 8 * s);
+      const nm = u.pl.kind === 'bot' ? tr(u.hero.name) + ' · ' + tr('BOT') : trx(u.pl.name || 'P' + (u.pl.slot + 1)) + ' · ' + tr(u.hero.name);
+      x.font = `800 ${11 * s}px system-ui,sans-serif`; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillStyle = '#ffffff';
+      x.lineWidth = 3 * s * 0.6; x.strokeStyle = 'rgba(10,8,20,0.85)';
+      const nmt = nm.length > 16 ? nm.slice(0, 15) + '…' : nm;
+      x.strokeText(nmt, bx, fy + 8 * s); x.fillText(nmt, bx, fy + 8 * s);
       x.fillStyle = 'rgba(0,0,0,0.6)'; x.fillRect(bx, fy + 14 * s, bw, 6 * s);
       x.fillStyle = u.downed ? '#ff4f5a' : '#5be36a'; x.fillRect(bx, fy + 14 * s, bw * clamp(u.hp / u.maxHp, 0, 1), 6 * s);
       if (u.shield > 0) { x.fillStyle = 'rgba(160,230,255,0.9)'; x.fillRect(bx, fy + 14 * s, bw * clamp(u.shield / u.maxHp, 0, 1), 2.5 * s); }
       x.fillStyle = 'rgba(0,0,0,0.6)'; x.fillRect(bx, fy + 22 * s, bw, 3 * s);
       x.fillStyle = u.ult >= 100 ? `hsl(${45 + Math.sin(t * 8) * 10},100%,60%)` : '#d8a020'; x.fillRect(bx, fy + 22 * s, bw * clamp(u.ult / 100, 0, 1), 3 * s);
-      if (u.downed) outlineText(x, u.deadOut ? 'OUT' : 'DOWN', fx + fw - 22 * s, fy + 9 * s, 10 * s, '#ff5a5a');
+      if (u.downed) outlineText(x, tr(u.deadOut ? 'OUT' : 'DOWN'), fx + fw - 24 * s, fy + 9 * s, 11 * s, '#ff5a5a');
       if (loc && opts.devs && opts.devs[u.id] && opts.devs[u.id] !== 'touch') {
         const cx = fx + fw + 14 * s, cy = fy + fh / 2;
         x.fillStyle = 'rgba(10,8,20,0.7)'; circle(x, cx, cy, 11 * s); x.fill();
@@ -928,10 +952,10 @@ const View = {
     const hud = view.mode && view.mode.hud ? view.mode.hud() : { label: '' };
     if (view.arena) this.arenaHud(x, view, s, t);
     else {
-      outlineText(x, hud.label || '', W / 2, 16 * s + sf.t, 13 * s, '#e8e4ff');
+      outlineText(x, trx(hud.label || ''), W / 2, 16 * s + sf.t, 14 * s, '#ffffff');
       const m = view.mode;
       if (m && m.total && m.roomIdx >= 0) {
-        const n = m.total, pw = 12 * s;
+        const n = m.total, pw = 13 * s;
         for (let i = 0; i < n; i++) {
           const px = W / 2 + (i - (n - 1) / 2) * pw * 1.4, py = 32 * s + sf.t;
           x.fillStyle = i < m.roomIdx ? '#ffd23f' : i === m.roomIdx ? '#ffffff' : 'rgba(255,255,255,0.25)';
@@ -947,7 +971,7 @@ const View = {
         const g = x.createLinearGradient(bx, 0, bx + bw, 0); g.addColorStop(0, '#ff4f6d'); g.addColorStop(1, '#ff9a4a');
         x.fillStyle = g; x.fillRect(bx, by, bw * clamp(boss.hp / boss.maxHp, 0, 1), 16 * s);
         x.strokeStyle = 'rgba(255,255,255,0.4)'; x.lineWidth = 1; x.beginPath(); x.moveTo(bx + bw / 2, by); x.lineTo(bx + bw / 2, by + 16 * s); x.stroke();
-        outlineText(x, boss.boss.name + '  ' + Math.ceil(boss.hp / boss.maxHp * 100) + '%', W / 2, by + 8 * s, 11 * s, '#ffffff');
+        outlineText(x, tr(boss.boss.name) + '  ' + Math.ceil(boss.hp / boss.maxHp * 100) + '%', W / 2, by + 8 * s, 12 * s, '#ffffff');
       }
     }
     // gold
@@ -956,7 +980,7 @@ const View = {
     this.icon(x, 'coin', gx - 30 * s, gy, 7 * s);
     x.font = `900 ${14 * s}px system-ui,sans-serif`; x.textAlign = 'right'; x.textBaseline = 'middle'; x.fillStyle = '#ffd23f';
     x.fillText(fmtNum(view.gold || 0), gx + 8 * s, gy);
-    if (!opts.touch) { x.font = `700 ${9 * s}px system-ui,sans-serif`; x.fillStyle = 'rgba(255,255,255,0.45)'; x.fillText('Esc: menu', gx + 8 * s, gy + 16 * s); }
+    if (!opts.touch) { x.font = `700 ${9 * s}px system-ui,sans-serif`; x.fillStyle = 'rgba(255,255,255,0.45)'; x.fillText(tr('Esc: menu'), gx + 8 * s, gy + 16 * s); }
     }
     // combo
     const n = view.combo ? view.combo.n : 0;
@@ -966,7 +990,7 @@ const View = {
       const cx = W - sf.r - 70 * s, cy = H * 0.36, sc = 1 + this.comboPulse * 1.2;
       const col = n >= 200 ? '#ff4f6d' : n >= 100 ? '#ff9a4a' : n >= 50 ? '#ffd23f' : '#ffffff';
       outlineText(x, n + '', cx, cy, 28 * s * sc, col);
-      outlineText(x, 'COMBO', cx, cy + 22 * s, 10 * s, col);
+      outlineText(x, tr('COMBO'), cx, cy + 22 * s, 11 * s, col);
     }
     // ult banner
     if (FX.ultCast) {
@@ -975,7 +999,7 @@ const View = {
       x.globalAlpha = k > 0.75 ? (1 - k) / 0.25 : 1;
       x.fillStyle = rgba(u.hero.color, 0.55);
       x.save(); x.translate(W / 2 + slide, H * 0.24); x.transform(1, 0, -0.25, 1, 0, 0); x.fillRect(-170 * s, -20 * s, 340 * s, 40 * s); x.restore();
-      outlineText(x, u.name.toUpperCase() + '!', W / 2 + slide, H * 0.24, 22 * s, '#ffffff');
+      outlineText(x, (Lang.ko ? tr(u.name) : u.name.toUpperCase()) + '!', W / 2 + slide, H * 0.24, 22 * s, '#ffffff');
       x.globalAlpha = 1;
     }
     // banners
@@ -984,15 +1008,15 @@ const View = {
       const a = k < 0.1 ? k / 0.1 : k > 0.8 ? (1 - k) / 0.2 : 1;
       x.globalAlpha = a;
       const sc = k < 0.1 ? 1.4 - k * 4 : 1;
-      outlineText(x, b.title, W / 2, H * 0.17, 30 * s * sc, b.color);
-      if (b.sub) outlineText(x, b.sub, W / 2, H * 0.17 + 28 * s, 14 * s, '#e8e4ff');
+      outlineText(x, trx(b.title), W / 2, H * 0.17, 30 * s * sc, b.color);
+      if (b.sub) outlineText(x, trx(b.sub), W / 2, H * 0.17 + 28 * s, 15 * s, '#ffffff');
       x.globalAlpha = 1;
     }
     for (const tx of FX.texts) {
       if (!tx.screen) continue;
       const k = tx.t / tx.life;
       x.globalAlpha = k > 0.7 ? (1 - k) / 0.3 : 1;
-      outlineText(x, tx.s, W / 2, H * 0.3 - k * 20, tx.size * s, tx.color);
+      outlineText(x, trx(tx.s), W / 2, H * 0.3 - k * 20, tx.size * s, tx.color);
       x.globalAlpha = 1;
     }
     // off-screen pointers to allies and portals
@@ -1020,20 +1044,20 @@ const View = {
     if (!m.ffa) {
       outlineText(x, String(sc[0] || 0), W / 2 - 46 * s, 34 * s + sf.t, 24 * s, '#4fb3ff');
       outlineText(x, String(sc[1] || 0), W / 2 + 46 * s, 34 * s + sf.t, 24 * s, '#ff5d6d');
-      outlineText(x, 'first to ' + (m.target || 10), W / 2, 38 * s + sf.t, 9 * s, '#c8c0e8');
+      outlineText(x, tr('first to {n}', { n: m.target || 10 }), W / 2, 38 * s + sf.t, 10 * s, '#c8c0e8');
     } else {
       const hs = view.units.filter((u) => u.kind === 'hero').sort((a, b) => (sc[b.team] || 0) - (sc[a.team] || 0)).slice(0, 4);
       hs.forEach((u, i) => {
-        const name = u.pl && u.pl.kind !== 'bot' ? (u.pl.name || 'P' + (u.pl.slot + 1)) : u.hero.name;
-        x.font = `800 ${10 * s}px system-ui,sans-serif`; x.textAlign = 'left'; x.fillStyle = u.hero.color;
+        const name = u.pl && u.pl.kind !== 'bot' ? trx(u.pl.name || 'P' + (u.pl.slot + 1)) : tr(u.hero.name);
+        x.font = `800 ${11 * s}px system-ui,sans-serif`; x.textAlign = 'left'; x.fillStyle = u.hero.color;
         x.fillText((i + 1) + '. ' + name + '  ' + (sc[u.team] || 0), 12 * s + sf.l, 18 * s + i * 14 * s + sf.t);
       });
     }
     let fy = 50 * s + sf.t;
     for (const f of FX.feed) {
       x.globalAlpha = f.t > 4 ? 5 - f.t : 1;
-      x.font = `800 ${9.5 * s}px system-ui,sans-serif`; x.textAlign = 'right'; x.fillStyle = '#ffffff';
-      x.fillText((f.k ? (f.kn || f.k.name) : 'The arena') + '  ⚔  ' + (f.v ? (f.vn || f.v.name) : ''), W - 14 * s - sf.r, fy);
+      x.font = `800 ${10.5 * s}px system-ui,sans-serif`; x.textAlign = 'right'; x.fillStyle = '#ffffff';
+      x.fillText((f.k ? trx(f.kn || tr(f.k.name)) : tr('The arena')) + '  ⚔  ' + (f.v ? trx(f.vn || tr(f.v.name)) : ''), W - 14 * s - sf.r, fy);
       x.globalAlpha = 1;
       fy += 14 * s;
     }
@@ -1045,7 +1069,8 @@ const View = {
     // joystick
     const st = Input.stick;
     const bx = st ? st.x0 : 110 * L.s + this.safe.l, by = st ? st.y0 : this.H - 110 * L.s - this.safe.b;
-    x.globalAlpha = st ? 0.6 : 0.25;
+    const A = Settings.btnAlpha || 0.35;
+    x.globalAlpha = st ? 0.3 + A * 0.5 : 0.12 + A * 0.3;
     x.fillStyle = 'rgba(10,8,20,0.5)'; circle(x, bx, by, L.stickR); x.fill();
     x.strokeStyle = 'rgba(255,255,255,0.5)'; x.lineWidth = 2; x.stroke();
     let kx = bx, ky = by;
@@ -1053,13 +1078,16 @@ const View = {
     x.fillStyle = 'rgba(255,255,255,0.75)'; circle(x, kx, ky, L.stickR * 0.42); x.fill();
     x.globalAlpha = 1;
     const btn = (b, label, col, cd, cdMax, ready, aim) => {
-      x.fillStyle = 'rgba(10,8,20,0.6)'; circle(x, b.x, b.y, b.r); x.fill();
-      if (cd > 0) { x.fillStyle = rgba(col, 0.35); x.beginPath(); x.moveTo(b.x, b.y); x.arc(b.x, b.y, b.r, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - cd / (cdMax || 1))); x.closePath(); x.fill(); }
-      else { x.fillStyle = rgba(col, ready ? 0.75 + Math.sin(t * 8) * 0.15 : 0.6); circle(x, b.x, b.y, b.r * 0.88); x.fill(); }
-      x.strokeStyle = ready ? '#ffffff' : 'rgba(255,255,255,0.6)'; x.lineWidth = ready ? 3 : 2; circle(x, b.x, b.y, b.r); x.stroke();
+      const held = !!aim;
+      x.fillStyle = `rgba(10,8,20,${0.2 + A * 0.4})`; circle(x, b.x, b.y, b.r); x.fill();
+      if (cd > 0) { x.fillStyle = rgba(col, A * 0.7); x.beginPath(); x.moveTo(b.x, b.y); x.arc(b.x, b.y, b.r, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - cd / (cdMax || 1))); x.closePath(); x.fill(); }
+      else { x.fillStyle = rgba(col, Math.min(0.95, (held ? 0.35 : 0.1) + A + (ready ? Math.sin(t * 8) * 0.08 : 0))); circle(x, b.x, b.y, b.r * 0.88); x.fill(); }
+      x.strokeStyle = ready ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)'; x.lineWidth = ready ? 3 : 2; circle(x, b.x, b.y, b.r); x.stroke();
+      x.globalAlpha = 0.65 + A * 0.35;
       if (label === 'dash') this.icon(x, 'dash', b.x, b.y, b.r * 0.5, '#ffffff');
-      else outlineText(x, label, b.x, b.y, b.r * (label.length > 3 ? 0.34 : 0.45), '#ffffff');
-      if (cd > 0) outlineText(x, cd.toFixed(cd < 1 ? 1 : 0), b.x, b.y + b.r * 0.55, b.r * 0.32, '#ffffff');
+      else outlineText(x, label, b.x, b.y, b.r * (label.length > 4 ? 0.3 : label.length > 2 ? 0.38 : 0.48), '#ffffff');
+      if (cd > 0) outlineText(x, cd.toFixed(cd < 1 ? 1 : 0), b.x, b.y + b.r * 0.55, b.r * 0.34, '#ffffff');
+      x.globalAlpha = 1;
       if (aim && (Math.abs(aim.dx) > 20 || Math.abs(aim.dy) > 20)) {
         const a = Math.atan2(aim.dy, aim.dx);
         x.strokeStyle = 'rgba(255,255,255,0.8)'; x.lineWidth = 3; x.beginPath(); x.moveTo(b.x, b.y); x.lineTo(b.x + Math.cos(a) * b.r * 1.8, b.y + Math.sin(a) * b.r * 1.8); x.stroke();
@@ -1068,12 +1096,13 @@ const View = {
       }
     };
     const h = me.hero;
-    btn(L.skill, h.skill.name.split(' ')[0].toUpperCase().slice(0, 6), h.color, me.cd.skill, me.cd.skillMax, me.cd.skill <= 0, Input.btn.skill);
-    btn(L.ult, me.ult >= 100 ? 'ULT' : Math.floor(me.ult) + '%', '#ffd23f', 0, 1, me.ult >= 100, Input.btn.ult);
+    const sk = tr(h.skill.name).split(' ')[0];
+    btn(L.skill, Lang.ko ? sk.slice(0, 4) : sk.toUpperCase().slice(0, 6), h.color, me.cd.skill, me.cd.skillMax, me.cd.skill <= 0, Input.btn.skill);
+    btn(L.ult, me.ult >= 100 ? tr('ULT') : Math.floor(me.ult) + '%', '#ffd23f', 0, 1, me.ult >= 100, Input.btn.ult);
     btn(L.dash, 'dash', '#9be7ff', me.cd.dash, DASH_CD, me.cd.dash <= 0, null);
     const p = L.pause;
-    x.fillStyle = 'rgba(10,8,20,0.6)'; circle(x, p.x, p.y, p.r); x.fill();
-    x.fillStyle = '#ffffff'; x.fillRect(p.x - p.r * 0.35, p.y - p.r * 0.4, p.r * 0.25, p.r * 0.8); x.fillRect(p.x + p.r * 0.1, p.y - p.r * 0.4, p.r * 0.25, p.r * 0.8);
+    x.fillStyle = `rgba(10,8,20,${0.2 + A * 0.4})`; circle(x, p.x, p.y, p.r); x.fill();
+    x.fillStyle = 'rgba(255,255,255,0.85)'; x.fillRect(p.x - p.r * 0.35, p.y - p.r * 0.4, p.r * 0.25, p.r * 0.8); x.fillRect(p.x + p.r * 0.1, p.y - p.r * 0.4, p.r * 0.25, p.r * 0.8);
   },
 };
 
