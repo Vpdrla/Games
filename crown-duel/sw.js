@@ -1,6 +1,6 @@
 // Service worker: caches the game so it launches and plays with no internet connection.
 // Online battles still need a connection; everything else works offline.
-const CACHE = 'crown-duel-22eb2be87882';
+const CACHE = 'crown-duel-ab2a9ee8a5c3';
 const ASSETS = [
   './',
   './index.html',

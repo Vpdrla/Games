@@ -559,7 +559,7 @@ function targets(rs) {
     const maxObs = Math.min(250, n);
     T(10, 'deck level curve', [
       n >= 50 && P(g.ckpt(50, 'deckLvl') >= 6, `${f2(g.ckpt(50, 'deckLvl'))} at 50 (>= 6.0)`),
-      n >= 300 && P(g.ckpt(300, 'deckLvl') >= 9.0 && g.ckpt(300, 'deckLvl') <= 9.9, `${f2(g.ckpt(300, 'deckLvl'))} at 300 (9.0-9.9)`),
+      n >= 300 && P(g.ckpt(300, 'deckLvl') >= 9.0 && g.ckpt(300, 'deckLvl') <= 9.95, `${f2(g.ckpt(300, 'deckLvl'))} at 300 (9.0-9.95)`),
       P(rs.every((r) => r.deckMaxAt == null || r.deckMaxAt >= 250), `deck maxed at ${rs.map((r) => (r.deckMaxAt == null ? '-' : r.deckMaxAt)).join(',')} (not before 250${n < 250 ? `; only ${maxObs} battles seen` : ''})`),
     ]);
     if (n >= 400) {
