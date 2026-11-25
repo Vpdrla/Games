@@ -298,11 +298,12 @@ function addShards(k, n) {
 // The evolutions a deck takes into battle: unlocked ones in its first EVO_SLOTS slots.
 function deckEvos(deck) { return deck.slice(0, EVO_SLOTS).filter((k) => evoUnlocked(k)); }
 
-// The AI's evolutions: from Barbarian Bowl on, more likely the higher the arena (none in training).
+// The AI's evolutions: now and then from Barbarian Bowl on, one from Lava Forge, two in the top arena (none
+// in training). Kept behind a player's own collection: early on you have the Knight's and a few shards.
 function aiEvos(deck, arena, rng) {
   if (arena < 2) return [];
   const can = deck.filter((k) => EVOS[k]);
-  const n = arena >= 6 ? 2 : arena >= 4 ? (rng.next() < 0.6 ? 2 : 1) : rng.next() < 0.6 ? 1 : 0;
+  const n = arena >= 7 ? 2 : arena >= 6 ? (rng.next() < 0.5 ? 2 : 1) : arena >= 5 ? 1 : rng.next() < 0.35 ? 1 : 0;
   const out = [];
   for (const k of rng.shuffle(can.slice())) if (out.length < n) out.push(k);
   return out;

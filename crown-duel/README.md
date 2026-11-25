@@ -76,7 +76,8 @@ Connecting one or both phones to Wi-Fi usually fixes it.
   one shard a day in the shop; the Bone Pit gate hands over the Knight's) to unlock it, then put the
   card in one of the **first two deck slots**. In battle it evolves after it has been played 1 or 2
   times (shown as pips on the card); the next copy comes out evolved with a purple glow, then the
-  count starts over. The AI brings evolutions from Barbarian Bowl on, and online both players' do.
+  count starts over. The AI now and then brings one from Barbarian Bowl on, and more in the top arenas;
+  online both players' evolutions work.
 - The **Crown Road** gives a reward every 1-3 wins (cards, chests, Deck Packs, gold, gems)
   and hands over each arena's cards at its gate, ready to play at your level. Above 2,600
   trophies the **Legend Road** pays a reward every 100 trophies.
@@ -155,6 +156,6 @@ NODE_PATH=$(npm root -g) node crown-duel/tools/make-icons.cjs               # re
   엘릭서(분홍색 막대)가 차오르면 카드를 낼 수 있고, 마지막 1분은 엘릭서가 두 배로 찹니다.
 - **진화:** 원작처럼 13장(기사, 궁수, 해골, 바바리안, 폭탄병, 대포, 전기 주문, 머스킷 총병, 방패 처녀, 저거너트, 서리 정령, 불 마법사, 강령술사)에 진화형이 있습니다.
   카드별 **진화 조각** 6개(뼈 구덩이부터 상자, 크라운 로드, 상점에서 하루 1개; 뼈 구덩이 관문에서 기사 진화)를 모아 해금하고, 덱의 **앞 두 칸(진화 슬롯)** 에 넣으세요.
-  전투에서 1~2번 낸 뒤(카드 위 점으로 표시) 다음 카드가 보라색으로 빛나는 진화형으로 나옵니다. AI는 바바리안 경기장부터 진화를 씁니다.
+  전투에서 1~2번 낸 뒤(카드 위 점으로 표시) 다음 카드가 보라색으로 빛나는 진화형으로 나옵니다. AI는 바바리안 경기장부터 가끔 진화를 쓰고, 높은 아레나일수록 더 자주 씁니다.
 - **골드:** 승리·패배·상자·크라운 로드 골드가 늘었고, 마지막 두 업그레이드 비용이 3,000 / 5,000 골드로 줄었습니다.
 - 연결이 안 되면 한쪽 또는 양쪽 휴대폰을 와이파이에 연결해 보세요.
