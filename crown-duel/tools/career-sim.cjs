@@ -554,11 +554,13 @@ function targets(rs) {
       const short = rs.filter((r) => r.checkpoints[175].owned < need(r)).map((r) => `seed ${r.seed}: ${r.checkpoints[175].owned}/${need(r)}`);
       return P(!short.length, `${rs.map((r) => r.checkpoints[175].owned).join(',')} at 175 (34, or 35 once in A8)${short.length ? ' [' + short.join(', ') + ']' : ''}`);
     })()] : []));
-    const maxObs = Math.min(550, n);
+    // gold got easier and the last two upgrades cheaper (3,000 / 5,000 instead of 4,000 / 12,000), so decks
+    // level up faster than they used to (8.5-9.3 at 300, maxed not before 550)
+    const maxObs = Math.min(250, n);
     T(10, 'deck level curve', [
       n >= 50 && P(g.ckpt(50, 'deckLvl') >= 6, `${f2(g.ckpt(50, 'deckLvl'))} at 50 (>= 6.0)`),
-      n >= 300 && P(g.ckpt(300, 'deckLvl') >= 8.5 && g.ckpt(300, 'deckLvl') <= 9.3, `${f2(g.ckpt(300, 'deckLvl'))} at 300 (8.5-9.3)`),
-      P(rs.every((r) => r.deckMaxAt == null || r.deckMaxAt >= 550), `deck maxed at ${rs.map((r) => (r.deckMaxAt == null ? '-' : r.deckMaxAt)).join(',')} (not before 550${n < 550 ? `; only ${maxObs} battles seen` : ''})`),
+      n >= 300 && P(g.ckpt(300, 'deckLvl') >= 9.0 && g.ckpt(300, 'deckLvl') <= 9.9, `${f2(g.ckpt(300, 'deckLvl'))} at 300 (9.0-9.9)`),
+      P(rs.every((r) => r.deckMaxAt == null || r.deckMaxAt >= 250), `deck maxed at ${rs.map((r) => (r.deckMaxAt == null ? '-' : r.deckMaxAt)).join(',')} (not before 250${n < 250 ? `; only ${maxObs} battles seen` : ''})`),
     ]);
     if (n >= 400) {
       T(11, 'bounded ladder', [P(g.ckpt(400, 'trophies') <= 3400, `${f0(g.ckpt(400, 'trophies'))} trophies at 400 (<= 3400)`),
@@ -568,10 +570,11 @@ function targets(rs) {
   if (career300) {
     const ck = CHECKPOINTS.filter((c) => c <= Math.min(300, n)), mx = Math.max(...ck.map((c) => g.ckpt(c, 'gold')));
     const bc = mean(rs.map((r) => r.block.copies)), bg = mean(rs.map((r) => r.block.gold));
-    T(12, 'economy', [P(g.goldPerBattle >= 220 && g.goldPerBattle <= 320, `gold ${f1(g.goldPerBattle)}/battle (220-320)`),
+    // gold is meant to be easy now: about 1.3x the old income, and copies, not gold, hold upgrades back
+    T(12, 'economy', [P(g.goldPerBattle >= 320 && g.goldPerBattle <= 440, `gold ${f1(g.goldPerBattle)}/battle (320-440)`),
       P(g.cardsPerBattle >= 35 && g.cardsPerBattle <= 50, `cards ${f1(g.cardsPerBattle)}/battle (35-50)`),
       P(mx <= 6000, `gold balance up to battle ${Math.min(300, n)} peaks at ${f0(mx)} (<= 6000)`),
-      P(bg > bc, `upgrade checks blocked by gold ${f0(bg)} vs copies ${f0(bc)} (gold > copies)`)]);
+      P(bc > bg, `upgrade checks blocked by copies ${f0(bc)} vs gold ${f0(bg)} (copies > gold)`)]);
     T(13, 'reward moments', [P(g.moments >= 0.55, `${pct(g.moments)} of battles (>= 55%)`), P(g.dryMax <= 7, `longest dry stretch ${f1(g.dryMax)} (<= 7)`)]);
   }
   // 9: every win pays something; Instant Loot share depends on how the player plays
