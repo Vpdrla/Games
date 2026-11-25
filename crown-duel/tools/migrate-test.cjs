@@ -67,7 +67,7 @@ function runOne(job) {
   check('free chest state kept', v1.free == null || same(sv.free, v1.free));
   check('gems = before + gift', sv.gems === v1.gems + gift.gems, `${v1.gems} + ${gift.gems} = ${sv.gems}`);
   check('gold >= before + gift', sv.gold >= v1.gold + gift.gold, `${v1.gold} + ${gift.gold} <= ${sv.gold}`);
-  check('road back-pay at most 10k gold', gift.gold <= 10000, `${gift.gold} gold`);
+  check('road back-pay at most 16k gold', gift.gold <= 16000, `${gift.gold} gold`); // road and chest gold went up about 1.6x
   // cards: nothing lost or lowered; copies only go down on maxed cards (turned into gold)
   const lowered = Object.keys(v1.cards).filter((k) => !sv.cards[k] || sv.cards[k].lvl < v1.cards[k].lvl || (sv.cards[k].lvl < A.MAX_LEVEL && sv.cards[k].n < v1.cards[k].n));
   check('no card lost, lowered or short of copies', !lowered.length, lowered.join(','));

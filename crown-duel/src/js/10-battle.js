@@ -4,7 +4,7 @@
 const KINDS = ['troop', 'building', 'tower', 'proj', 'area'];
 const UKEYS = Object.keys(UNITS).concat(['princess', 'king']);
 const PKEYS = ['arrow', 'spear', 'bullet', 'cannonball', 'bomb', 'spit', 'orb', 'ice', 'flame', 'fireorb', 'fireball', 'log'];
-const AKEYS = ['arrows', 'freeze', 'poison'];
+const AKEYS = ['arrows', 'freeze', 'poison', 'zap2', 'frost2'];
 const SNAP_EVERY = 2; // sim ticks per snapshot (15 per second)
 
 const r2 = (v) => Math.round(v * 100);
@@ -31,10 +31,10 @@ class BattleScene {
     this.pending = new Map();
     this.playSeq = 0;
     if (this.mode !== 'guest') {
-      this.sim = new Sim({ decks: cfg.decks, levels: cfg.levels, kings: cfg.kings, seed: cfg.seed });
+      this.sim = new Sim({ decks: cfg.decks, levels: cfg.levels, kings: cfg.kings, seed: cfg.seed, evos: cfg.evos });
       if (this.mode === 'ai' || this.mode === 'training') this.ai = new AIPlayer(this.sim, 1, cfg.aiSkill, cfg.seed + 7);
     } else {
-      this.g = { ents: new Map(), t: 0, ot: false, crowns: [0, 0], elixir: 5, hand: [null, null, null, null], next: null, lastAt: 0, period: 66, tick: -1, over: false };
+      this.g = { ents: new Map(), t: 0, ot: false, crowns: [0, 0], elixir: 5, hand: [null, null, null, null], evo: [-1, -1, -1, -1], next: null, lastAt: 0, period: 66, tick: -1, over: false };
     }
   }
 
@@ -126,7 +126,7 @@ class BattleScene {
       return {
         ents: s.ents, alpha: clamp(this.acc / SIM_DT, 0, 1), t: s.t, timeLeft: s.timeLeft(), ot: s.ot, dbl: s.t >= DOUBLE_AT, over: s.over,
         intro: this.intro, tutorial: this.mode === 'ai' && !SAVE.tutorial && s.p[0].plays === 0 && s.t > 1.5,
-        me: { elixir: me.elixir, hand: me.hand, next: me.queue[0], crowns: me.crowns, name: this.names[this.myTeam] },
+        me: { elixir: me.elixir, hand: me.hand, evo: me.hand.map((k) => s.evoState(this.myTeam, k)), next: me.queue[0], crowns: me.crowns, name: this.names[this.myTeam] },
         foe: { crowns: foe.crowns, name: this.names[1 - this.myTeam], sub: this.subs[1 - this.myTeam] },
         canPlace: (k, x, y) => s.canPlace(this.myTeam, k, x, y),
       };
@@ -140,7 +140,7 @@ class BattleScene {
     return {
       ents: this.gList || [], alpha, t, timeLeft: g.ot ? REG_TIME + OT_TIME - t : REG_TIME - t, ot: g.ot, dbl: g.t >= DOUBLE_AT, over: g.over,
       intro: this.intro, stalled: !g.over && this.intro <= 0 && now - g.lastAt > 1500,
-      me: { elixir: Math.min(10, g.elixir + extra * ELIXIR_RATE * mult), hand: g.hand, next: g.next, crowns: g.crowns[1], name: this.names[1], pending: new Set(this.pending.keys()) },
+      me: { elixir: Math.min(10, g.elixir + extra * ELIXIR_RATE * mult), hand: g.hand, evo: g.evo, next: g.next, crowns: g.crowns[1], name: this.names[1], pending: new Set(this.pending.keys()) },
       foe: { crowns: g.crowns[0], name: this.names[0], sub: this.subs[0] },
       canPlace: (k, x, y) => this.guestCanPlace(k, x, y),
     };
@@ -254,7 +254,8 @@ class BattleScene {
       const a = [e.id, KINDS.indexOf(e.kind), e.team, r2(e.x), r2(e.y)];
       if (e.kind === 'troop' || e.kind === 'building' || e.kind === 'tower') {
         const fl = (e.deployT > 0 ? 1 : 0) | (e.freezeT > 0 ? 2 : 0) | (e.stunT > 0 ? 4 : 0) | (e.slowT > 0 ? 8 : 0) | (e.attacking ? 16 : 0) |
-          (e.moving ? 32 : 0) | (e.charging ? 64 : 0) | (e.jumping ? 128 : 0) | (e.tunnel ? 256 : 0) | (e.active ? 512 : 0) | (e.air ? 1024 : 0);
+          (e.moving ? 32 : 0) | (e.charging ? 64 : 0) | (e.jumping ? 128 : 0) | (e.tunnel ? 256 : 0) | (e.active ? 512 : 0) | (e.air ? 1024 : 0) |
+          (e.evo ? 2048 : 0) | (e.shield > 0 ? 4096 : 0);
         const atk = e.attacking && e.st.hs ? Math.round(clamp(1 - e.cd / e.st.hs, 0, 1) * 99) : -1;
         a.push(UKEYS.indexOf(e.u), Math.ceil(e.hp), e.maxHp, e.lvl, fl, r2(e.fx), r2(e.fy), atk, r2(Math.max(0, e.deployT || 0)));
         if (e.kind === 'tower') a.push(e.lane);
@@ -267,7 +268,7 @@ class BattleScene {
       E.push(a);
     }
     const p = s.p[1];
-    this.link.send({ t: 's', k: s.tick, tm: r2(s.t), ot: s.ot ? 1 : 0, c: [s.p[0].crowns, s.p[1].crowns], el: r2(p.elixir), h: p.hand, n: p.queue[0], E, V: this.outEv }, true);
+    this.link.send({ t: 's', k: s.tick, tm: r2(s.t), ot: s.ot ? 1 : 0, c: [s.p[0].crowns, s.p[1].crowns], el: r2(p.elixir), h: p.hand, ev: p.hand.map((k) => s.evoState(1, k)), n: p.queue[0], E, V: this.outEv }, true);
     this.outEv = [];
   }
 
@@ -286,6 +287,7 @@ class BattleScene {
     // cards we played have left the hand once the host confirms them
     for (const [slot, p] of this.pending) if (m.h[slot] !== p.key || now - p.at > 2500) this.pending.delete(slot);
     g.hand = m.h;
+    g.evo = Array.isArray(m.ev) ? m.ev.map((v) => (Number.isInteger(v) ? v : -1)) : [-1, -1, -1, -1];
     g.next = m.n;
     const seen = new Set();
     for (const a of m.E) {
@@ -318,6 +320,8 @@ class BattleScene {
         e.tunnel = !!(fl & 256);
         e.active = !!(fl & 512);
         e.air = !!(fl & 1024);
+        e.evo = !!(fl & 2048);
+        e.shield = fl & 4096 ? 1 : 0;
         e.fx = a[10] / 100;
         e.fy = a[11] / 100;
         e.atk = a[12] < 0 ? -1 : a[12] / 99;

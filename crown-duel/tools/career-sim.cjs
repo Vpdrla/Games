@@ -40,7 +40,7 @@ const API = ['Sim', 'AIPlayer', 'CARDS', 'CARD_KEYS', 'ARENAS', 'RARITY', 'CHEST
   'CROWNS_FOR_CHEST', 'ROAD', 'loadGame', 'curDeck', 'cardLvl', 'curArena', 'arenaIndex', 'deckLevels', 'avgDeckLevel',
   'upgradeCost', 'canUpgrade', 'upgradeCard', 'rollChest', 'grantChest', 'chestState', 'anyUnlocking', 'takeFreeChest',
   'aiOpponent', 'applyResult', 'cardsForArena', 'randi', 'hasTag', 'scheduleChests', 'takeSlotChest', 'takeCrownChest',
-  'claimFreePack', 'top8Avg'];
+  'claimFreePack', 'top8Avg', 'deckEvos', 'unlockEvo', 'canUnlockEvo', 'evoUnlocked', 'EVO_KEYS', 'EVO_SLOTS'];
 
 // ---------- game code in a sandbox ----------
 // The five modules as one script, from src/js or from a git revision.
@@ -172,8 +172,22 @@ function makeCareer(cfg) {
     }
   };
 
+  // Evolutions (newer code only): unlock every one the shards allow, then move evolved deck cards into the
+  // Evolution slots at the front of the deck.
+  const doEvos = () => {
+    if (!A.unlockEvo || !A.EVO_KEYS) return;
+    for (const k of A.EVO_KEYS) if (A.canUnlockEvo(k)) { A.unlockEvo(k); out.evos = (out.evos || 0) + 1; }
+    const d = A.curDeck();
+    for (let i = 0; i < A.EVO_SLOTS; i++) {
+      if (A.evoUnlocked(d[i])) continue;
+      const j = d.findIndex((k, n) => n >= A.EVO_SLOTS && A.evoUnlocked(k));
+      if (j >= 0) { const t = d[i]; d[i] = d[j]; d[j] = t; }
+    }
+  };
+
   // Cheapest, lowest deck card first, as long as copies and gold allow; then note what blocks each card.
   const doUpgrades = () => {
+    doEvos();
     if (cfg.noUpgrade) return;
     for (;;) {
       const c = A.curDeck().filter((k) => A.canUpgrade(k)).sort((x, y) => A.cardLvl(x) - A.cardLvl(y) || A.upgradeCost(x).gold - A.upgradeCost(y).gold);
@@ -241,7 +255,8 @@ function makeCareer(cfg) {
     const deck = A.curDeck().slice();
     const myLv = A.deckLevels();
     if (hc) for (const k of Object.keys(myLv)) myLv[k] = Math.max(1, myLv[k] - hc);
-    const sim = new A.Sim({ decks: [deck, opp.deck], levels: [myLv, opp.levels], kings: [Math.max(1, sv.king - hc), opp.king], seed: bseed });
+    const sim = new A.Sim({ decks: [deck, opp.deck], levels: [myLv, opp.levels], kings: [Math.max(1, sv.king - hc), opp.king], seed: bseed,
+      evos: [A.deckEvos ? A.deckEvos(deck) : [], opp.evos || []] });
     const me = new A.AIPlayer(sim, 0, cfg.skill, bseed + 3);
     const foe = new A.AIPlayer(sim, 1, opp.skill, bseed + 7);
     let steps = 0;
@@ -458,6 +473,7 @@ function report(rs) {
   L.push(`Reward moments ${pct(g.moments)} of battles; longest dry stretch ${f1(g.dryMax)} [${range(rs.map((r) => r.dryMax))}]; deck >= 9 at ${rs.map((r) => r.deck9At).join(',')}; deck max at ${rs.map((r) => r.deckMaxAt).join(',')}`);
   const gk = ['battle', 'slot', 'free', 'crown', 'road', 'bonus', 'overflow'];
   L.push(`Gold earned ${f0(mean(rs.map((r) => r.gold.earned)))} (${f1(g.goldPerBattle)}/battle) = ${gk.map((k) => k + ' ' + f0(mean(rs.map((r) => r.gold[k])))).join(', ')}; spent ${f0(mean(rs.map((r) => r.gold.spent)))}; final ${f0(mean(rs.map((r) => r.final.gold)))}`);
+  L.push(`Evolutions unlocked ${f1(mean(rs.map((r) => r.evos || 0)))} per career`);
   L.push(`Upgrades ${f1(mean(rs.map((r) => r.upgrades)))}; deck upgrade checks blocked by copies ${f0(mean(rs.map((r) => r.block.copies)))}, by gold ${f0(mean(rs.map((r) => r.block.gold)))}, maxed ${f0(mean(rs.map((r) => r.block.max)))}`);
   const ckeys = ['silver', 'gold', 'magic', 'giant', 'epic', 'legendary'];
   L.push(`Slot chests won ${ckeys.map((k) => k + ' ' + f1(mean(rs.map((r) => r.chestsWon[k] || 0)))).join(', ')}; free ${f1(mean(rs.map((r) => r.freeOpened)))}, crown ${f1(mean(rs.map((r) => r.crownOpened)))}, road claims ${f1(mean(rs.map((r) => r.roadClaims)))} (to 2600: ${f1(mean(rs.map((r) => r.roadClaims2600)))})${rs[0].freePack ? ', free packs ' + f1(mean(rs.map((r) => r.packs))) : ''}`);

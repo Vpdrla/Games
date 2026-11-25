@@ -106,9 +106,28 @@ class BattleView {
     const mine = (team) => team === this.myTeam;
     switch (ev[0]) {
       case 'play': {
-        const [, team, key, x, y] = ev;
+        const [, team, key, x, y, evo] = ev;
         if (!mine(team)) this.cardPop(key, x, y);
         Sound.play(CARDS[key].type === 'spell' ? 'cast' : 'deploy');
+        if (evo) {
+          // an evolved card: a purple burst where it lands
+          f.flash(x, y, 2.2, '#c46bff', 0.45);
+          f.ring(x, y, 2.4, '#e2b4ff', 0.5, 0.14);
+          f.puff(x, y, 8, 'rgba(200,120,255,0.8)', 0.6);
+          Sound.play('magic');
+          if (mine(team)) this.message('EVOLVED!', '#e2b4ff', 1.2);
+        }
+        break;
+      }
+      case 'whirl': {
+        const [, x, y, r] = ev;
+        f.ring(x, y, r, '#e3f4ff', 0.35, 0.12);
+        f.puff(x, y, 6, 'rgba(220,240,255,0.7)', r * 0.3);
+        break;
+      }
+      case 'heal': {
+        const [, , x, y] = ev;
+        f.puff(x, y, 4, 'rgba(120,255,150,0.85)', 0.4);
         break;
       }
       case 'land': {
@@ -345,6 +364,12 @@ class BattleView {
       ctx.lineWidth = 0.08 * T;
       ctx.stroke();
       ctx.globalAlpha = 1;
+    } else if (e.sp === 'zap2' || e.sp === 'frost2') {
+      // the second bolt / burst gathering: a ring that closes in until it goes off
+      ctx.strokeStyle = e.sp === 'zap2' ? 'rgba(170,240,255,' + (0.3 + 0.5 * f) + ')' : 'rgba(220,250,255,' + (0.3 + 0.5 * f) + ')';
+      ctx.lineWidth = 0.08 * T;
+      ellipse(ctx, q[0], q[1], e.r * T * (1.15 - 0.15 * f), e.r * T * 0.8 * (1.15 - 0.15 * f));
+      ctx.stroke();
     } else if (e.sp === 'arrows') {
       ctx.strokeStyle = 'rgba(255,255,255,' + (0.4 * (1 - f)) + ')';
       ctx.lineWidth = 0.06 * T;
@@ -413,6 +438,17 @@ class BattleView {
     ctx.globalAlpha = alpha;
     ctx.translate(q[0], q[1] - z * T);
     const sc = T * UNIT_SCALE;
+    if (e.evo) {
+      // evolved: a purple aura at its feet
+      ctx.globalAlpha = alpha * (0.6 + 0.25 * Math.sin(this.t * 5 + e.id));
+      ctx.fillStyle = 'rgba(180,80,255,0.35)';
+      ellipse(ctx, 0, 0, e.r * T * 1.35, e.r * T * 0.7);
+      ctx.fill();
+      ctx.strokeStyle = '#d58cff';
+      ctx.lineWidth = 0.07 * T;
+      ctx.stroke();
+      ctx.globalAlpha = alpha;
+    }
     if (e.kind === 'troop' && UNIT_ART[e.u]) {
       const fk = atk >= 0 ? 'a' + Math.min(7, Math.floor(atk * 8)) : e.moving ? 'w' + (Math.floor(s.walk * 4) % 4) : 'i';
       const tk = TIME_ANIM[e.u] ? Math.floor(this.t * 9 + e.id) % 4 : 0;
@@ -440,6 +476,16 @@ class BattleView {
       ellipse(ctx, 0, -h * 0.45, e.r * 1.1, h * 0.5);
       ctx.fill();
       ctx.globalAlpha = alpha;
+    }
+    if (e.shield > 0) {
+      // evolved Fire Mage's shield
+      const h = UNIT_H[e.u] || 1.2;
+      ctx.strokeStyle = 'rgba(140,200,255,0.85)';
+      ctx.fillStyle = 'rgba(140,200,255,0.15)';
+      ctx.lineWidth = 0.06;
+      ellipse(ctx, 0, -h * 0.45, e.r * 1.25, h * 0.6);
+      ctx.fill();
+      ctx.stroke();
     }
     if (e.freezeT > 0) this.frozenOverlay(ctx, e.r, UNIT_H[e.u] || 1.2);
     if (e.stunT > 0 && !(e.freezeT > 0)) {
@@ -816,6 +862,7 @@ class BattleView {
       ctx.globalAlpha = dragging ? 0.35 : pending ? 0.5 : 1;
       ctx.drawImage(cardArt(key, Math.round(r.w * this.dpr), Math.round(r.h * this.dpr)), r.x, r.y - lift, r.w, r.h);
       ctx.globalAlpha = 1;
+      this.drawEvoMark(ctx, r, lift, key, me.evo ? me.evo[i] : -1);
       const cost = CARDS[key].cost;
       if (me.elixir < cost) {
         const f = clamp(me.elixir / cost, 0, 1);
@@ -893,6 +940,38 @@ class BattleView {
       const key = me.hand[this.drag.slot];
       const r = this.cards[this.drag.slot];
       if (key) ctx.drawImage(cardArt(key, Math.round(r.w * this.dpr), Math.round(r.h * this.dpr)), this.drag.x - r.w / 2, this.drag.y - r.h / 2, r.w, r.h);
+    }
+  }
+
+  // A hand card's evolution: a glowing purple frame and EVO when the next play evolves, else one pip per
+  // play still needed (filled as they are made). es: -1 not evolved, else plays counted so far.
+  drawEvoMark(ctx, r, lift, key, es) {
+    if (!(es >= 0) || !EVOS[key]) return;
+    const cyc = EVOS[key].cycles, y0 = r.y - lift;
+    if (es >= cyc) {
+      const p = 0.6 + 0.4 * Math.sin(this.t * 6);
+      ctx.save();
+      ctx.shadowColor = '#c46bff';
+      ctx.shadowBlur = 10 * p;
+      ctx.strokeStyle = '#d58cff';
+      ctx.lineWidth = 3;
+      roundRect(ctx, r.x - 1, y0 - 1, r.w + 2, r.h + 2, 9);
+      ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = 'rgba(120,40,190,0.9)';
+      roundRect(ctx, r.x + r.w / 2 - 16, y0 - 7, 32, 14, 7);
+      ctx.fill();
+      outlineText(ctx, 'EVO', r.x + r.w / 2, y0, 10, '#f3dcff');
+      return;
+    }
+    for (let k = 0; k < cyc; k++) {
+      const px = r.x + r.w / 2 + (k - (cyc - 1) / 2) * 11, py = y0 - 2;
+      ctx.fillStyle = k < es ? '#c46bff' : 'rgba(30,10,50,0.8)';
+      circle(ctx, px, py, 4);
+      ctx.fill();
+      ctx.strokeStyle = '#e2b4ff';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
     }
   }
 

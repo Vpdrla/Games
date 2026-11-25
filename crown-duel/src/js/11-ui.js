@@ -86,6 +86,14 @@ function rewardImg(kind) {
     x.fillStyle = 'rgba(255,255,255,0.85)';
     circle(x, -0.3, -0.55, 0.08);
     x.fill();
+  } else if (kind === 'shard') {
+    // an evolution shard: a purple crystal
+    poly(x, [0, -1.05, 0.62, -0.25, 0.38, 0.9, -0.38, 0.9, -0.62, -0.25], '#8a2fd6', 0.08);
+    poly(x, [0, -1.05, 0.25, -0.2, 0, 0.9, -0.25, -0.2], '#d79bff', 0.04);
+    poly(x, [0, -1.05, -0.62, -0.25, -0.25, -0.2], '#f1d9ff', 0.03);
+    x.fillStyle = 'rgba(255,255,255,0.9)';
+    circle(x, -0.18, -0.5, 0.07);
+    x.fill();
   } else {
     // two cards and a gold band: a pack of copies for the whole deck
     x.save();
@@ -194,6 +202,7 @@ function roadItems(node) {
     else if (kind === 'gold') out.push({ kind, img: rewardImg('gold'), name: fmtInt(arg) + ' gold' });
     else if (kind === 'gems') out.push({ kind, img: rewardImg('gems'), name: arg + ' gems' });
     else if (kind === 'pack') out.push({ kind, img: rewardImg('pack'), name: arg > 1 ? arg + ' Deck Packs' : 'Deck Pack' });
+    else if (kind === 'shards') out.push({ kind, img: rewardImg('shard'), name: arg[0] ? CARDS[arg[0]].name + ' evolution' : arg[1] + ' evolution shards' });
   }
   return out;
 }
@@ -484,7 +493,7 @@ const UI = {
       } else {
         this.modal(`<h2>${def.name}</h2>
           <div class="loot">${got.map((g) => lootCell(g, 80)).join('')}</div>
-          <div class="rw">${loot.gold ? `<div class="res"><i class="coin"></i>+${loot.gold}</div>` : ''}${loot.gems ? `<div class="res"><i class="gem"></i>+${loot.gems}</div>` : ''}</div>
+          <div class="rw">${loot.gold ? `<div class="res"><i class="coin"></i>+${loot.gold}</div>` : ''}${loot.gems ? `<div class="res"><i class="gem"></i>+${loot.gems}</div>` : ''}${loot.shards && !loot.shards.gold ? `<div class="chip"><img src="${rewardImg('shard')}" alt="">${esc(CARDS[loot.shards.key].name)} +${loot.shards.n} evo shard${loot.shards.n > 1 ? 's' : ''}</div>` : loot.shards ? `<div class="res"><i class="coin"></i>+${loot.shards.gold} (shards)</div>` : ''}</div>
           <div class="btns">${ups ? `<button class="btn green" id="c-cards">Cards ↑${ups}</button>` : ''}<button class="btn gold" id="c-ok">Collect</button></div>`, false);
         Sound.play('coin');
         const done = () => { this.closeModal(); this.render(); this.refreshTop(); this.refreshNav(); };
@@ -511,16 +520,20 @@ const UI = {
       const u = upgradeCost(k);
       const pct = u ? clamp(rec.n / u.copies, 0, 1) * 100 : 100;
       const up = canUpgrade(k);
-      return `<div class="cc ${this.swapKey && inDeck ? 'swap' : ''} ${this.swapKey === k ? 'sel' : ''}" data-k="${k}"><img src="${cardImg(k, 90)}" alt=""><div class="lv">Lvl ${rec.lvl}</div>
-        ${up ? '<span class="up">↑</span>' : ''}${SAVE.fresh[k] ? '<span class="nw">NEW</span>' : ''}</div>
+      // evolution: a purple frame when it will evolve in this deck, a badge with its shards otherwise
+      const evoOn = evoUnlocked(k) && inDeck && curDeck().indexOf(k) < EVO_SLOTS;
+      const evoBadge = !EVOS[k] ? '' : evoUnlocked(k) ? (evoOn ? '' : '<span class="evb">EVO</span>') : canUnlockEvo(k) ? '<span class="evb go">EVO!</span>' : evoShards(k) ? `<span class="evb dim">${evoShards(k)}/${EVO_SHARDS}</span>` : '';
+      return `<div class="cc ${evoOn ? 'evo' : ''} ${this.swapKey && inDeck ? 'swap' : ''} ${this.swapKey === k ? 'sel' : ''}" data-k="${k}"><img src="${cardImg(k, 90)}" alt=""><div class="lv">Lvl ${rec.lvl}</div>
+        ${up ? '<span class="up">↑</span>' : ''}${SAVE.fresh[k] ? '<span class="nw">NEW</span>' : ''}${evoBadge}</div>
         <div class="bar2" style="margin-top:-2px"><i class="${pct >= 100 ? 'full' : ''}" style="width:${pct}%"></i><span>${u ? rec.n + '/' + u.copies : 'MAX'}</span></div>`;
     };
-    const wrap = (k, inDeck) => `<div>${cell(k, inDeck)}</div>`;
+    const wrap = (k, inDeck, i) => `<div class="${inDeck && i < EVO_SLOTS ? 'evoslot' : ''}">${inDeck && i < EVO_SLOTS ? '<span class="evotag">EVO SLOT</span>' : ''}${cell(k, inDeck)}</div>`;
     $('p-cards').innerHTML = `<div class="inner">
       <div class="deckbar"><div class="tabs">${[0, 1, 2].map((i) => `<button class="btn tiny ${i === SAVE.deck ? 'gold' : ''}" data-d="${i}">Deck ${i + 1}</button>`).join('')}</div>
       <div class="sp"></div><div class="avg"><i class="drop"></i>Avg ${avgElixir(deck).toFixed(1)}</div></div>
       ${this.swapKey ? `<div class="status"><img src="${cardImg(this.swapKey, 40)}" style="width:34px" alt="">Tap a card in your deck to replace it. <button class="btn tiny" id="sw-x">Cancel</button></div>` : ''}
-      <div class="deckgrid"><div class="grid">${deck.map((k) => wrap(k, true)).join('')}</div></div>
+      <div class="deckgrid"><div class="grid">${deck.map((k, i) => wrap(k, true, i)).join('')}</div>
+        <p class="muted small center" style="margin:6px 0 0">The first ${EVO_SLOTS} slots are <b style="color:#d58cff">Evolution slots</b>: an evolved card there comes out evolved after a few plays.</p></div>
       <h3>Collection <small>${Object.keys(SAVE.cards).length}/${CARD_KEYS.length} found</small></h3>
       <div class="grid">${owned.map((k) => wrap(k, false)).join('') || '<p class="muted" style="grid-column:1/-1">All your cards are in the deck.</p>'}</div>
       ${locked.length ? `<h3>Not found yet <small>Unlock on the Crown Road</small></h3><div class="grid">${locked.map((k) => `<div>${cell(k)}</div>`).join('')}</div>` : ''}
@@ -568,12 +581,33 @@ const UI = {
       <table class="stt">${rows}</table>
       ${!rec && roadNodeFor(k) != null ? `<p class="center muted">Unlocks on the Crown Road at ${fmtInt(roadNodeFor(k))} trophies (about ${plural(Math.max(1, winsTo(roadNodeFor(k))), 'win')})</p>` : ''}
       ${rec && u ? `<p class="center small muted">Cards: ${rec.n} / ${u.copies} · Upgrade cost: ${u.gold} gold · +${u.xp} XP</p>` : ''}
+      ${EVOS[k] ? this.evoSection(k) : ''}
       <div class="btns">
         ${rec && !inDeck ? '<button class="btn blue" id="ci-use">Use</button>' : ''}
         ${rec && u ? `<button class="btn green" id="ci-up" ${canUpgrade(k) ? '' : 'disabled'}>Upgrade <i class="coin"></i> ${u.gold}</button>` : ''}
         <button class="btn" id="ci-x">Close</button>
       </div>`, true);
     if ($('ci-use')) $('ci-use').onclick = () => { this.swapKey = k; this.closeModal(); this.renderCards(); };
+    if ($('ci-evo')) $('ci-evo').onclick = () => {
+      if (!unlockEvo(k)) return;
+      Sound.play('legendary');
+      this.toast(`${c.name} can evolve now!`);
+      this.cardInfo(k);
+      this.refreshNav();
+    };
+    if ($('ci-slot')) $('ci-slot').onclick = () => {
+      // into an Evolution slot: swap with the first slot whose card can't evolve (else the second slot)
+      const d = curDeck();
+      let j = -1;
+      for (let i = 0; i < EVO_SLOTS; i++) if (j < 0 && !evoUnlocked(d[i])) j = i;
+      if (j < 0) j = EVO_SLOTS - 1;
+      const at = d.indexOf(k);
+      if (at >= 0) { d[at] = d[j]; d[j] = k; } else d[j] = k;
+      saveGame();
+      Sound.play('click');
+      this.closeModal();
+      this.renderCards();
+    };
     if ($('ci-up')) $('ci-up').onclick = () => {
       const res = upgradeCard(k);
       if (!res) return;
@@ -586,6 +620,20 @@ const UI = {
       if (res.kingUps) setTimeout(() => this.kingLevelUp(res.kingUps), 400);
     };
     $('ci-x').onclick = () => this.closeModal();
+  },
+
+  // The evolution part of a card's info: what it does, shards collected and the unlock, or where it must sit.
+  evoSection(k) {
+    const ev = EVOS[k], rec = SAVE.cards[k], d = curDeck();
+    const sh = evoShards(k), on = evoUnlocked(k), slot = d.indexOf(k) >= 0 && d.indexOf(k) < EVO_SLOTS;
+    let foot = '';
+    if (!rec) foot = '<p class="muted small">Find the card first.</p>';
+    else if (on) foot = slot ? '<p class="small" style="color:#9dffa8">Evolved and in an Evolution slot: ready for battle.</p>'
+      : '<p class="muted small">Evolved. Put it in one of the first two deck slots to use it.</p><div class="btns"><button class="btn purple small" id="ci-slot">Use in Evo slot</button></div>';
+    else foot = `<div class="bar2 evo"><i style="width:${clamp(sh / EVO_SHARDS, 0, 1) * 100}%"></i><span>${sh} / ${EVO_SHARDS} shards</span></div>
+      ${canUnlockEvo(k) ? '<div class="btns"><button class="btn purple" id="ci-evo">Unlock evolution</button></div>' : '<p class="muted small">Shards come from chests, the Crown Road and the shop.</p>'}`;
+    return `<div class="evosec"><div class="eh"><img src="${rewardImg('shard')}" alt=""><b>Evolution</b><span>evolves every ${plural(ev.cycles + 1, 'play')}${ev.cycles === 1 ? ' (every other)' : ''}</span></div>
+      <p class="small">${esc(ev.text)}</p>${foot}</div>`;
   },
 
   // n: levels gained at once (each one paid 10 gems)
@@ -608,7 +656,10 @@ const UI = {
       <h3>Daily deals <small>New offers every day</small></h3>
       ${pack ? `<div class="offer wide ${pack.o.bought ? 'done' : ''}"><img src="${rewardImg('pack')}" alt=""><div class="d"><b>Free Deck Pack</b><small>Copies for all 8 cards in your deck</small></div>
         <button class="btn small ${pack.o.bought ? '' : 'green'}" data-o="${pack.i}" ${pack.o.bought ? 'disabled' : ''}>${pack.o.bought ? 'Claimed' : 'Free'}</button></div>` : ''}
-      <div class="shopgrid">${deals.map(({ o, i }) => `<div class="offer ${o.bought ? 'done' : ''}"><img src="${cardImg(o.key, 90)}" alt=""><b>${esc(CARDS[o.key].name)} x${o.n}</b>
+      <div class="shopgrid">${deals.map(({ o, i }) => o.kind === 'shard'
+        ? `<div class="offer ${o.bought ? 'done' : ''}"><div class="shardart"><img src="${cardImg(o.key, 90)}" alt=""><img class="sh" src="${rewardImg('shard')}" alt=""></div><b>${esc(CARDS[o.key].name)} evo shard</b><small>${evoShards(o.key)}/${EVO_SHARDS} collected</small>
+        <button class="btn small ${o.bought ? '' : 'purple'}" data-o="${i}" ${o.bought || SAVE.gems < o.price ? 'disabled' : ''}>${o.bought ? 'Sold' : `<i class="gem"></i> ${o.price}`}</button></div>`
+        : `<div class="offer ${o.bought ? 'done' : ''}"><img src="${cardImg(o.key, 90)}" alt=""><b>${esc(CARDS[o.key].name)} x${o.n}</b>
         <button class="btn small ${o.bought ? '' : 'gold'}" data-o="${i}" ${o.bought || SAVE.gold < o.price ? 'disabled' : ''}>${o.bought ? 'Sold' : `<i class="coin"></i> ${o.price}`}</button></div>`).join('')}</div>
       <h3>Card Request <small>${CARD_REQUESTS_PER_DAY - left}/${CARD_REQUESTS_PER_DAY} today</small></h3>
       <div class="grid req">${curDeck().map((k) => {
@@ -632,6 +683,7 @@ const UI = {
       const res = buyOffer(+b.dataset.o);
       if (!res) return;
       if (res.kind === 'pack') { this.refreshTop(); this.packReveal('Deck Pack', res.cards); return; }
+      if (res.kind === 'shard') { this.toast(res.gold ? `+${res.gold} gold` : `${CARDS[res.key].name} evo shard: ${evoShards(res.key)}/${EVO_SHARDS}`); after(); return; }
       this.toast(`${res.isNew ? 'New card: ' : ''}${CARDS[res.key].name} x${res.n}`);
       after();
     };
@@ -846,6 +898,7 @@ const UI = {
           gate >= 0 && g.chest ? `<div class="chip"><img src="${chestImg(g.chest)}" alt="">${CHESTS[g.chest].name}</div>` : '',
           g.gold ? `<div class="chip"><i class="coin"></i>+${fmtInt(g.gold)}</div>` : '',
           g.gems ? `<div class="chip"><i class="gem"></i>+${g.gems}</div>` : '',
+          g.shards ? `<div class="chip"><img src="${rewardImg('shard')}" alt="">${esc(CARDS[g.shards.key].name)} +${g.shards.n} evo shard${g.shards.n > 1 ? 's' : ''}</div>` : '',
         ].join('');
         return `<div class="rg"><div class="rh"><i class="tro"></i>${g.t}${name ? ' · ' + esc(name) : ''}</div>
           ${g.cards.length ? `<div class="loot sm">${g.cards.map((c) => lootCell(c, 50, true)).join('')}</div>` : ''}
@@ -1016,7 +1069,7 @@ const Lobby = {
     link.listen((m) => this.onPeerMessage(m));
     UI.lobbyStatus('Connected! Getting ready…', true);
     Sound.play('emote');
-    if (link.role === 'guest') link.send({ t: 'hello', v: NET_PROTO, name: SAVE.name, deck: curDeck(), trophies: SAVE.trophies, arena: curArena(), king: SAVE.king });
+    if (link.role === 'guest') link.send({ t: 'hello', v: NET_PROTO, name: SAVE.name, deck: curDeck(), evos: deckEvos(curDeck()), trophies: SAVE.trophies, arena: curArena(), king: SAVE.king });
   },
 
   onClose() {
@@ -1026,6 +1079,9 @@ const Lobby = {
     if (!(Game.scene instanceof BattleScene)) UI.lobbyStatus('Connection closed.', false, true);
   },
 
+  // A player's evolutions from the network: evolvable cards in the first EVO_SLOTS slots of that deck only.
+  validEvos(e, deck) { return Array.isArray(e) ? e.filter((k, i) => typeof k === 'string' && EVOS[k] && deck.slice(0, EVO_SLOTS).includes(k) && e.indexOf(k) === i) : []; },
+
   validDeck(d) {
     return Array.isArray(d) && d.length === 8 && new Set(d).size === 8 && d.every((k) => typeof k === 'string' && CARDS[k]) ? d : STARTER_DECK.slice();
   },
@@ -1033,7 +1089,7 @@ const Lobby = {
   onPeerMessage(m) {
     if (m.t === 'hello' && this.role === 'host') {
       if (m.v !== NET_PROTO) { this.link.send({ t: 'bye' }); this.link.close(); return; }
-      this.peer = { name: String(m.name || 'Rival').slice(0, 16), deck: this.validDeck(m.deck), trophies: m.trophies | 0, arena: clamp(m.arena | 0, 0, ARENAS.length - 1), king: m.king | 0 };
+      this.peer = { name: String(m.name || 'Rival').slice(0, 16), deck: this.validDeck(m.deck), evos: Array.isArray(m.evos) ? m.evos : [], trophies: m.trophies | 0, arena: clamp(m.arena | 0, 0, ARENAS.length - 1), king: m.king | 0 };
       this.startMatch();
     } else if (m.t === 'start' && this.role === 'guest') {
       this.beginBattle(m);
@@ -1051,7 +1107,7 @@ const Lobby = {
     const seed = randi(1, 1e9);
     const msg = {
       t: 'start', seed, arena: Math.max(curArena(), p.arena),
-      names: [SAVE.name, p.name], decks: [curDeck().slice(), p.deck],
+      names: [SAVE.name, p.name], decks: [curDeck().slice(), p.deck], evos: [deckEvos(curDeck()), p.evos],
       subs: ['🏆 ' + SAVE.trophies, '🏆 ' + p.trophies],
     };
     this.link.send(msg);
@@ -1063,9 +1119,11 @@ const Lobby = {
     this.rematch = { me: false, them: false };
     const lv = {};
     for (const k of CARD_KEYS) lv[k] = ONLINE_LEVEL;
+    const decks = [this.validDeck(m.decks[0]), this.validDeck(m.decks[1])];
     UI.closeModal();
     Game.setScene(new BattleScene({
-      mode: this.role, link: this.link, decks: [this.validDeck(m.decks[0]), this.validDeck(m.decks[1])], levels: [lv, lv], kings: [ONLINE_LEVEL, ONLINE_LEVEL],
+      mode: this.role, link: this.link, decks, levels: [lv, lv], kings: [ONLINE_LEVEL, ONLINE_LEVEL],
+      evos: [this.validEvos(m.evos && m.evos[0], decks[0]), this.validEvos(m.evos && m.evos[1], decks[1])],
       names: [String(m.names[0]).slice(0, 16), String(m.names[1]).slice(0, 16)], subs: m.subs || ['', ''], arena: clamp(m.arena | 0, 0, ARENAS.length - 1), seed: m.seed | 0,
     }));
   },

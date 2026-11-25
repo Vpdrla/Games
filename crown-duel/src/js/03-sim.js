@@ -35,7 +35,8 @@ function formation(n) {
 }
 
 class Sim {
-  // o: { decks: [keys[8], keys[8]], levels: [{key: lvl}, {key: lvl}], kings: [lvl, lvl], seed }
+  // o: { decks: [keys[8], keys[8]], levels: [{key: lvl}, {key: lvl}], kings: [lvl, lvl], seed, evos: [keys, keys] }
+  // evos: each player's evolved cards (in EVOS, in their deck); each evolves after EVOS[k].cycles plays.
   constructor(o) {
     this.rng = new RNG(o.seed || 1);
     this.t = 0;
@@ -53,6 +54,7 @@ class Sim {
       return {
         team, deck: o.decks[team].slice(), levels: o.levels[team] || {}, king: (o.kings && o.kings[team]) || 1,
         elixir: 5, hand: deck.slice(0, 4), queue: deck.slice(4), crowns: 0, spent: 0, leaked: 0, plays: 0,
+        evos: ((o.evos && o.evos[team]) || []).filter((k) => EVOS[k] && o.decks[team].includes(k)), evoC: {},
       };
     });
     this.towers = [[], []];
@@ -60,6 +62,9 @@ class Sim {
   }
 
   ev(...a) { this.events.push(a); }
+  // Evolution state of card k for a player: -1 not evolved, else plays counted so far (ready at EVOS[k].cycles).
+  evoState(team, k) { const p = this.p[team]; return k && p.evos.includes(k) ? p.evoC[k] | 0 : -1; }
+  evoReady(team, k) { const c = this.evoState(team, k); return c >= 0 && c >= EVOS[k].cycles; }
   lvl(team, key) { return this.p[team].levels[key] || 1; }
   elixirMult() { return this.t >= DOUBLE_AT ? 2 : 1; }
   timeLeft() { return this.ot ? REG_TIME + OT_TIME - this.t : REG_TIME - this.t; }
@@ -120,16 +125,21 @@ class Sim {
     p.elixir -= c.cost;
     p.spent += c.cost;
     p.plays++;
+    // evolution: played `cycles` times, the next copy comes out evolved and the count starts over
+    let evo = false;
+    if (p.evos.includes(key)) {
+      if (this.evoReady(team, key)) { evo = true; p.evoC[key] = 0; } else p.evoC[key] = (p.evoC[key] | 0) + 1;
+    }
     p.hand[slot] = p.queue.shift();
     p.queue.push(key);
-    this.deploy(team, key, x, y, this.lvl(team, key));
-    this.ev('play', team, key, x, y);
+    this.deploy(team, key, x, y, this.lvl(team, key), evo);
+    this.ev('play', team, key, x, y, evo ? 1 : 0);
     return 'ok';
   }
 
-  deploy(team, key, x, y, lvl) {
+  deploy(team, key, x, y, lvl, evo) {
     const c = CARDS[key];
-    if (c.type === 'spell') { this.castSpell(team, key, x, y, lvl); return; }
+    if (c.type === 'spell') { this.castSpell(team, key, x, y, lvl, evo); return; }
     if (c.anywhere) {
       const k = this.towers[team][2];
       const e = this.spawnUnit(team, c.unit, k.x, k.y, lvl, 0);
@@ -138,9 +148,28 @@ class Sim {
     }
     const n = c.count || 1;
     const offs = formation(n);
+    const grp = evo && key === 'skeletons' ? { n: 0 } : null;
     for (let i = 0; i < n; i++) {
       const o = offs[i];
-      this.spawnUnit(team, c.unit, x + o[0], y + (team === 0 ? o[1] : -o[1]), lvl, DEPLOY_TIME + i * 0.03, sideOf(y));
+      const e = this.spawnUnit(team, c.unit, x + o[0], y + (team === 0 ? o[1] : -o[1]), lvl, DEPLOY_TIME + i * 0.03, sideOf(y));
+      if (e && evo) this.evolve(e, key, grp);
+    }
+  }
+
+  // Turns a freshly spawned unit into the evolved form of card key (see EVOS). Stats are copied before any
+  // change: unitStats results are shared between units.
+  evolve(e, key, grp) {
+    e.evo = key;
+    const st = e.st = Object.assign({}, e.st);
+    const m = LEVEL_MULT(e.lvl);
+    switch (key) {
+      case 'archers': st.range = 6.5; st.sight = Math.max(st.sight, 7); break;
+      case 'skeletons': e.grp = grp; if (grp) grp.n++; break;
+      case 'barbarians': e.hp = e.maxHp = Math.round(e.maxHp * 1.1); break;
+      case 'bomber': st.bounce = 2; break;
+      case 'cannon': st.evoBlast = { dmg: Math.round(200 * m), r: 3.5 }; break;
+      case 'musketeer': e.ammo = 3; e.baseSt = unitStats(e.u, e.lvl); st.range = 9; st.sight = 9.5; break;
+      case 'firemage': e.shield = e.shieldMax = Math.round(e.maxHp * 0.4); break;
     }
   }
 
@@ -166,7 +195,7 @@ class Sim {
     return e;
   }
 
-  castSpell(team, key, x, y, lvl) {
+  castSpell(team, key, x, y, lvl, evo) {
     const s = spellStats(key, lvl);
     const k = this.towers[team][2];
     const kx = k.x, ky = k.y;
@@ -180,6 +209,8 @@ class Sim {
         break;
       case 'zap':
         this.splash(team, x, y, s.radius, s.dmg, 'any', s.towerMult, { stun: s.stun });
+        // evolved: a second, wider bolt half a second later
+        if (evo) this.addArea(team, 'zap2', x, y, s.radius * 1.4, 0.5, { dmg: s.dmg, stun: s.stun, towerMult: s.towerMult });
         break;
       case 'freeze':
         this.splash(team, x, y, s.radius, s.dmg, 'any', s.towerMult, { freeze: s.freeze });
@@ -359,7 +390,8 @@ class Sim {
     const st = e.st;
     if (st.spawn) this.tickSpawner(e, dt);
     if (e.stunT > 0) { e.moving = false; return; }
-    const sm = e.slowT > 0 ? 1 - e.slowAmt : 1;
+    if (e.rageT > 0) e.rageT -= dt;
+    const sm = (e.slowT > 0 ? 1 - e.slowAmt : 1) * (e.rageT > 0 ? 1.35 : 1); // evolved Barbarians' rage
     let tg = e.target;
     if (tg && (!this.validTarget(e, tg) || (st.targets !== 'buildings' && this.gap(e, tg) > st.sight + 2))) {
       tg = e.target = null;
@@ -413,6 +445,11 @@ class Sim {
       this.splash(e.team, e.x, e.y, z.r, z.dmg, 'any', 0.35, { stun: z.stun, slow: z.slow, slowT: z.slowT });
       this.ev(z.stun ? 'zapfx' : 'frostfx', e.x, e.y, z.r);
     }
+    const b = e.st.evoBlast;
+    if (b) {
+      this.splash(e.team, e.x, e.y, b.r, b.dmg, 'ground', 0);
+      this.ev('boom', e.x, e.y, b.r, 'cannonball');
+    }
     this.ev('land', e.id, e.x, e.y, e.u);
   }
 
@@ -424,7 +461,8 @@ class Sim {
     const fy = e.team === 0 ? -1 : 1;
     for (let i = 0; i < sp.count; i++) {
       const ox = (i - (sp.count - 1) / 2) * 0.7;
-      this.spawnUnit(e.team, sp.unit, e.x + ox, e.y + fy * (e.r + 0.35), e.lvl, 0.35, sideOf(e.y));
+      const c = this.spawnUnit(e.team, sp.unit, e.x + ox, e.y + fy * (e.r + 0.35), e.lvl, 0.35, sideOf(e.y));
+      if (c && e.evo === 'necro') c.mom = e.id; // she heals when they fall
     }
     this.ev('summon', e.id, e.x, e.y);
   }
@@ -503,6 +541,7 @@ class Sim {
     const st = e.st;
     let dmg = st.dmg;
     e.lastAtk = this.t;
+    if (e.evo) dmg = this.evoAttack(e, tg, dmg);
     if (e.charging) {
       dmg *= st.charge.mult;
       e.charging = false;
@@ -513,6 +552,8 @@ class Sim {
     if (st.kamikaze) {
       this.splash(e.team, tg.x, tg.y, st.splash, dmg, st.targets, 1, { freeze: st.freeze });
       this.ev('frostfx', tg.x, tg.y, st.splash);
+      // evolved Frost Sprite: the ice bursts again a moment later
+      if (e.evo === 'sprite') this.addArea(e.team, 'frost2', tg.x, tg.y, st.splash, 1.5, { dmg, freeze: st.freeze, towerMult: 1 });
       this.kill(e, true);
       return;
     }
@@ -540,16 +581,58 @@ class Sim {
         h0: e.air ? 1.6 : e.kind === 'building' ? 0.9 : 0.75, h1: tg.air ? 1.5 : tg.kind === 'tower' ? 1.2 : 0.45,
       });
       p.src = e.id;
+      if (st.bounce) p.bounce = st.bounce; // evolved Bomber
       this.ev('shoot', e.id, st.proj);
       return;
     }
     if (st.splashSelf) {
       this.splash(e.team, e.x, e.y, e.r + st.splash, dmg, st.targets, st.towerMult);
       this.ev('spin', e.id, e.x, e.y);
+      if (e.evo === 'maiden') this.whirl(e, 3.5, 0.9);
       return;
     }
     this.hurt(tg, dmg * tm(tg));
     this.ev('hit', tg.id, tg.x, tg.y, st.dmg >= 300 ? 2 : 1, e.u);
+    if (!e.evo) return;
+    if (e.evo === 'barbarians') e.rageT = 3;
+    else if (e.evo === 'juggernaut' && tg.dead && tg.kind === 'troop') this.healEnt(e, e.maxHp * 0.25);
+    else if (e.evo === 'skeletons' && e.grp && e.grp.n < 8) {
+      // every hit raises another (evolved) skeleton, up to 8 at once
+      const fy = e.team === 0 ? 1 : -1;
+      const c = this.spawnUnit(e.team, 'skeleton', e.x + this.rng.range(-0.4, 0.4), e.y + fy * 0.6, e.lvl, 0.25, sideOf(e.y));
+      if (c) this.evolve(c, 'skeletons', e.grp);
+    }
+  }
+
+  // Evolved-form changes to an attack about to land. Returns the damage to deal.
+  evoAttack(e, tg, dmg) {
+    if (e.evo === 'archers' && this.gap(e, tg) > 4) return dmg * 1.5; // Power Shot
+    if (e.evo === 'musketeer' && e.ammo > 0) {
+      // sniper rounds: long range and heavy; the last one hands back her normal stats
+      e.ammo--;
+      if (e.ammo <= 0 && e.baseSt) e.st = e.baseSt;
+      return dmg * 1.8;
+    }
+    return dmg;
+  }
+
+  // Pulls ground enemy troops within r towards e by up to `pull` tiles (evolved Shieldmaiden's whirlwind).
+  whirl(e, r, pull) {
+    for (const o of this.ents) {
+      if (o.dead || o.team === e.team || o.kind !== 'troop' || o.air || o.untarget || o.mass >= 15) continue;
+      const dx = e.x - o.x, dy = e.y - o.y, d = Math.hypot(dx, dy);
+      if (d > r + o.r || d < 0.05) continue;
+      const k = Math.min(pull, Math.max(0, d - e.r - o.r)) / d;
+      o.x = clamp(o.x + dx * k, o.r, AW - o.r);
+      o.y = clamp(o.y + dy * k, o.r, AH - o.r);
+    }
+    this.ev('whirl', e.x, e.y, r);
+  }
+
+  healEnt(o, amt) {
+    if (o.dead || amt <= 0) return;
+    o.hp = Math.min(o.maxHp, o.hp + Math.round(amt));
+    this.ev('heal', o.id, o.x, o.y);
   }
 
   // ---- buildings & towers ----
@@ -643,6 +726,13 @@ class Sim {
     if (p.splash) {
       this.splash(p.team, p.tx, p.ty, p.splash, p.dmg, p.targets, p.towerMult, { slow: p.slow, slowT: p.slowT, knock: p.knock });
       this.ev('boom', p.tx, p.ty, p.splash, p.pt);
+      if (p.bounce > 0) {
+        // evolved Bomber: the bomb skips on along its flight line and blows up again
+        const dx = p.tx - p.sx, dy = p.ty - p.sy, d = Math.hypot(dx, dy) || 1;
+        const nx = clamp(p.tx + (dx / d) * 2.5, 0.5, AW - 0.5), ny = clamp(p.ty + (dy / d) * 2.5, 0.5, AH - 0.5);
+        const q = this.addProj(p.team, p.pt, p.tx, p.ty, null, nx, ny, p.speed, p.dmg, { splash: p.splash, targets: p.targets, towerMult: p.towerMult, h0: 0.2, h1: 0.2 });
+        q.bounce = p.bounce - 1;
+      }
     } else if (p.tgt && !p.tgt.dead) {
       const o = p.tgt;
       this.hurt(o, p.dmg * (o.kind === 'tower' ? p.towerMult : 1));
@@ -675,6 +765,10 @@ class Sim {
         this.splash(a.team, a.x, a.y, a.r, a.dmg, 'any', a.towerMult);
         a.wi++;
       }
+    } else if ((a.sp === 'zap2' || a.sp === 'frost2') && a.t >= a.dur) {
+      // evolved Zap's second bolt / evolved Frost Sprite's second burst
+      this.splash(a.team, a.x, a.y, a.r, a.dmg, 'any', a.towerMult, a.sp === 'zap2' ? { stun: a.stun } : { freeze: a.freeze });
+      this.ev(a.sp === 'zap2' ? 'zapfx' : 'frostfx', a.x, a.y, a.r);
     } else if (a.sp === 'poison') {
       a.tickT -= dt;
       if (a.tickT <= 0) {
@@ -710,6 +804,19 @@ class Sim {
 
   hurt(o, dmg) {
     if (o.dead || dmg <= 0) return;
+    if (o.evo === 'knight' && this.t - o.lastAtk > o.st.hs) dmg *= 0.4; // evolved Knight: tough while not swinging
+    if (o.shield > 0) {
+      // evolved Fire Mage: the shield takes the damage first; when it breaks, a shockwave knocks enemies back
+      const take = Math.min(o.shield, dmg);
+      o.shield -= take;
+      dmg -= take;
+      if (o.shield <= 0) {
+        o.shield = 0;
+        this.splash(o.team, o.x, o.y, 3, Math.round(100 * LEVEL_MULT(o.lvl)), 'ground', 0, { knock: 1.8 });
+        this.ev('boom', o.x, o.y, 3, 'fireorb');
+      }
+      if (dmg <= 0) { o.hurtT = this.t; return; }
+    }
     o.hp -= Math.round(dmg);
     o.hurtT = this.t;
     if (o.kind === 'tower' && o.tt === 'king' && !o.active) this.activateKing(o);
@@ -723,6 +830,11 @@ class Sim {
     this.anyDead = true;
     if (o.kind === 'tower') { this.towerDown(o); return; }
     this.ev('die', o.id, o.u, o.x, o.y, o.air ? 1 : 0, o.team);
+    if (o.grp) o.grp.n--;
+    if (o.mom) {
+      const w = this.ents.find((x) => x.id === o.mom && !x.dead);
+      if (w) this.healEnt(w, 60 * LEVEL_MULT(w.lvl));
+    }
     if (silent) return;
     const st = o.st;
     if (st.deathDmg) {
