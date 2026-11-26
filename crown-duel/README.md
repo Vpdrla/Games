@@ -68,8 +68,16 @@ Connecting one or both phones to Wi-Fi usually fixes it.
   After two losses in a row the next opponent is a slightly easier **Comeback match**.
   Below the top arena, opponents also ease off while you win fewer than half of your last 10 battles.
 - Collect copies of a card and spend gold to **upgrade** it (+10% hit points and damage per
-  level). Upgrades and battles give XP that raises your **king level**, which makes your
-  towers stronger.
+  level). The last two upgrades cost 3,000 and 5,000 gold. Upgrades and battles give XP that raises
+  your **king level**, which makes your towers stronger.
+- **Evolutions**, as in the original: 13 cards (Knight, Archers, Skeletons, Barbarians, Bomber,
+  Cannon, Zap, Musketeer, Shieldmaiden, Juggernaut, Frost Sprite, Fire Mage, Necromancer) have an
+  evolved form. Collect 6 of a card's **evolution shards** (chests from Bone Pit on, the Crown Road,
+  one shard a day in the shop; the Bone Pit gate hands over the Knight's) to unlock it, then put the
+  card in one of the **first two deck slots**. In battle it evolves after it has been played 1 or 2
+  times (shown as pips on the card); the next copy comes out evolved with a purple glow, then the
+  count starts over. From Barbarian Bowl on the AI brings about as many evolutions as you do;
+  online both players' evolutions work.
 - The **Crown Road** gives a reward every 1-3 wins (cards, chests, Deck Packs, gold, gems)
   and hands over each arena's cards at its gate, ready to play at your level. Above 2,600
   trophies the **Legend Road** pays a reward every 100 trophies.
@@ -94,7 +102,7 @@ Connecting one or both phones to Wi-Fi usually fixes it.
   river jumping, crowd collisions, king tower activation, double elixir and overtime.
 - **AI opponent** that defends lanes, counters with the right card type, uses spells
   for value, builds pushes and supports its tanks.
-- **Progression**: trophies and the Crown Road, 3 deck slots, card upgrades, king levels,
+- **Progression**: trophies and the Crown Road, 3 deck slots, card upgrades, card evolutions, king levels,
   8 chest types with a two-lane automatic unlock queue, a daily shop with a free Deck Pack
   and Card Requests, emotes and battle stats.
 - Synthesized sound effects and music, vibration on big hits, and a portrait layout that
@@ -120,6 +128,7 @@ Tests and tools (Playwright with Chromium; the online test also needs the `peer`
 node crown-duel/tools/sim-test.cjs 200                                      # AI-vs-AI battles in Node: crashes, stalemates, card win rates
 node crown-duel/tools/career-sim.cjs 300 0.55 1,2,3,4,5,6,7,8 spec 0 attentive --assert   # simulated careers: progression pacing check
 node crown-duel/tools/migrate-test.cjs                                                    # old saves upgrade without losing anything
+node crown-duel/tools/evo-test.cjs                                                        # every evolution's effect, and AI battles with them
 NODE_PATH=$(npm root -g) node crown-duel/tools/smoke-test.cjs [shots-dir]   # menus, a full battle, Crown Road, chests, upgrades, drag & drop
 npm install --prefix /tmp/peer peer
 NODE_PATH=$(npm root -g):/tmp/peer/node_modules node crown-duel/tools/net-test.cjs   # two phones: room code, battle, rematch, quick match
@@ -145,4 +154,8 @@ NODE_PATH=$(npm root -g) node crown-duel/tools/make-icons.cjs               # re
   안드로이드는 **앱 설치**, 아이폰은 **공유 → 홈 화면에 추가** 를 누르면 인터넷 없이도 실행됩니다.
 - **조작:** 아래 손패의 카드를 끌어서 내 진영(아래쪽)에 놓거나, 카드를 누른 뒤 아레나를 누르세요.
   엘릭서(분홍색 막대)가 차오르면 카드를 낼 수 있고, 마지막 1분은 엘릭서가 두 배로 찹니다.
+- **진화:** 원작처럼 13장(기사, 궁수, 해골, 바바리안, 폭탄병, 대포, 전기 주문, 머스킷 총병, 방패 처녀, 저거너트, 서리 정령, 불 마법사, 강령술사)에 진화형이 있습니다.
+  카드별 **진화 조각** 6개(뼈 구덩이부터 상자, 크라운 로드, 상점에서 하루 1개; 뼈 구덩이 관문에서 기사 진화)를 모아 해금하고, 덱의 **앞 두 칸(진화 슬롯)** 에 넣으세요.
+  전투에서 1~2번 낸 뒤(카드 위 점으로 표시) 다음 카드가 보라색으로 빛나는 진화형으로 나옵니다. AI는 바바리안 경기장부터 내가 가져간 진화 수만큼(가끔 하나 더) 진화를 씁니다.
+- **골드:** 승리·패배·상자·크라운 로드 골드가 늘었고, 마지막 두 업그레이드 비용이 3,000 / 5,000 골드로 줄었습니다.
 - 연결이 안 되면 한쪽 또는 양쪽 휴대폰을 와이파이에 연결해 보세요.

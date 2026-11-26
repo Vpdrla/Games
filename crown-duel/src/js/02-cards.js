@@ -13,7 +13,7 @@ const RARITY = {
   legendary: { name: 'Legendary', color: '#3ff0d0', dark: '#0f7a6b', copies: [1, 1, 1, 1, 2, 2, 3, 3, 3], xp: 3 },
 };
 const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary'];
-const UPGRADE_GOLD = [5, 20, 50, 150, 400, 1000, 2000, 4000, 12000];
+const UPGRADE_GOLD = [5, 20, 50, 150, 400, 1000, 2000, 3000, 5000]; // the last steps used to be 4000 and 12000
 const UPGRADE_XP = [4, 5, 6, 10, 25, 50, 100, 200, 400];
 const KING_XP = [20, 50, 100, 200, 400, 800, 1600, 3000, 5000];
 
@@ -101,6 +101,28 @@ const CARDS = {
   log: { name: 'Log', rarity: 'legendary', cost: 2, type: 'spell', arena: 6, spell: 'log', dmg: 200, halfW: 1.9, travel: 10.5, speed: 7, towerMult: 0.2, knock: 1.0, desc: 'A spiked log that rolls forward, knocking back ground troops.' },
 };
 const CARD_KEYS = Object.keys(CARDS);
+
+// ---- Evolutions (as in the original): the cards below have an evolved form. Unlock it with EVO_SHARDS of the
+// card's shards, then put the card in one of the first EVO_SLOTS deck slots. In battle the card evolves after
+// it has been played `cycles` times: the next copy comes out evolved (a purple card), then the count restarts.
+const EVO_SHARDS = 6;
+const EVO_SLOTS = 2;
+const EVOS = {
+  knight: { cycles: 2, text: 'Takes 60% less damage while he is not swinging his sword.' },
+  archers: { cycles: 2, text: 'Range 6.5 instead of 5, and 50% more damage to targets more than 4 tiles away (Power Shot).' },
+  skeletons: { cycles: 2, text: 'Every hit raises another skeleton, up to 8 at once.' },
+  barbarians: { cycles: 1, text: '10% more hit points. Every hit sends them into a rage: 35% faster moving and swinging for 3 seconds.' },
+  bomber: { cycles: 2, text: 'Bombs bounce on twice, 2.5 tiles further each time, and blow up again.' },
+  cannon: { cycles: 2, text: 'When it lands it fires a blast that deals 200 damage to ground troops around it.' },
+  zap: { cycles: 2, text: 'Zaps twice: a second, wider bolt follows half a second later.' },
+  musketeer: { cycles: 2, text: 'Her first 3 shots are sniper rounds: range 9 and 80% more damage.' },
+  maiden: { cycles: 2, text: 'Every swing whips up a whirlwind that pulls nearby ground troops in.' },
+  juggernaut: { cycles: 1, text: 'Heals 25% of his hit points every time he takes out a troop.' },
+  sprite: { cycles: 2, text: 'After it bursts, the ice bursts again 1.5 seconds later and freezes again.' },
+  firemage: { cycles: 1, text: 'Carries a shield worth 40% of its hit points. When the shield breaks, a shockwave knocks enemies back.' },
+  necro: { cycles: 1, text: 'Heals 60 hit points every time one of her skeletons falls.' },
+};
+const EVO_KEYS = Object.keys(EVOS);
 const STARTER_DECK = ['knight', 'archers', 'goblins', 'skeletons', 'giant', 'musketeer', 'arrows', 'fireball'];
 
 const ARENAS = [

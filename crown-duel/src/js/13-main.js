@@ -171,6 +171,7 @@ const Game = {
     this.setScene(new BattleScene({
       mode: training ? 'training' : 'ai',
       decks: [curDeck().slice(), opp.deck], levels: [deckLevels(), opp.levels], kings: [SAVE.king, opp.king],
+      evos: [training ? [] : deckEvos(curDeck()), opp.evos || []],
       names: [SAVE.name, opp.name], subs: ['', training ? 'Practice match' : '🏆 ' + opp.trophies + (opp.comeback ? ' · Comeback match' : '')],
       arena: training ? 0 : curArena(), seed: randi(1, 1e9), aiSkill: opp.skill, oppTrophies: opp.trophies,
     }));

@@ -154,6 +154,21 @@ p{font-size:14px;line-height:1.45}
 .cc.swap{animation:wig .35s ease-in-out infinite alternate}
 @keyframes wig{from{transform:rotate(-2deg)}to{transform:rotate(2deg)}}
 .deckgrid{background:rgba(0,0,0,.25);border-radius:14px;padding:8px}
+.cc.evo{box-shadow:0 0 0 3px #b45cff,0 0 12px 2px rgba(196,107,255,.8)}
+.evoslot{position:relative;isolation:isolate}
+.evotag{position:absolute;left:50%;top:-7px;transform:translateX(-50%);z-index:2;background:#7a28c9;border:1.5px solid #e2b4ff;border-radius:7px;padding:0 5px;font-size:8.5px;font-weight:900;white-space:nowrap}
+.cc .evb{position:absolute;left:50%;top:22%;transform:translateX(-50%);background:#7a28c9;border:1.5px solid #e2b4ff;border-radius:8px;padding:0 5px;font-size:9px;font-weight:900}
+.cc .evb.go{background:#c46bff;animation:wig .35s ease-in-out infinite alternate}
+.cc .evb.dim{background:rgba(60,20,100,.85)}
+.evosec{background:rgba(120,40,190,.18);border:2px solid #7a28c9;border-radius:12px;padding:8px 10px;margin:8px 0}
+.evosec .eh{display:flex;align-items:center;gap:6px}
+.evosec .eh img{width:22px}
+.evosec .eh span{margin-left:auto;font-size:11px;color:#d9b8ff}
+.evosec p{margin:5px 0}
+.bar2.evo i{background:linear-gradient(90deg,#8a2fd6,#d58cff)}
+.shardart{position:relative;width:58%;max-width:92px}
+.shardart img{width:100%}
+.shardart .sh{position:absolute;right:-10px;bottom:-6px;width:46%}
 .shopgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .offer{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
 .offer img{width:58%;max-width:92px}
@@ -462,7 +477,7 @@ const RARITY = {
   legendary: { name: 'Legendary', color: '#3ff0d0', dark: '#0f7a6b', copies: [1, 1, 1, 1, 2, 2, 3, 3, 3], xp: 3 },
 };
 const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary'];
-const UPGRADE_GOLD = [5, 20, 50, 150, 400, 1000, 2000, 4000, 12000];
+const UPGRADE_GOLD = [5, 20, 50, 150, 400, 1000, 2000, 3000, 5000]; // the last steps used to be 4000 and 12000
 const UPGRADE_XP = [4, 5, 6, 10, 25, 50, 100, 200, 400];
 const KING_XP = [20, 50, 100, 200, 400, 800, 1600, 3000, 5000];
 
@@ -550,6 +565,28 @@ const CARDS = {
   log: { name: 'Log', rarity: 'legendary', cost: 2, type: 'spell', arena: 6, spell: 'log', dmg: 200, halfW: 1.9, travel: 10.5, speed: 7, towerMult: 0.2, knock: 1.0, desc: 'A spiked log that rolls forward, knocking back ground troops.' },
 };
 const CARD_KEYS = Object.keys(CARDS);
+
+// ---- Evolutions (as in the original): the cards below have an evolved form. Unlock it with EVO_SHARDS of the
+// card's shards, then put the card in one of the first EVO_SLOTS deck slots. In battle the card evolves after
+// it has been played `cycles` times: the next copy comes out evolved (a purple card), then the count restarts.
+const EVO_SHARDS = 6;
+const EVO_SLOTS = 2;
+const EVOS = {
+  knight: { cycles: 2, text: 'Takes 60% less damage while he is not swinging his sword.' },
+  archers: { cycles: 2, text: 'Range 6.5 instead of 5, and 50% more damage to targets more than 4 tiles away (Power Shot).' },
+  skeletons: { cycles: 2, text: 'Every hit raises another skeleton, up to 8 at once.' },
+  barbarians: { cycles: 1, text: '10% more hit points. Every hit sends them into a rage: 35% faster moving and swinging for 3 seconds.' },
+  bomber: { cycles: 2, text: 'Bombs bounce on twice, 2.5 tiles further each time, and blow up again.' },
+  cannon: { cycles: 2, text: 'When it lands it fires a blast that deals 200 damage to ground troops around it.' },
+  zap: { cycles: 2, text: 'Zaps twice: a second, wider bolt follows half a second later.' },
+  musketeer: { cycles: 2, text: 'Her first 3 shots are sniper rounds: range 9 and 80% more damage.' },
+  maiden: { cycles: 2, text: 'Every swing whips up a whirlwind that pulls nearby ground troops in.' },
+  juggernaut: { cycles: 1, text: 'Heals 25% of his hit points every time he takes out a troop.' },
+  sprite: { cycles: 2, text: 'After it bursts, the ice bursts again 1.5 seconds later and freezes again.' },
+  firemage: { cycles: 1, text: 'Carries a shield worth 40% of its hit points. When the shield breaks, a shockwave knocks enemies back.' },
+  necro: { cycles: 1, text: 'Heals 60 hit points every time one of her skeletons falls.' },
+};
+const EVO_KEYS = Object.keys(EVOS);
 const STARTER_DECK = ['knight', 'archers', 'goblins', 'skeletons', 'giant', 'musketeer', 'arrows', 'fireball'];
 
 const ARENAS = [
@@ -706,7 +743,8 @@ function formation(n) {
 }
 
 class Sim {
-  // o: { decks: [keys[8], keys[8]], levels: [{key: lvl}, {key: lvl}], kings: [lvl, lvl], seed }
+  // o: { decks: [keys[8], keys[8]], levels: [{key: lvl}, {key: lvl}], kings: [lvl, lvl], seed, evos: [keys, keys] }
+  // evos: each player's evolved cards (in EVOS, in their deck); each evolves after EVOS[k].cycles plays.
   constructor(o) {
     this.rng = new RNG(o.seed || 1);
     this.t = 0;
@@ -724,6 +762,7 @@ class Sim {
       return {
         team, deck: o.decks[team].slice(), levels: o.levels[team] || {}, king: (o.kings && o.kings[team]) || 1,
         elixir: 5, hand: deck.slice(0, 4), queue: deck.slice(4), crowns: 0, spent: 0, leaked: 0, plays: 0,
+        evos: ((o.evos && o.evos[team]) || []).filter((k) => EVOS[k] && o.decks[team].includes(k)), evoC: {},
       };
     });
     this.towers = [[], []];
@@ -731,6 +770,9 @@ class Sim {
   }
 
   ev(...a) { this.events.push(a); }
+  // Evolution state of card k for a player: -1 not evolved, else plays counted so far (ready at EVOS[k].cycles).
+  evoState(team, k) { const p = this.p[team]; return k && p.evos.includes(k) ? p.evoC[k] | 0 : -1; }
+  evoReady(team, k) { const c = this.evoState(team, k); return c >= 0 && c >= EVOS[k].cycles; }
   lvl(team, key) { return this.p[team].levels[key] || 1; }
   elixirMult() { return this.t >= DOUBLE_AT ? 2 : 1; }
   timeLeft() { return this.ot ? REG_TIME + OT_TIME - this.t : REG_TIME - this.t; }
@@ -791,16 +833,21 @@ class Sim {
     p.elixir -= c.cost;
     p.spent += c.cost;
     p.plays++;
+    // evolution: played `cycles` times, the next copy comes out evolved and the count starts over
+    let evo = false;
+    if (p.evos.includes(key)) {
+      if (this.evoReady(team, key)) { evo = true; p.evoC[key] = 0; } else p.evoC[key] = (p.evoC[key] | 0) + 1;
+    }
     p.hand[slot] = p.queue.shift();
     p.queue.push(key);
-    this.deploy(team, key, x, y, this.lvl(team, key));
-    this.ev('play', team, key, x, y);
+    this.deploy(team, key, x, y, this.lvl(team, key), evo);
+    this.ev('play', team, key, x, y, evo ? 1 : 0);
     return 'ok';
   }
 
-  deploy(team, key, x, y, lvl) {
+  deploy(team, key, x, y, lvl, evo) {
     const c = CARDS[key];
-    if (c.type === 'spell') { this.castSpell(team, key, x, y, lvl); return; }
+    if (c.type === 'spell') { this.castSpell(team, key, x, y, lvl, evo); return; }
     if (c.anywhere) {
       const k = this.towers[team][2];
       const e = this.spawnUnit(team, c.unit, k.x, k.y, lvl, 0);
@@ -809,9 +856,28 @@ class Sim {
     }
     const n = c.count || 1;
     const offs = formation(n);
+    const grp = evo && key === 'skeletons' ? { n: 0 } : null;
     for (let i = 0; i < n; i++) {
       const o = offs[i];
-      this.spawnUnit(team, c.unit, x + o[0], y + (team === 0 ? o[1] : -o[1]), lvl, DEPLOY_TIME + i * 0.03, sideOf(y));
+      const e = this.spawnUnit(team, c.unit, x + o[0], y + (team === 0 ? o[1] : -o[1]), lvl, DEPLOY_TIME + i * 0.03, sideOf(y));
+      if (e && evo) this.evolve(e, key, grp);
+    }
+  }
+
+  // Turns a freshly spawned unit into the evolved form of card key (see EVOS). Stats are copied before any
+  // change: unitStats results are shared between units.
+  evolve(e, key, grp) {
+    e.evo = key;
+    const st = e.st = Object.assign({}, e.st);
+    const m = LEVEL_MULT(e.lvl);
+    switch (key) {
+      case 'archers': st.range = 6.5; st.sight = Math.max(st.sight, 7); break;
+      case 'skeletons': e.grp = grp; if (grp) grp.n++; break;
+      case 'barbarians': e.hp = e.maxHp = Math.round(e.maxHp * 1.1); break;
+      case 'bomber': st.bounce = 2; break;
+      case 'cannon': st.evoBlast = { dmg: Math.round(200 * m), r: 3.5 }; break;
+      case 'musketeer': e.ammo = 3; e.baseSt = unitStats(e.u, e.lvl); st.range = 9; st.sight = 9.5; break;
+      case 'firemage': e.shield = e.shieldMax = Math.round(e.maxHp * 0.4); break;
     }
   }
 
@@ -837,7 +903,7 @@ class Sim {
     return e;
   }
 
-  castSpell(team, key, x, y, lvl) {
+  castSpell(team, key, x, y, lvl, evo) {
     const s = spellStats(key, lvl);
     const k = this.towers[team][2];
     const kx = k.x, ky = k.y;
@@ -851,6 +917,8 @@ class Sim {
         break;
       case 'zap':
         this.splash(team, x, y, s.radius, s.dmg, 'any', s.towerMult, { stun: s.stun });
+        // evolved: a second, wider bolt half a second later
+        if (evo) this.addArea(team, 'zap2', x, y, s.radius * 1.4, 0.5, { dmg: s.dmg, stun: s.stun, towerMult: s.towerMult });
         break;
       case 'freeze':
         this.splash(team, x, y, s.radius, s.dmg, 'any', s.towerMult, { freeze: s.freeze });
@@ -1030,7 +1098,8 @@ class Sim {
     const st = e.st;
     if (st.spawn) this.tickSpawner(e, dt);
     if (e.stunT > 0) { e.moving = false; return; }
-    const sm = e.slowT > 0 ? 1 - e.slowAmt : 1;
+    if (e.rageT > 0) e.rageT -= dt;
+    const sm = (e.slowT > 0 ? 1 - e.slowAmt : 1) * (e.rageT > 0 ? 1.35 : 1); // evolved Barbarians' rage
     let tg = e.target;
     if (tg && (!this.validTarget(e, tg) || (st.targets !== 'buildings' && this.gap(e, tg) > st.sight + 2))) {
       tg = e.target = null;
@@ -1084,6 +1153,11 @@ class Sim {
       this.splash(e.team, e.x, e.y, z.r, z.dmg, 'any', 0.35, { stun: z.stun, slow: z.slow, slowT: z.slowT });
       this.ev(z.stun ? 'zapfx' : 'frostfx', e.x, e.y, z.r);
     }
+    const b = e.st.evoBlast;
+    if (b) {
+      this.splash(e.team, e.x, e.y, b.r, b.dmg, 'ground', 0);
+      this.ev('boom', e.x, e.y, b.r, 'cannonball');
+    }
     this.ev('land', e.id, e.x, e.y, e.u);
   }
 
@@ -1095,7 +1169,8 @@ class Sim {
     const fy = e.team === 0 ? -1 : 1;
     for (let i = 0; i < sp.count; i++) {
       const ox = (i - (sp.count - 1) / 2) * 0.7;
-      this.spawnUnit(e.team, sp.unit, e.x + ox, e.y + fy * (e.r + 0.35), e.lvl, 0.35, sideOf(e.y));
+      const c = this.spawnUnit(e.team, sp.unit, e.x + ox, e.y + fy * (e.r + 0.35), e.lvl, 0.35, sideOf(e.y));
+      if (c && e.evo === 'necro') c.mom = e.id; // she heals when they fall
     }
     this.ev('summon', e.id, e.x, e.y);
   }
@@ -1174,6 +1249,7 @@ class Sim {
     const st = e.st;
     let dmg = st.dmg;
     e.lastAtk = this.t;
+    if (e.evo) dmg = this.evoAttack(e, tg, dmg);
     if (e.charging) {
       dmg *= st.charge.mult;
       e.charging = false;
@@ -1184,6 +1260,8 @@ class Sim {
     if (st.kamikaze) {
       this.splash(e.team, tg.x, tg.y, st.splash, dmg, st.targets, 1, { freeze: st.freeze });
       this.ev('frostfx', tg.x, tg.y, st.splash);
+      // evolved Frost Sprite: the ice bursts again a moment later
+      if (e.evo === 'sprite') this.addArea(e.team, 'frost2', tg.x, tg.y, st.splash, 1.5, { dmg, freeze: st.freeze, towerMult: 1 });
       this.kill(e, true);
       return;
     }
@@ -1211,16 +1289,58 @@ class Sim {
         h0: e.air ? 1.6 : e.kind === 'building' ? 0.9 : 0.75, h1: tg.air ? 1.5 : tg.kind === 'tower' ? 1.2 : 0.45,
       });
       p.src = e.id;
+      if (st.bounce) p.bounce = st.bounce; // evolved Bomber
       this.ev('shoot', e.id, st.proj);
       return;
     }
     if (st.splashSelf) {
       this.splash(e.team, e.x, e.y, e.r + st.splash, dmg, st.targets, st.towerMult);
       this.ev('spin', e.id, e.x, e.y);
+      if (e.evo === 'maiden') this.whirl(e, 3.5, 0.9);
       return;
     }
     this.hurt(tg, dmg * tm(tg));
     this.ev('hit', tg.id, tg.x, tg.y, st.dmg >= 300 ? 2 : 1, e.u);
+    if (!e.evo) return;
+    if (e.evo === 'barbarians') e.rageT = 3;
+    else if (e.evo === 'juggernaut' && tg.dead && tg.kind === 'troop') this.healEnt(e, e.maxHp * 0.25);
+    else if (e.evo === 'skeletons' && e.grp && e.grp.n < 8) {
+      // every hit raises another (evolved) skeleton, up to 8 at once
+      const fy = e.team === 0 ? 1 : -1;
+      const c = this.spawnUnit(e.team, 'skeleton', e.x + this.rng.range(-0.4, 0.4), e.y + fy * 0.6, e.lvl, 0.25, sideOf(e.y));
+      if (c) this.evolve(c, 'skeletons', e.grp);
+    }
+  }
+
+  // Evolved-form changes to an attack about to land. Returns the damage to deal.
+  evoAttack(e, tg, dmg) {
+    if (e.evo === 'archers' && this.gap(e, tg) > 4) return dmg * 1.5; // Power Shot
+    if (e.evo === 'musketeer' && e.ammo > 0) {
+      // sniper rounds: long range and heavy; the last one hands back her normal stats
+      e.ammo--;
+      if (e.ammo <= 0 && e.baseSt) e.st = e.baseSt;
+      return dmg * 1.8;
+    }
+    return dmg;
+  }
+
+  // Pulls ground enemy troops within r towards e by up to `pull` tiles (evolved Shieldmaiden's whirlwind).
+  whirl(e, r, pull) {
+    for (const o of this.ents) {
+      if (o.dead || o.team === e.team || o.kind !== 'troop' || o.air || o.untarget || o.mass >= 15) continue;
+      const dx = e.x - o.x, dy = e.y - o.y, d = Math.hypot(dx, dy);
+      if (d > r + o.r || d < 0.05) continue;
+      const k = Math.min(pull, Math.max(0, d - e.r - o.r)) / d;
+      o.x = clamp(o.x + dx * k, o.r, AW - o.r);
+      o.y = clamp(o.y + dy * k, o.r, AH - o.r);
+    }
+    this.ev('whirl', e.x, e.y, r);
+  }
+
+  healEnt(o, amt) {
+    if (o.dead || amt <= 0) return;
+    o.hp = Math.min(o.maxHp, o.hp + Math.round(amt));
+    this.ev('heal', o.id, o.x, o.y);
   }
 
   // ---- buildings & towers ----
@@ -1314,6 +1434,13 @@ class Sim {
     if (p.splash) {
       this.splash(p.team, p.tx, p.ty, p.splash, p.dmg, p.targets, p.towerMult, { slow: p.slow, slowT: p.slowT, knock: p.knock });
       this.ev('boom', p.tx, p.ty, p.splash, p.pt);
+      if (p.bounce > 0) {
+        // evolved Bomber: the bomb skips on along its flight line and blows up again
+        const dx = p.tx - p.sx, dy = p.ty - p.sy, d = Math.hypot(dx, dy) || 1;
+        const nx = clamp(p.tx + (dx / d) * 2.5, 0.5, AW - 0.5), ny = clamp(p.ty + (dy / d) * 2.5, 0.5, AH - 0.5);
+        const q = this.addProj(p.team, p.pt, p.tx, p.ty, null, nx, ny, p.speed, p.dmg, { splash: p.splash, targets: p.targets, towerMult: p.towerMult, h0: 0.2, h1: 0.2 });
+        q.bounce = p.bounce - 1;
+      }
     } else if (p.tgt && !p.tgt.dead) {
       const o = p.tgt;
       this.hurt(o, p.dmg * (o.kind === 'tower' ? p.towerMult : 1));
@@ -1346,6 +1473,10 @@ class Sim {
         this.splash(a.team, a.x, a.y, a.r, a.dmg, 'any', a.towerMult);
         a.wi++;
       }
+    } else if ((a.sp === 'zap2' || a.sp === 'frost2') && a.t >= a.dur) {
+      // evolved Zap's second bolt / evolved Frost Sprite's second burst
+      this.splash(a.team, a.x, a.y, a.r, a.dmg, 'any', a.towerMult, a.sp === 'zap2' ? { stun: a.stun } : { freeze: a.freeze });
+      this.ev(a.sp === 'zap2' ? 'zapfx' : 'frostfx', a.x, a.y, a.r);
     } else if (a.sp === 'poison') {
       a.tickT -= dt;
       if (a.tickT <= 0) {
@@ -1381,6 +1512,19 @@ class Sim {
 
   hurt(o, dmg) {
     if (o.dead || dmg <= 0) return;
+    if (o.evo === 'knight' && this.t - o.lastAtk > o.st.hs) dmg *= 0.4; // evolved Knight: tough while not swinging
+    if (o.shield > 0) {
+      // evolved Fire Mage: the shield takes the damage first; when it breaks, a shockwave knocks enemies back
+      const take = Math.min(o.shield, dmg);
+      o.shield -= take;
+      dmg -= take;
+      if (o.shield <= 0) {
+        o.shield = 0;
+        this.splash(o.team, o.x, o.y, 3, Math.round(100 * LEVEL_MULT(o.lvl)), 'ground', 0, { knock: 1.8 });
+        this.ev('boom', o.x, o.y, 3, 'fireorb');
+      }
+      if (dmg <= 0) { o.hurtT = this.t; return; }
+    }
     o.hp -= Math.round(dmg);
     o.hurtT = this.t;
     if (o.kind === 'tower' && o.tt === 'king' && !o.active) this.activateKing(o);
@@ -1394,6 +1538,11 @@ class Sim {
     this.anyDead = true;
     if (o.kind === 'tower') { this.towerDown(o); return; }
     this.ev('die', o.id, o.u, o.x, o.y, o.air ? 1 : 0, o.team);
+    if (o.grp) o.grp.n--;
+    if (o.mom) {
+      const w = this.ents.find((x) => x.id === o.mom && !x.dead);
+      if (w) this.healEnt(w, 60 * LEVEL_MULT(w.lvl));
+    }
     if (silent) return;
     const st = o.st;
     if (st.deathDmg) {
@@ -3131,9 +3280,28 @@ class BattleView {
     const mine = (team) => team === this.myTeam;
     switch (ev[0]) {
       case 'play': {
-        const [, team, key, x, y] = ev;
+        const [, team, key, x, y, evo] = ev;
         if (!mine(team)) this.cardPop(key, x, y);
         Sound.play(CARDS[key].type === 'spell' ? 'cast' : 'deploy');
+        if (evo) {
+          // an evolved card: a purple burst where it lands
+          f.flash(x, y, 2.2, '#c46bff', 0.45);
+          f.ring(x, y, 2.4, '#e2b4ff', 0.5, 0.14);
+          f.puff(x, y, 8, 'rgba(200,120,255,0.8)', 0.6);
+          Sound.play('magic');
+          if (mine(team)) this.message('EVOLVED!', '#e2b4ff', 1.2);
+        }
+        break;
+      }
+      case 'whirl': {
+        const [, x, y, r] = ev;
+        f.ring(x, y, r, '#e3f4ff', 0.35, 0.12);
+        f.puff(x, y, 6, 'rgba(220,240,255,0.7)', r * 0.3);
+        break;
+      }
+      case 'heal': {
+        const [, , x, y] = ev;
+        f.puff(x, y, 4, 'rgba(120,255,150,0.85)', 0.4);
         break;
       }
       case 'land': {
@@ -3370,6 +3538,12 @@ class BattleView {
       ctx.lineWidth = 0.08 * T;
       ctx.stroke();
       ctx.globalAlpha = 1;
+    } else if (e.sp === 'zap2' || e.sp === 'frost2') {
+      // the second bolt / burst gathering: a ring that closes in until it goes off
+      ctx.strokeStyle = e.sp === 'zap2' ? 'rgba(170,240,255,' + (0.3 + 0.5 * f) + ')' : 'rgba(220,250,255,' + (0.3 + 0.5 * f) + ')';
+      ctx.lineWidth = 0.08 * T;
+      ellipse(ctx, q[0], q[1], e.r * T * (1.15 - 0.15 * f), e.r * T * 0.8 * (1.15 - 0.15 * f));
+      ctx.stroke();
     } else if (e.sp === 'arrows') {
       ctx.strokeStyle = 'rgba(255,255,255,' + (0.4 * (1 - f)) + ')';
       ctx.lineWidth = 0.06 * T;
@@ -3438,6 +3612,17 @@ class BattleView {
     ctx.globalAlpha = alpha;
     ctx.translate(q[0], q[1] - z * T);
     const sc = T * UNIT_SCALE;
+    if (e.evo) {
+      // evolved: a purple aura at its feet
+      ctx.globalAlpha = alpha * (0.6 + 0.25 * Math.sin(this.t * 5 + e.id));
+      ctx.fillStyle = 'rgba(180,80,255,0.35)';
+      ellipse(ctx, 0, 0, e.r * T * 1.35, e.r * T * 0.7);
+      ctx.fill();
+      ctx.strokeStyle = '#d58cff';
+      ctx.lineWidth = 0.07 * T;
+      ctx.stroke();
+      ctx.globalAlpha = alpha;
+    }
     if (e.kind === 'troop' && UNIT_ART[e.u]) {
       const fk = atk >= 0 ? 'a' + Math.min(7, Math.floor(atk * 8)) : e.moving ? 'w' + (Math.floor(s.walk * 4) % 4) : 'i';
       const tk = TIME_ANIM[e.u] ? Math.floor(this.t * 9 + e.id) % 4 : 0;
@@ -3465,6 +3650,16 @@ class BattleView {
       ellipse(ctx, 0, -h * 0.45, e.r * 1.1, h * 0.5);
       ctx.fill();
       ctx.globalAlpha = alpha;
+    }
+    if (e.shield > 0) {
+      // evolved Fire Mage's shield
+      const h = UNIT_H[e.u] || 1.2;
+      ctx.strokeStyle = 'rgba(140,200,255,0.85)';
+      ctx.fillStyle = 'rgba(140,200,255,0.15)';
+      ctx.lineWidth = 0.06;
+      ellipse(ctx, 0, -h * 0.45, e.r * 1.25, h * 0.6);
+      ctx.fill();
+      ctx.stroke();
     }
     if (e.freezeT > 0) this.frozenOverlay(ctx, e.r, UNIT_H[e.u] || 1.2);
     if (e.stunT > 0 && !(e.freezeT > 0)) {
@@ -3841,6 +4036,7 @@ class BattleView {
       ctx.globalAlpha = dragging ? 0.35 : pending ? 0.5 : 1;
       ctx.drawImage(cardArt(key, Math.round(r.w * this.dpr), Math.round(r.h * this.dpr)), r.x, r.y - lift, r.w, r.h);
       ctx.globalAlpha = 1;
+      this.drawEvoMark(ctx, r, lift, key, me.evo ? me.evo[i] : -1);
       const cost = CARDS[key].cost;
       if (me.elixir < cost) {
         const f = clamp(me.elixir / cost, 0, 1);
@@ -3918,6 +4114,38 @@ class BattleView {
       const key = me.hand[this.drag.slot];
       const r = this.cards[this.drag.slot];
       if (key) ctx.drawImage(cardArt(key, Math.round(r.w * this.dpr), Math.round(r.h * this.dpr)), this.drag.x - r.w / 2, this.drag.y - r.h / 2, r.w, r.h);
+    }
+  }
+
+  // A hand card's evolution: a glowing purple frame and EVO when the next play evolves, else one pip per
+  // play still needed (filled as they are made). es: -1 not evolved, else plays counted so far.
+  drawEvoMark(ctx, r, lift, key, es) {
+    if (!(es >= 0) || !EVOS[key]) return;
+    const cyc = EVOS[key].cycles, y0 = r.y - lift;
+    if (es >= cyc) {
+      const p = 0.6 + 0.4 * Math.sin(this.t * 6);
+      ctx.save();
+      ctx.shadowColor = '#c46bff';
+      ctx.shadowBlur = 10 * p;
+      ctx.strokeStyle = '#d58cff';
+      ctx.lineWidth = 3;
+      roundRect(ctx, r.x - 1, y0 - 1, r.w + 2, r.h + 2, 9);
+      ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = 'rgba(120,40,190,0.9)';
+      roundRect(ctx, r.x + r.w / 2 - 16, y0 - 7, 32, 14, 7);
+      ctx.fill();
+      outlineText(ctx, 'EVO', r.x + r.w / 2, y0, 10, '#f3dcff');
+      return;
+    }
+    for (let k = 0; k < cyc; k++) {
+      const px = r.x + r.w / 2 + (k - (cyc - 1) / 2) * 11, py = y0 - 2;
+      ctx.fillStyle = k < es ? '#c46bff' : 'rgba(30,10,50,0.8)';
+      circle(ctx, px, py, 4);
+      ctx.fill();
+      ctx.strokeStyle = '#e2b4ff';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
     }
   }
 
@@ -4372,14 +4600,14 @@ const SAVE_KEY = 'crown-duel-save-v1'; // v2 saves keep this key; loadGame upgra
 let SAVE = null;
 
 const CHESTS = {
-  silver: { name: 'Silver Chest', time: 3 * 60, cards: 7, gold: [16, 28], col: '#c9d4de', dark: '#6d7c8a', rare: 0.14, epic: 0.012, leg: 0.0015 },
-  gold: { name: 'Golden Chest', time: 8 * 60, cards: 22, gold: [60, 110], col: '#ffcf40', dark: '#a86a00', rare: 0.16, epic: 0.02, leg: 0.002 },
-  magic: { name: 'Magical Chest', time: 20 * 60, cards: 50, gold: [180, 320], col: '#c15cff', dark: '#5a1a8f', rare: 0.2, epic: 0.05, leg: 0.006, minEpic: 2 },
-  giant: { name: 'Giant Chest', time: 20 * 60, cards: 120, gold: [380, 640], col: '#4fb4ff', dark: '#1a5a9a', rare: 0.15, epic: 0.012, leg: 0.001 },
-  epic: { name: 'Epic Chest', time: 30 * 60, cards: 10, gold: [0, 0], col: '#b04aff', dark: '#4a0f7a', only: 'epic' },
-  legendary: { name: 'Legendary Chest', time: 60 * 60, cards: 1, gold: [0, 0], col: '#3ff0d0', dark: '#0f7a6b', only: 'legendary' },
-  free: { name: 'Free Chest', time: 0, cards: 5, gold: [20, 40], col: '#7fe08a', dark: '#2a7a3a', rare: 0.14, epic: 0.01, leg: 0.001, gems: [0, 3] },
-  crown: { name: 'Crown Chest', time: 0, cards: 30, gold: [120, 220], col: '#ffe070', dark: '#b07a00', rare: 0.18, epic: 0.03, leg: 0.004, gems: [4, 10] },
+  silver: { name: 'Silver Chest', time: 3 * 60, cards: 7, gold: [21, 36], col: '#c9d4de', dark: '#6d7c8a', rare: 0.14, epic: 0.012, leg: 0.0015 },
+  gold: { name: 'Golden Chest', time: 8 * 60, cards: 22, gold: [78, 143], evo: [0.08, 1], col: '#ffcf40', dark: '#a86a00', rare: 0.16, epic: 0.02, leg: 0.002 },
+  magic: { name: 'Magical Chest', time: 20 * 60, cards: 50, gold: [235, 415], evo: [0.6, 1], col: '#c15cff', dark: '#5a1a8f', rare: 0.2, epic: 0.05, leg: 0.006, minEpic: 2 },
+  giant: { name: 'Giant Chest', time: 20 * 60, cards: 120, gold: [495, 830], evo: [0.3, 1], col: '#4fb4ff', dark: '#1a5a9a', rare: 0.15, epic: 0.012, leg: 0.001 },
+  epic: { name: 'Epic Chest', time: 30 * 60, cards: 10, gold: [0, 0], evo: [0.5, 1], col: '#b04aff', dark: '#4a0f7a', only: 'epic' },
+  legendary: { name: 'Legendary Chest', time: 60 * 60, cards: 1, gold: [0, 0], evo: [1, 2], col: '#3ff0d0', dark: '#0f7a6b', only: 'legendary' },
+  free: { name: 'Free Chest', time: 0, cards: 5, gold: [26, 52], evo: [0.03, 1], col: '#7fe08a', dark: '#2a7a3a', rare: 0.14, epic: 0.01, leg: 0.001, gems: [0, 3] },
+  crown: { name: 'Crown Chest', time: 0, cards: 30, gold: [155, 285], evo: [0.35, 1], col: '#ffe070', dark: '#b07a00', rare: 0.18, epic: 0.03, leg: 0.004, gems: [4, 10] },
 };
 const CHEST_CYCLE = 'SSGSSSGSMSSGSSSGSSHSSGSSESSSGSSMSSGSSLSS'.split('').map((c) => ({ S: 'silver', G: 'gold', M: 'magic', H: 'giant', E: 'epic', L: 'legendary' }[c]));
 const UNLOCK_LANES = 2; // won chests unlock by themselves, two at a time, in the order they were won
@@ -4441,6 +4669,16 @@ function loadGame() {
   }
   SAVE.road = SAVE.road | 0;
   SAVE.crowns = Math.min(CROWN_BANK, SAVE.crowns | 0);
+  // evolutions arrived later: road nodes already paid hand over the shards they carry now, once
+  if (!SAVE.evoGift) {
+    SAVE.evoGift = 1;
+    try {
+      const rng = new RNG(SAVE.road + 7);
+      for (let i = 0; i < SAVE.road && i < ROAD.length; i++) {
+        for (const [kind, arg] of ROAD[i].rewards) if (kind === 'shards') addShards(arg[0] && SAVE.cards[arg[0]] ? arg[0] : shardTarget(rng), arg[1]);
+      }
+    } catch (e) { /* never block loading */ }
+  }
   scheduleChests();
 }
 
@@ -4600,7 +4838,10 @@ function rollChest(type, arena, seed) {
   const gold = Math.round(rng.range(def.gold[0], def.gold[1]) * (1 + arena * 0.5));
   const gems = def.gems ? rng.int(def.gems[0], def.gems[1]) : 0;
   out.sort((a, b) => RARITY_ORDER.indexOf(CARDS[a.key].rarity) - RARITY_ORDER.indexOf(CARDS[b.key].rarity));
-  return { cards: out, gold, gems };
+  // evolution shards (from Bone Pit on): for an evolvable card you own and haven't evolved; none left = gold
+  let shards = null;
+  if (def.evo && arena >= 1 && rng.next() < def.evo[0]) shards = { key: shardTarget(rng), n: def.evo[1] };
+  return { cards: out, gold, gems, shards };
 }
 
 // Apply a chest's contents; returns the list with "new" markers for the reveal screen.
@@ -4613,8 +4854,57 @@ function grantChest(loot) {
   }
   SAVE.gold += loot.gold;
   SAVE.gems += loot.gems;
+  if (loot.shards) loot.shards.gold = addShards(loot.shards.key, loot.shards.n);
   saveGame();
   return res;
+}
+
+// ---- evolutions ----
+// Each evolvable card (EVOS) collects its own shards; EVO_SHARDS of them unlock its evolution for good. An
+// evolution works when the card sits in one of the first EVO_SLOTS slots of the deck.
+const SHARD_GOLD = 300; // a shard with nowhere to go (every evolvable card you own is evolved) is worth this
+const evoShards = (k) => (SAVE.cards[k] ? SAVE.cards[k].sh | 0 : 0);
+const evoUnlocked = (k) => !!(EVOS[k] && SAVE.cards[k] && SAVE.cards[k].evo);
+const canUnlockEvo = (k) => !!(EVOS[k] && SAVE.cards[k] && !SAVE.cards[k].evo && evoShards(k) >= EVO_SHARDS);
+
+function unlockEvo(k) {
+  if (!canUnlockEvo(k)) return false;
+  const c = SAVE.cards[k];
+  c.sh = evoShards(k) - EVO_SHARDS;
+  c.evo = true;
+  saveGame();
+  return true;
+}
+
+// Which card a random shard goes to: an owned evolvable card not evolved yet (deck cards more often), or null.
+function shardTarget(rng) {
+  const own = EVO_KEYS.filter((k) => SAVE.cards[k] && !SAVE.cards[k].evo && evoShards(k) < EVO_SHARDS);
+  if (!own.length) return null;
+  const deck = own.filter((k) => curDeck().includes(k));
+  const list = deck.length && rng.next() < 0.6 ? deck : own;
+  return list[Math.floor(rng.next() * list.length)];
+}
+
+// Adds n shards for card k (null: no card can take them). Returns the gold paid instead, if any.
+function addShards(k, n) {
+  if (!k || !EVOS[k] || !SAVE.cards[k] || SAVE.cards[k].evo) { SAVE.gold += n * SHARD_GOLD; return n * SHARD_GOLD; }
+  SAVE.cards[k].sh = evoShards(k) + n;
+  return 0;
+}
+
+// The evolutions a deck takes into battle: unlocked ones in its first EVO_SLOTS slots.
+function deckEvos(deck) { return deck.slice(0, EVO_SLOTS).filter((k) => evoUnlocked(k)); }
+
+// The AI's evolutions (none in training or before Barbarian Bowl): as many as you bring into battle, now and
+// then one more, at most one before Lava Forge and two from there.
+function aiEvos(deck, arena, rng) {
+  if (arena < 2) return [];
+  const can = deck.filter((k) => EVOS[k]);
+  const mine = deckEvos(curDeck()).length;
+  const n = Math.min(arena >= 5 ? 2 : 1, mine + (rng.next() < 0.25 ? 1 : 0));
+  const out = [];
+  for (const k of rng.shuffle(can.slice())) if (out.length < n) out.push(k);
+  return out;
 }
 
 function chestSlotFree() { return SAVE.chests.findIndex((c) => !c); }
@@ -4753,6 +5043,8 @@ function refreshShop() {
   if (r1) offers.push({ kind: 'card', key: r1, n: 3, price: 360, cur: 'gold' });
   if (e1) offers.push({ kind: 'card', key: e1, n: 1, price: 1200, cur: 'gold' });
   if (c2 && c2 !== c1) offers.push({ kind: 'card', key: c2, n: 20, price: 280, cur: 'gold' });
+  const sk = curArena() >= 1 ? shardTarget(rng) : null;
+  if (sk) offers.push({ kind: 'shard', key: sk, n: 1, price: 50, cur: 'gems' }); // an evolution shard a day
   SAVE.shop = { day, dn, offers: offers.map((o) => Object.assign(o, { bought: false })), req: 0 };
   saveGame();
   return SAVE.shop;
@@ -4773,6 +5065,14 @@ function buyOffer(i) {
   const o = refreshShop().offers[i];
   if (!o || o.bought) return null;
   if (o.kind === 'pack') { const cards = claimFreePack(); return cards && { kind: 'pack', cards }; }
+  if (o.kind === 'shard') {
+    if (SAVE.gems < o.price) return null;
+    SAVE.gems -= o.price;
+    o.bought = true;
+    const gold = addShards(o.key, o.n);
+    saveGame();
+    return { kind: 'shard', key: o.key, n: o.n, gold };
+  }
   if (SAVE.gold < o.price) return null;
   SAVE.gold -= o.price;
   o.bought = true;
@@ -4854,47 +5154,47 @@ const CROWN_ROAD = [
   { t: 120, rewards: [['pack', 1]] },
   { t: 150, rewards: [['card', ['horde']]] },
   { t: 175, rewards: [['card', ['drakeling']]] },
-  { t: 200, rewards: [['gate', 1]] }, // Bone Pit: Imps, Tombstone, Necromancer, Shieldmaiden
+  { t: 200, rewards: [['gate', 1], ['shards', ['knight', 6]]] }, // Bone Pit: Imps, Tombstone, Necromancer, Shieldmaiden + Knight's evolution
   { t: 250, rewards: [['pack', 1]] },
   { t: 300, rewards: [['chest', 'gold']] },
   { t: 350, rewards: [['card', ['barbarians', 'cannon']]] }, // sneak peek
-  { t: 400, rewards: [['gold', 150], ['gems', 10]] },
+  { t: 400, rewards: [['gold', 200], ['gems', 10]] },
   { t: 450, rewards: [['gate', 2], ['chest', 'gold']] }, // Barbarian Bowl: Berserker, Lancer
   { t: 500, rewards: [['pack', 1]] },
   { t: 550, rewards: [['chest', 'gold']] },
   { t: 600, rewards: [['card', ['sprite', 'zap']]] },
   { t: 650, rewards: [['pack', 1]] },
-  { t: 700, rewards: [['gold', 250], ['gems', 10]] },
+  { t: 700, rewards: [['gold', 330], ['gems', 10], ['shards', [null, 3]]] },
   { t: 750, rewards: [['gate', 3], ['chest', 'magic']] }, // Frozen Peak: Freeze, Frost Mage
   { t: 800, rewards: [['pack', 1]] },
   { t: 860, rewards: [['chest', 'gold']] },
   { t: 920, rewards: [['card', ['boar', 'inferno']]] },
   { t: 980, rewards: [['pack', 1]] },
-  { t: 1040, rewards: [['gold', 350], ['gems', 15]] },
+  { t: 1040, rewards: [['gold', 450], ['gems', 15]] },
   { t: 1100, rewards: [['gate', 4], ['chest', 'gold']] }, // Jungle Temple: Bomb Balloon, Poison
   { t: 1170, rewards: [['pack', 1]] },
   { t: 1240, rewards: [['chest', 'gold']] },
   { t: 1310, rewards: [['card', ['firemage', 'pump']]] },
   { t: 1380, rewards: [['pack', 1]] },
-  { t: 1440, rewards: [['gold', 450], ['gems', 15]] },
+  { t: 1440, rewards: [['gold', 600], ['gems', 15], ['shards', [null, 3]]] },
   { t: 1500, rewards: [['gate', 5], ['chest', 'giant']] }, // Lava Forge: Juggernaut, Stone Golem
   { t: 1580, rewards: [['pack', 1]] },
   { t: 1660, rewards: [['chest', 'gold']] },
   { t: 1740, rewards: [['card', ['log']]] },
   { t: 1820, rewards: [['pack', 1]] },
-  { t: 1900, rewards: [['gold', 550], ['gems', 20]] },
+  { t: 1900, rewards: [['gold', 720], ['gems', 20]] },
   { t: 2000, rewards: [['gate', 6], ['chest', 'magic']] }, // Storm Summit: Storm Mage
   { t: 2090, rewards: [['pack', 1]] },
   { t: 2180, rewards: [['chest', 'gold']] },
   { t: 2270, rewards: [['chest', 'magic']] },
   { t: 2360, rewards: [['pack', 1]] },
-  { t: 2450, rewards: [['gold', 700], ['gems', 20]] },
+  { t: 2450, rewards: [['gold', 900], ['gems', 20], ['shards', [null, 3]]] },
   { t: 2530, rewards: [['chest', 'epic']] },
   { t: 2600, rewards: [['gate', 7], ['chest', 'legendary'], ['gems', 50]] }, // Royal Crown: Tunneler
 ];
 
 // Legend Road after the top arena: every 100 trophies from 2700 to 9900, a Legendary Chest on each 1000.
-const LEGEND_CYCLE = [['pack', 2], ['chest', 'gold'], ['gold', 1000], ['chest', 'magic']];
+const LEGEND_CYCLE = [['pack', 2], ['chest', 'gold'], ['gold', 1300], ['chest', 'magic']];
 const ROAD = CROWN_ROAD.concat((() => {
   const out = [];
   let n = 0;
@@ -4946,7 +5246,7 @@ function claimRoad() {
   while (SAVE.road < ROAD.length && ROAD[SAVE.road].t <= SAVE.best) {
     const node = ROAD[SAVE.road++];
     const a = arenaIndex(node.t);
-    const g = { t: node.t, rewards: node.rewards, cards: [], gold: 0, gems: 0, chest: null, packs: 0 };
+    const g = { t: node.t, rewards: node.rewards, cards: [], gold: 0, gems: 0, chest: null, packs: 0, shards: null };
     const add = (list) => {
       for (const x of list) {
         if (!x) continue;
@@ -4964,6 +5264,13 @@ function claimRoad() {
         g.gems += loot.gems;
         g.chest = arg;
       } else if (kind === 'gold') { SAVE.gold += arg; g.gold += arg; }
+      else if (kind === 'shards') {
+        // [key or null (a random evolvable card you own), n]
+        const k = arg[0] && SAVE.cards[arg[0]] ? arg[0] : shardTarget(new RNG(randi(1, 1e9)));
+        const gold = addShards(k, arg[1]);
+        g.gold += gold;
+        if (!gold) g.shards = { key: k, n: arg[1] };
+      }
       else if (kind === 'gems') { SAVE.gems += arg; g.gems += arg; }
       else if (kind === 'pack') { add(deckPack(a, arg)); g.packs += arg; }
     }
@@ -5014,19 +5321,20 @@ function aiOpponent(training) {
   const skill = training ? 0.05 : t < 60 ? 0.1 : Math.min(AI_SKILL_CAP, 0.18 + a * AI_SKILL_STEP);
   const name = training ? 'Training Dummy' : rng.pick(AI_NAMES);
   const trophies = training ? 0 : Math.max(0, t + rng.int(-40, 40));
-  return { deck, levels, king, skill, name, trophies, comeback };
+  const evos = training ? [] : aiEvos(deck, a, rng);
+  return { deck, levels, king, skill, name, trophies, comeback, evos };
 }
 
 // Called once a battle has ended; returns what was earned for the result screen.
 // AI battles pay trophies, gold, a chest (or Instant Loot when the slots are full), king XP and Crown Road
-// nodes. Training pays 5 gold for a win. Online battles pay gold and a chest only (no trophies or road).
+// nodes. Training pays 10 gold for a win. Online battles pay gold and a chest only (no trophies or road).
 function applyResult(r) {
   // r: { mode, win (bool), draw (bool), myCrowns, theirCrowns, oppTrophies, reason }
   const out = { trophies: 0, gold: 0, chest: null, bonus: null, crowns: 0, crownsLost: 0, arenaUp: null, crownChest: false, xp: 0, kingUps: 0, road: [], protected: false, comeback: false };
   const st = SAVE.stats;
   st.played++;
   if (r.mode === 'training') {
-    if (r.win) out.gold = 5;
+    if (r.win) out.gold = 10;
     SAVE.gold += out.gold;
     saveGame();
     return out;
@@ -5043,9 +5351,9 @@ function applyResult(r) {
     st.bestStreak = Math.max(st.bestStreak, st.streak);
     if (myCrowns >= 3) st.three++;
     out.chest = awardChest();
-    if (online) out.gold = 15 + a * 6 + myCrowns * 3;
+    if (online) out.gold = 25 + a * 9 + myCrowns * 5;
     else {
-      out.gold = 20 + a * 8 + myCrowns * 4;
+      out.gold = 30 + a * 11 + myCrowns * 6;
       const opp = Number.isFinite(r.oppTrophies) ? r.oppTrophies : t;
       out.trophies = winTrophies(t) + clamp(Math.round((opp - t) / 25), -3, 3);
       st.lstreak = 0;
@@ -5058,12 +5366,12 @@ function applyResult(r) {
   } else if (r.draw) {
     st.draws++;
     st.streak = 0;
-    out.gold = online ? 5 : 8 + a * 2;
+    out.gold = online ? 8 : 12 + a * 3;
   } else {
     if (online) st.onlineLosses++; else st.losses++;
     st.streak = 0;
     if (!online) {
-      out.gold = quit ? 0 : 4 + a * 2 + myCrowns * 2;
+      out.gold = quit ? 0 : 7 + a * 3 + myCrowns * 3;
       if (!quit) st.lstreak = (st.lstreak || 0) + 1;
       // never below the arena floor; out.protected tells the result screen the loss was cut short
       const want = t >= TOP_MIN ? 30 : 12;
@@ -5145,7 +5453,7 @@ function migrateV2() {
 const KINDS = ['troop', 'building', 'tower', 'proj', 'area'];
 const UKEYS = Object.keys(UNITS).concat(['princess', 'king']);
 const PKEYS = ['arrow', 'spear', 'bullet', 'cannonball', 'bomb', 'spit', 'orb', 'ice', 'flame', 'fireorb', 'fireball', 'log'];
-const AKEYS = ['arrows', 'freeze', 'poison'];
+const AKEYS = ['arrows', 'freeze', 'poison', 'zap2', 'frost2'];
 const SNAP_EVERY = 2; // sim ticks per snapshot (15 per second)
 
 const r2 = (v) => Math.round(v * 100);
@@ -5172,10 +5480,10 @@ class BattleScene {
     this.pending = new Map();
     this.playSeq = 0;
     if (this.mode !== 'guest') {
-      this.sim = new Sim({ decks: cfg.decks, levels: cfg.levels, kings: cfg.kings, seed: cfg.seed });
+      this.sim = new Sim({ decks: cfg.decks, levels: cfg.levels, kings: cfg.kings, seed: cfg.seed, evos: cfg.evos });
       if (this.mode === 'ai' || this.mode === 'training') this.ai = new AIPlayer(this.sim, 1, cfg.aiSkill, cfg.seed + 7);
     } else {
-      this.g = { ents: new Map(), t: 0, ot: false, crowns: [0, 0], elixir: 5, hand: [null, null, null, null], next: null, lastAt: 0, period: 66, tick: -1, over: false };
+      this.g = { ents: new Map(), t: 0, ot: false, crowns: [0, 0], elixir: 5, hand: [null, null, null, null], evo: [-1, -1, -1, -1], next: null, lastAt: 0, period: 66, tick: -1, over: false };
     }
   }
 
@@ -5267,7 +5575,7 @@ class BattleScene {
       return {
         ents: s.ents, alpha: clamp(this.acc / SIM_DT, 0, 1), t: s.t, timeLeft: s.timeLeft(), ot: s.ot, dbl: s.t >= DOUBLE_AT, over: s.over,
         intro: this.intro, tutorial: this.mode === 'ai' && !SAVE.tutorial && s.p[0].plays === 0 && s.t > 1.5,
-        me: { elixir: me.elixir, hand: me.hand, next: me.queue[0], crowns: me.crowns, name: this.names[this.myTeam] },
+        me: { elixir: me.elixir, hand: me.hand, evo: me.hand.map((k) => s.evoState(this.myTeam, k)), next: me.queue[0], crowns: me.crowns, name: this.names[this.myTeam] },
         foe: { crowns: foe.crowns, name: this.names[1 - this.myTeam], sub: this.subs[1 - this.myTeam] },
         canPlace: (k, x, y) => s.canPlace(this.myTeam, k, x, y),
       };
@@ -5281,7 +5589,7 @@ class BattleScene {
     return {
       ents: this.gList || [], alpha, t, timeLeft: g.ot ? REG_TIME + OT_TIME - t : REG_TIME - t, ot: g.ot, dbl: g.t >= DOUBLE_AT, over: g.over,
       intro: this.intro, stalled: !g.over && this.intro <= 0 && now - g.lastAt > 1500,
-      me: { elixir: Math.min(10, g.elixir + extra * ELIXIR_RATE * mult), hand: g.hand, next: g.next, crowns: g.crowns[1], name: this.names[1], pending: new Set(this.pending.keys()) },
+      me: { elixir: Math.min(10, g.elixir + extra * ELIXIR_RATE * mult), hand: g.hand, evo: g.evo, next: g.next, crowns: g.crowns[1], name: this.names[1], pending: new Set(this.pending.keys()) },
       foe: { crowns: g.crowns[0], name: this.names[0], sub: this.subs[0] },
       canPlace: (k, x, y) => this.guestCanPlace(k, x, y),
     };
@@ -5395,7 +5703,8 @@ class BattleScene {
       const a = [e.id, KINDS.indexOf(e.kind), e.team, r2(e.x), r2(e.y)];
       if (e.kind === 'troop' || e.kind === 'building' || e.kind === 'tower') {
         const fl = (e.deployT > 0 ? 1 : 0) | (e.freezeT > 0 ? 2 : 0) | (e.stunT > 0 ? 4 : 0) | (e.slowT > 0 ? 8 : 0) | (e.attacking ? 16 : 0) |
-          (e.moving ? 32 : 0) | (e.charging ? 64 : 0) | (e.jumping ? 128 : 0) | (e.tunnel ? 256 : 0) | (e.active ? 512 : 0) | (e.air ? 1024 : 0);
+          (e.moving ? 32 : 0) | (e.charging ? 64 : 0) | (e.jumping ? 128 : 0) | (e.tunnel ? 256 : 0) | (e.active ? 512 : 0) | (e.air ? 1024 : 0) |
+          (e.evo ? 2048 : 0) | (e.shield > 0 ? 4096 : 0);
         const atk = e.attacking && e.st.hs ? Math.round(clamp(1 - e.cd / e.st.hs, 0, 1) * 99) : -1;
         a.push(UKEYS.indexOf(e.u), Math.ceil(e.hp), e.maxHp, e.lvl, fl, r2(e.fx), r2(e.fy), atk, r2(Math.max(0, e.deployT || 0)));
         if (e.kind === 'tower') a.push(e.lane);
@@ -5408,7 +5717,7 @@ class BattleScene {
       E.push(a);
     }
     const p = s.p[1];
-    this.link.send({ t: 's', k: s.tick, tm: r2(s.t), ot: s.ot ? 1 : 0, c: [s.p[0].crowns, s.p[1].crowns], el: r2(p.elixir), h: p.hand, n: p.queue[0], E, V: this.outEv }, true);
+    this.link.send({ t: 's', k: s.tick, tm: r2(s.t), ot: s.ot ? 1 : 0, c: [s.p[0].crowns, s.p[1].crowns], el: r2(p.elixir), h: p.hand, ev: p.hand.map((k) => s.evoState(1, k)), n: p.queue[0], E, V: this.outEv }, true);
     this.outEv = [];
   }
 
@@ -5427,6 +5736,7 @@ class BattleScene {
     // cards we played have left the hand once the host confirms them
     for (const [slot, p] of this.pending) if (m.h[slot] !== p.key || now - p.at > 2500) this.pending.delete(slot);
     g.hand = m.h;
+    g.evo = Array.isArray(m.ev) ? m.ev.map((v) => (Number.isInteger(v) ? v : -1)) : [-1, -1, -1, -1];
     g.next = m.n;
     const seen = new Set();
     for (const a of m.E) {
@@ -5459,6 +5769,8 @@ class BattleScene {
         e.tunnel = !!(fl & 256);
         e.active = !!(fl & 512);
         e.air = !!(fl & 1024);
+        e.evo = !!(fl & 2048);
+        e.shield = fl & 4096 ? 1 : 0;
         e.fx = a[10] / 100;
         e.fy = a[11] / 100;
         e.atk = a[12] < 0 ? -1 : a[12] / 99;
@@ -5591,6 +5903,14 @@ function rewardImg(kind) {
     x.fillStyle = 'rgba(255,255,255,0.85)';
     circle(x, -0.3, -0.55, 0.08);
     x.fill();
+  } else if (kind === 'shard') {
+    // an evolution shard: a purple crystal
+    poly(x, [0, -1.05, 0.62, -0.25, 0.38, 0.9, -0.38, 0.9, -0.62, -0.25], '#8a2fd6', 0.08);
+    poly(x, [0, -1.05, 0.25, -0.2, 0, 0.9, -0.25, -0.2], '#d79bff', 0.04);
+    poly(x, [0, -1.05, -0.62, -0.25, -0.25, -0.2], '#f1d9ff', 0.03);
+    x.fillStyle = 'rgba(255,255,255,0.9)';
+    circle(x, -0.18, -0.5, 0.07);
+    x.fill();
   } else {
     // two cards and a gold band: a pack of copies for the whole deck
     x.save();
@@ -5699,6 +6019,7 @@ function roadItems(node) {
     else if (kind === 'gold') out.push({ kind, img: rewardImg('gold'), name: fmtInt(arg) + ' gold' });
     else if (kind === 'gems') out.push({ kind, img: rewardImg('gems'), name: arg + ' gems' });
     else if (kind === 'pack') out.push({ kind, img: rewardImg('pack'), name: arg > 1 ? arg + ' Deck Packs' : 'Deck Pack' });
+    else if (kind === 'shards') out.push({ kind, img: rewardImg('shard'), name: arg[0] ? CARDS[arg[0]].name + ' evolution' : arg[1] + ' evolution shards' });
   }
   return out;
 }
@@ -5989,7 +6310,7 @@ const UI = {
       } else {
         this.modal(`<h2>${def.name}</h2>
           <div class="loot">${got.map((g) => lootCell(g, 80)).join('')}</div>
-          <div class="rw">${loot.gold ? `<div class="res"><i class="coin"></i>+${loot.gold}</div>` : ''}${loot.gems ? `<div class="res"><i class="gem"></i>+${loot.gems}</div>` : ''}</div>
+          <div class="rw">${loot.gold ? `<div class="res"><i class="coin"></i>+${loot.gold}</div>` : ''}${loot.gems ? `<div class="res"><i class="gem"></i>+${loot.gems}</div>` : ''}${loot.shards && !loot.shards.gold ? `<div class="chip"><img src="${rewardImg('shard')}" alt="">${esc(CARDS[loot.shards.key].name)} +${loot.shards.n} evo shard${loot.shards.n > 1 ? 's' : ''}</div>` : loot.shards ? `<div class="res"><i class="coin"></i>+${loot.shards.gold} (shards)</div>` : ''}</div>
           <div class="btns">${ups ? `<button class="btn green" id="c-cards">Cards ↑${ups}</button>` : ''}<button class="btn gold" id="c-ok">Collect</button></div>`, false);
         Sound.play('coin');
         const done = () => { this.closeModal(); this.render(); this.refreshTop(); this.refreshNav(); };
@@ -6016,16 +6337,20 @@ const UI = {
       const u = upgradeCost(k);
       const pct = u ? clamp(rec.n / u.copies, 0, 1) * 100 : 100;
       const up = canUpgrade(k);
-      return `<div class="cc ${this.swapKey && inDeck ? 'swap' : ''} ${this.swapKey === k ? 'sel' : ''}" data-k="${k}"><img src="${cardImg(k, 90)}" alt=""><div class="lv">Lvl ${rec.lvl}</div>
-        ${up ? '<span class="up">↑</span>' : ''}${SAVE.fresh[k] ? '<span class="nw">NEW</span>' : ''}</div>
+      // evolution: a purple frame when it will evolve in this deck, a badge with its shards otherwise
+      const evoOn = evoUnlocked(k) && inDeck && curDeck().indexOf(k) < EVO_SLOTS;
+      const evoBadge = !EVOS[k] ? '' : evoUnlocked(k) ? (evoOn ? '' : '<span class="evb">EVO</span>') : canUnlockEvo(k) ? '<span class="evb go">EVO!</span>' : evoShards(k) ? `<span class="evb dim">${evoShards(k)}/${EVO_SHARDS}</span>` : '';
+      return `<div class="cc ${evoOn ? 'evo' : ''} ${this.swapKey && inDeck ? 'swap' : ''} ${this.swapKey === k ? 'sel' : ''}" data-k="${k}"><img src="${cardImg(k, 90)}" alt=""><div class="lv">Lvl ${rec.lvl}</div>
+        ${up ? '<span class="up">↑</span>' : ''}${SAVE.fresh[k] ? '<span class="nw">NEW</span>' : ''}${evoBadge}</div>
         <div class="bar2" style="margin-top:-2px"><i class="${pct >= 100 ? 'full' : ''}" style="width:${pct}%"></i><span>${u ? rec.n + '/' + u.copies : 'MAX'}</span></div>`;
     };
-    const wrap = (k, inDeck) => `<div>${cell(k, inDeck)}</div>`;
+    const wrap = (k, inDeck, i) => `<div class="${inDeck && i < EVO_SLOTS ? 'evoslot' : ''}">${inDeck && i < EVO_SLOTS ? '<span class="evotag">EVO SLOT</span>' : ''}${cell(k, inDeck)}</div>`;
     $('p-cards').innerHTML = `<div class="inner">
       <div class="deckbar"><div class="tabs">${[0, 1, 2].map((i) => `<button class="btn tiny ${i === SAVE.deck ? 'gold' : ''}" data-d="${i}">Deck ${i + 1}</button>`).join('')}</div>
       <div class="sp"></div><div class="avg"><i class="drop"></i>Avg ${avgElixir(deck).toFixed(1)}</div></div>
       ${this.swapKey ? `<div class="status"><img src="${cardImg(this.swapKey, 40)}" style="width:34px" alt="">Tap a card in your deck to replace it. <button class="btn tiny" id="sw-x">Cancel</button></div>` : ''}
-      <div class="deckgrid"><div class="grid">${deck.map((k) => wrap(k, true)).join('')}</div></div>
+      <div class="deckgrid"><div class="grid">${deck.map((k, i) => wrap(k, true, i)).join('')}</div>
+        <p class="muted small center" style="margin:6px 0 0">The first ${EVO_SLOTS} slots are <b style="color:#d58cff">Evolution slots</b>: an evolved card there comes out evolved after a few plays.</p></div>
       <h3>Collection <small>${Object.keys(SAVE.cards).length}/${CARD_KEYS.length} found</small></h3>
       <div class="grid">${owned.map((k) => wrap(k, false)).join('') || '<p class="muted" style="grid-column:1/-1">All your cards are in the deck.</p>'}</div>
       ${locked.length ? `<h3>Not found yet <small>Unlock on the Crown Road</small></h3><div class="grid">${locked.map((k) => `<div>${cell(k)}</div>`).join('')}</div>` : ''}
@@ -6073,12 +6398,33 @@ const UI = {
       <table class="stt">${rows}</table>
       ${!rec && roadNodeFor(k) != null ? `<p class="center muted">Unlocks on the Crown Road at ${fmtInt(roadNodeFor(k))} trophies (about ${plural(Math.max(1, winsTo(roadNodeFor(k))), 'win')})</p>` : ''}
       ${rec && u ? `<p class="center small muted">Cards: ${rec.n} / ${u.copies} · Upgrade cost: ${u.gold} gold · +${u.xp} XP</p>` : ''}
+      ${EVOS[k] ? this.evoSection(k) : ''}
       <div class="btns">
         ${rec && !inDeck ? '<button class="btn blue" id="ci-use">Use</button>' : ''}
         ${rec && u ? `<button class="btn green" id="ci-up" ${canUpgrade(k) ? '' : 'disabled'}>Upgrade <i class="coin"></i> ${u.gold}</button>` : ''}
         <button class="btn" id="ci-x">Close</button>
       </div>`, true);
     if ($('ci-use')) $('ci-use').onclick = () => { this.swapKey = k; this.closeModal(); this.renderCards(); };
+    if ($('ci-evo')) $('ci-evo').onclick = () => {
+      if (!unlockEvo(k)) return;
+      Sound.play('legendary');
+      this.toast(`${c.name} can evolve now!`);
+      this.cardInfo(k);
+      this.refreshNav();
+    };
+    if ($('ci-slot')) $('ci-slot').onclick = () => {
+      // into an Evolution slot: swap with the first slot whose card can't evolve (else the second slot)
+      const d = curDeck();
+      let j = -1;
+      for (let i = 0; i < EVO_SLOTS; i++) if (j < 0 && !evoUnlocked(d[i])) j = i;
+      if (j < 0) j = EVO_SLOTS - 1;
+      const at = d.indexOf(k);
+      if (at >= 0) { d[at] = d[j]; d[j] = k; } else d[j] = k;
+      saveGame();
+      Sound.play('click');
+      this.closeModal();
+      this.renderCards();
+    };
     if ($('ci-up')) $('ci-up').onclick = () => {
       const res = upgradeCard(k);
       if (!res) return;
@@ -6091,6 +6437,20 @@ const UI = {
       if (res.kingUps) setTimeout(() => this.kingLevelUp(res.kingUps), 400);
     };
     $('ci-x').onclick = () => this.closeModal();
+  },
+
+  // The evolution part of a card's info: what it does, shards collected and the unlock, or where it must sit.
+  evoSection(k) {
+    const ev = EVOS[k], rec = SAVE.cards[k], d = curDeck();
+    const sh = evoShards(k), on = evoUnlocked(k), slot = d.indexOf(k) >= 0 && d.indexOf(k) < EVO_SLOTS;
+    let foot = '';
+    if (!rec) foot = '<p class="muted small">Find the card first.</p>';
+    else if (on) foot = slot ? '<p class="small" style="color:#9dffa8">Evolved and in an Evolution slot: ready for battle.</p>'
+      : '<p class="muted small">Evolved. Put it in one of the first two deck slots to use it.</p><div class="btns"><button class="btn purple small" id="ci-slot">Use in Evo slot</button></div>';
+    else foot = `<div class="bar2 evo"><i style="width:${clamp(sh / EVO_SHARDS, 0, 1) * 100}%"></i><span>${sh} / ${EVO_SHARDS} shards</span></div>
+      ${canUnlockEvo(k) ? '<div class="btns"><button class="btn purple" id="ci-evo">Unlock evolution</button></div>' : '<p class="muted small">Shards come from chests, the Crown Road and the shop.</p>'}`;
+    return `<div class="evosec"><div class="eh"><img src="${rewardImg('shard')}" alt=""><b>Evolution</b><span>evolves every ${plural(ev.cycles + 1, 'play')}${ev.cycles === 1 ? ' (every other)' : ''}</span></div>
+      <p class="small">${esc(ev.text)}</p>${foot}</div>`;
   },
 
   // n: levels gained at once (each one paid 10 gems)
@@ -6113,7 +6473,10 @@ const UI = {
       <h3>Daily deals <small>New offers every day</small></h3>
       ${pack ? `<div class="offer wide ${pack.o.bought ? 'done' : ''}"><img src="${rewardImg('pack')}" alt=""><div class="d"><b>Free Deck Pack</b><small>Copies for all 8 cards in your deck</small></div>
         <button class="btn small ${pack.o.bought ? '' : 'green'}" data-o="${pack.i}" ${pack.o.bought ? 'disabled' : ''}>${pack.o.bought ? 'Claimed' : 'Free'}</button></div>` : ''}
-      <div class="shopgrid">${deals.map(({ o, i }) => `<div class="offer ${o.bought ? 'done' : ''}"><img src="${cardImg(o.key, 90)}" alt=""><b>${esc(CARDS[o.key].name)} x${o.n}</b>
+      <div class="shopgrid">${deals.map(({ o, i }) => o.kind === 'shard'
+        ? `<div class="offer ${o.bought ? 'done' : ''}"><div class="shardart"><img src="${cardImg(o.key, 90)}" alt=""><img class="sh" src="${rewardImg('shard')}" alt=""></div><b>${esc(CARDS[o.key].name)} evo shard</b><small>${evoShards(o.key)}/${EVO_SHARDS} collected</small>
+        <button class="btn small ${o.bought ? '' : 'purple'}" data-o="${i}" ${o.bought || SAVE.gems < o.price ? 'disabled' : ''}>${o.bought ? 'Sold' : `<i class="gem"></i> ${o.price}`}</button></div>`
+        : `<div class="offer ${o.bought ? 'done' : ''}"><img src="${cardImg(o.key, 90)}" alt=""><b>${esc(CARDS[o.key].name)} x${o.n}</b>
         <button class="btn small ${o.bought ? '' : 'gold'}" data-o="${i}" ${o.bought || SAVE.gold < o.price ? 'disabled' : ''}>${o.bought ? 'Sold' : `<i class="coin"></i> ${o.price}`}</button></div>`).join('')}</div>
       <h3>Card Request <small>${CARD_REQUESTS_PER_DAY - left}/${CARD_REQUESTS_PER_DAY} today</small></h3>
       <div class="grid req">${curDeck().map((k) => {
@@ -6137,6 +6500,7 @@ const UI = {
       const res = buyOffer(+b.dataset.o);
       if (!res) return;
       if (res.kind === 'pack') { this.refreshTop(); this.packReveal('Deck Pack', res.cards); return; }
+      if (res.kind === 'shard') { this.toast(res.gold ? `+${res.gold} gold` : `${CARDS[res.key].name} evo shard: ${evoShards(res.key)}/${EVO_SHARDS}`); after(); return; }
       this.toast(`${res.isNew ? 'New card: ' : ''}${CARDS[res.key].name} x${res.n}`);
       after();
     };
@@ -6351,6 +6715,7 @@ const UI = {
           gate >= 0 && g.chest ? `<div class="chip"><img src="${chestImg(g.chest)}" alt="">${CHESTS[g.chest].name}</div>` : '',
           g.gold ? `<div class="chip"><i class="coin"></i>+${fmtInt(g.gold)}</div>` : '',
           g.gems ? `<div class="chip"><i class="gem"></i>+${g.gems}</div>` : '',
+          g.shards ? `<div class="chip"><img src="${rewardImg('shard')}" alt="">${esc(CARDS[g.shards.key].name)} +${g.shards.n} evo shard${g.shards.n > 1 ? 's' : ''}</div>` : '',
         ].join('');
         return `<div class="rg"><div class="rh"><i class="tro"></i>${g.t}${name ? ' · ' + esc(name) : ''}</div>
           ${g.cards.length ? `<div class="loot sm">${g.cards.map((c) => lootCell(c, 50, true)).join('')}</div>` : ''}
@@ -6521,7 +6886,7 @@ const Lobby = {
     link.listen((m) => this.onPeerMessage(m));
     UI.lobbyStatus('Connected! Getting ready…', true);
     Sound.play('emote');
-    if (link.role === 'guest') link.send({ t: 'hello', v: NET_PROTO, name: SAVE.name, deck: curDeck(), trophies: SAVE.trophies, arena: curArena(), king: SAVE.king });
+    if (link.role === 'guest') link.send({ t: 'hello', v: NET_PROTO, name: SAVE.name, deck: curDeck(), evos: deckEvos(curDeck()), trophies: SAVE.trophies, arena: curArena(), king: SAVE.king });
   },
 
   onClose() {
@@ -6531,6 +6896,9 @@ const Lobby = {
     if (!(Game.scene instanceof BattleScene)) UI.lobbyStatus('Connection closed.', false, true);
   },
 
+  // A player's evolutions from the network: evolvable cards in the first EVO_SLOTS slots of that deck only.
+  validEvos(e, deck) { return Array.isArray(e) ? e.filter((k, i) => typeof k === 'string' && EVOS[k] && deck.slice(0, EVO_SLOTS).includes(k) && e.indexOf(k) === i) : []; },
+
   validDeck(d) {
     return Array.isArray(d) && d.length === 8 && new Set(d).size === 8 && d.every((k) => typeof k === 'string' && CARDS[k]) ? d : STARTER_DECK.slice();
   },
@@ -6538,7 +6906,7 @@ const Lobby = {
   onPeerMessage(m) {
     if (m.t === 'hello' && this.role === 'host') {
       if (m.v !== NET_PROTO) { this.link.send({ t: 'bye' }); this.link.close(); return; }
-      this.peer = { name: String(m.name || 'Rival').slice(0, 16), deck: this.validDeck(m.deck), trophies: m.trophies | 0, arena: clamp(m.arena | 0, 0, ARENAS.length - 1), king: m.king | 0 };
+      this.peer = { name: String(m.name || 'Rival').slice(0, 16), deck: this.validDeck(m.deck), evos: Array.isArray(m.evos) ? m.evos : [], trophies: m.trophies | 0, arena: clamp(m.arena | 0, 0, ARENAS.length - 1), king: m.king | 0 };
       this.startMatch();
     } else if (m.t === 'start' && this.role === 'guest') {
       this.beginBattle(m);
@@ -6556,7 +6924,7 @@ const Lobby = {
     const seed = randi(1, 1e9);
     const msg = {
       t: 'start', seed, arena: Math.max(curArena(), p.arena),
-      names: [SAVE.name, p.name], decks: [curDeck().slice(), p.deck],
+      names: [SAVE.name, p.name], decks: [curDeck().slice(), p.deck], evos: [deckEvos(curDeck()), p.evos],
       subs: ['🏆 ' + SAVE.trophies, '🏆 ' + p.trophies],
     };
     this.link.send(msg);
@@ -6568,9 +6936,11 @@ const Lobby = {
     this.rematch = { me: false, them: false };
     const lv = {};
     for (const k of CARD_KEYS) lv[k] = ONLINE_LEVEL;
+    const decks = [this.validDeck(m.decks[0]), this.validDeck(m.decks[1])];
     UI.closeModal();
     Game.setScene(new BattleScene({
-      mode: this.role, link: this.link, decks: [this.validDeck(m.decks[0]), this.validDeck(m.decks[1])], levels: [lv, lv], kings: [ONLINE_LEVEL, ONLINE_LEVEL],
+      mode: this.role, link: this.link, decks, levels: [lv, lv], kings: [ONLINE_LEVEL, ONLINE_LEVEL],
+      evos: [this.validEvos(m.evos && m.evos[0], decks[0]), this.validEvos(m.evos && m.evos[1], decks[1])],
       names: [String(m.names[0]).slice(0, 16), String(m.names[1]).slice(0, 16)], subs: m.subs || ['', ''], arena: clamp(m.arena | 0, 0, ARENAS.length - 1), seed: m.seed | 0,
     }));
   },
@@ -6989,6 +7359,7 @@ const Game = {
     this.setScene(new BattleScene({
       mode: training ? 'training' : 'ai',
       decks: [curDeck().slice(), opp.deck], levels: [deckLevels(), opp.levels], kings: [SAVE.king, opp.king],
+      evos: [training ? [] : deckEvos(curDeck()), opp.evos || []],
       names: [SAVE.name, opp.name], subs: ['', training ? 'Practice match' : '🏆 ' + opp.trophies + (opp.comeback ? ' · Comeback match' : '')],
       arena: training ? 0 : curArena(), seed: randi(1, 1e9), aiSkill: opp.skill, oppTrophies: opp.trophies,
     }));

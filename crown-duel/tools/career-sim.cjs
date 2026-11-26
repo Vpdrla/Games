@@ -40,7 +40,7 @@ const API = ['Sim', 'AIPlayer', 'CARDS', 'CARD_KEYS', 'ARENAS', 'RARITY', 'CHEST
   'CROWNS_FOR_CHEST', 'ROAD', 'loadGame', 'curDeck', 'cardLvl', 'curArena', 'arenaIndex', 'deckLevels', 'avgDeckLevel',
   'upgradeCost', 'canUpgrade', 'upgradeCard', 'rollChest', 'grantChest', 'chestState', 'anyUnlocking', 'takeFreeChest',
   'aiOpponent', 'applyResult', 'cardsForArena', 'randi', 'hasTag', 'scheduleChests', 'takeSlotChest', 'takeCrownChest',
-  'claimFreePack', 'top8Avg'];
+  'claimFreePack', 'top8Avg', 'deckEvos', 'unlockEvo', 'canUnlockEvo', 'evoUnlocked', 'EVO_KEYS', 'EVO_SLOTS'];
 
 // ---------- game code in a sandbox ----------
 // The five modules as one script, from src/js or from a git revision.
@@ -172,8 +172,22 @@ function makeCareer(cfg) {
     }
   };
 
+  // Evolutions (newer code only): unlock every one the shards allow, then move evolved deck cards into the
+  // Evolution slots at the front of the deck.
+  const doEvos = () => {
+    if (!A.unlockEvo || !A.EVO_KEYS) return;
+    for (const k of A.EVO_KEYS) if (A.canUnlockEvo(k)) { A.unlockEvo(k); out.evos = (out.evos || 0) + 1; }
+    const d = A.curDeck();
+    for (let i = 0; i < A.EVO_SLOTS; i++) {
+      if (A.evoUnlocked(d[i])) continue;
+      const j = d.findIndex((k, n) => n >= A.EVO_SLOTS && A.evoUnlocked(k));
+      if (j >= 0) { const t = d[i]; d[i] = d[j]; d[j] = t; }
+    }
+  };
+
   // Cheapest, lowest deck card first, as long as copies and gold allow; then note what blocks each card.
   const doUpgrades = () => {
+    doEvos();
     if (cfg.noUpgrade) return;
     for (;;) {
       const c = A.curDeck().filter((k) => A.canUpgrade(k)).sort((x, y) => A.cardLvl(x) - A.cardLvl(y) || A.upgradeCost(x).gold - A.upgradeCost(y).gold);
@@ -241,7 +255,8 @@ function makeCareer(cfg) {
     const deck = A.curDeck().slice();
     const myLv = A.deckLevels();
     if (hc) for (const k of Object.keys(myLv)) myLv[k] = Math.max(1, myLv[k] - hc);
-    const sim = new A.Sim({ decks: [deck, opp.deck], levels: [myLv, opp.levels], kings: [Math.max(1, sv.king - hc), opp.king], seed: bseed });
+    const sim = new A.Sim({ decks: [deck, opp.deck], levels: [myLv, opp.levels], kings: [Math.max(1, sv.king - hc), opp.king], seed: bseed,
+      evos: [A.deckEvos ? A.deckEvos(deck) : [], opp.evos || []] });
     const me = new A.AIPlayer(sim, 0, cfg.skill, bseed + 3);
     const foe = new A.AIPlayer(sim, 1, opp.skill, bseed + 7);
     let steps = 0;
@@ -458,6 +473,7 @@ function report(rs) {
   L.push(`Reward moments ${pct(g.moments)} of battles; longest dry stretch ${f1(g.dryMax)} [${range(rs.map((r) => r.dryMax))}]; deck >= 9 at ${rs.map((r) => r.deck9At).join(',')}; deck max at ${rs.map((r) => r.deckMaxAt).join(',')}`);
   const gk = ['battle', 'slot', 'free', 'crown', 'road', 'bonus', 'overflow'];
   L.push(`Gold earned ${f0(mean(rs.map((r) => r.gold.earned)))} (${f1(g.goldPerBattle)}/battle) = ${gk.map((k) => k + ' ' + f0(mean(rs.map((r) => r.gold[k])))).join(', ')}; spent ${f0(mean(rs.map((r) => r.gold.spent)))}; final ${f0(mean(rs.map((r) => r.final.gold)))}`);
+  L.push(`Evolutions unlocked ${f1(mean(rs.map((r) => r.evos || 0)))} per career`);
   L.push(`Upgrades ${f1(mean(rs.map((r) => r.upgrades)))}; deck upgrade checks blocked by copies ${f0(mean(rs.map((r) => r.block.copies)))}, by gold ${f0(mean(rs.map((r) => r.block.gold)))}, maxed ${f0(mean(rs.map((r) => r.block.max)))}`);
   const ckeys = ['silver', 'gold', 'magic', 'giant', 'epic', 'legendary'];
   L.push(`Slot chests won ${ckeys.map((k) => k + ' ' + f1(mean(rs.map((r) => r.chestsWon[k] || 0)))).join(', ')}; free ${f1(mean(rs.map((r) => r.freeOpened)))}, crown ${f1(mean(rs.map((r) => r.crownOpened)))}, road claims ${f1(mean(rs.map((r) => r.roadClaims)))} (to 2600: ${f1(mean(rs.map((r) => r.roadClaims2600)))})${rs[0].freePack ? ', free packs ' + f1(mean(rs.map((r) => r.packs))) : ''}`);
@@ -538,11 +554,13 @@ function targets(rs) {
       const short = rs.filter((r) => r.checkpoints[175].owned < need(r)).map((r) => `seed ${r.seed}: ${r.checkpoints[175].owned}/${need(r)}`);
       return P(!short.length, `${rs.map((r) => r.checkpoints[175].owned).join(',')} at 175 (34, or 35 once in A8)${short.length ? ' [' + short.join(', ') + ']' : ''}`);
     })()] : []));
-    const maxObs = Math.min(550, n);
+    // gold got easier and the last two upgrades cheaper (3,000 / 5,000 instead of 4,000 / 12,000), so decks
+    // level up faster than they used to (8.5-9.3 at 300, maxed not before 550)
+    const maxObs = Math.min(250, n);
     T(10, 'deck level curve', [
       n >= 50 && P(g.ckpt(50, 'deckLvl') >= 6, `${f2(g.ckpt(50, 'deckLvl'))} at 50 (>= 6.0)`),
-      n >= 300 && P(g.ckpt(300, 'deckLvl') >= 8.5 && g.ckpt(300, 'deckLvl') <= 9.3, `${f2(g.ckpt(300, 'deckLvl'))} at 300 (8.5-9.3)`),
-      P(rs.every((r) => r.deckMaxAt == null || r.deckMaxAt >= 550), `deck maxed at ${rs.map((r) => (r.deckMaxAt == null ? '-' : r.deckMaxAt)).join(',')} (not before 550${n < 550 ? `; only ${maxObs} battles seen` : ''})`),
+      n >= 300 && P(g.ckpt(300, 'deckLvl') >= 9.0 && g.ckpt(300, 'deckLvl') <= 9.95, `${f2(g.ckpt(300, 'deckLvl'))} at 300 (9.0-9.95)`),
+      P(rs.every((r) => r.deckMaxAt == null || r.deckMaxAt >= 250), `deck maxed at ${rs.map((r) => (r.deckMaxAt == null ? '-' : r.deckMaxAt)).join(',')} (not before 250${n < 250 ? `; only ${maxObs} battles seen` : ''})`),
     ]);
     if (n >= 400) {
       T(11, 'bounded ladder', [P(g.ckpt(400, 'trophies') <= 3400, `${f0(g.ckpt(400, 'trophies'))} trophies at 400 (<= 3400)`),
@@ -552,10 +570,11 @@ function targets(rs) {
   if (career300) {
     const ck = CHECKPOINTS.filter((c) => c <= Math.min(300, n)), mx = Math.max(...ck.map((c) => g.ckpt(c, 'gold')));
     const bc = mean(rs.map((r) => r.block.copies)), bg = mean(rs.map((r) => r.block.gold));
-    T(12, 'economy', [P(g.goldPerBattle >= 220 && g.goldPerBattle <= 320, `gold ${f1(g.goldPerBattle)}/battle (220-320)`),
+    // gold is meant to be easy now: about 1.3x the old income, and copies, not gold, hold upgrades back
+    T(12, 'economy', [P(g.goldPerBattle >= 320 && g.goldPerBattle <= 440, `gold ${f1(g.goldPerBattle)}/battle (320-440)`),
       P(g.cardsPerBattle >= 35 && g.cardsPerBattle <= 50, `cards ${f1(g.cardsPerBattle)}/battle (35-50)`),
       P(mx <= 6000, `gold balance up to battle ${Math.min(300, n)} peaks at ${f0(mx)} (<= 6000)`),
-      P(bg > bc, `upgrade checks blocked by gold ${f0(bg)} vs copies ${f0(bc)} (gold > copies)`)]);
+      P(bc > bg, `upgrade checks blocked by copies ${f0(bc)} vs gold ${f0(bg)} (copies > gold)`)]);
     T(13, 'reward moments', [P(g.moments >= 0.55, `${pct(g.moments)} of battles (>= 55%)`), P(g.dryMax <= 7, `longest dry stretch ${f1(g.dryMax)} (<= 7)`)]);
   }
   // 9: every win pays something; Instant Loot share depends on how the player plays

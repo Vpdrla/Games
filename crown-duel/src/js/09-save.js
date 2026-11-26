@@ -3,14 +3,14 @@ const SAVE_KEY = 'crown-duel-save-v1'; // v2 saves keep this key; loadGame upgra
 let SAVE = null;
 
 const CHESTS = {
-  silver: { name: 'Silver Chest', time: 3 * 60, cards: 7, gold: [16, 28], col: '#c9d4de', dark: '#6d7c8a', rare: 0.14, epic: 0.012, leg: 0.0015 },
-  gold: { name: 'Golden Chest', time: 8 * 60, cards: 22, gold: [60, 110], col: '#ffcf40', dark: '#a86a00', rare: 0.16, epic: 0.02, leg: 0.002 },
-  magic: { name: 'Magical Chest', time: 20 * 60, cards: 50, gold: [180, 320], col: '#c15cff', dark: '#5a1a8f', rare: 0.2, epic: 0.05, leg: 0.006, minEpic: 2 },
-  giant: { name: 'Giant Chest', time: 20 * 60, cards: 120, gold: [380, 640], col: '#4fb4ff', dark: '#1a5a9a', rare: 0.15, epic: 0.012, leg: 0.001 },
-  epic: { name: 'Epic Chest', time: 30 * 60, cards: 10, gold: [0, 0], col: '#b04aff', dark: '#4a0f7a', only: 'epic' },
-  legendary: { name: 'Legendary Chest', time: 60 * 60, cards: 1, gold: [0, 0], col: '#3ff0d0', dark: '#0f7a6b', only: 'legendary' },
-  free: { name: 'Free Chest', time: 0, cards: 5, gold: [20, 40], col: '#7fe08a', dark: '#2a7a3a', rare: 0.14, epic: 0.01, leg: 0.001, gems: [0, 3] },
-  crown: { name: 'Crown Chest', time: 0, cards: 30, gold: [120, 220], col: '#ffe070', dark: '#b07a00', rare: 0.18, epic: 0.03, leg: 0.004, gems: [4, 10] },
+  silver: { name: 'Silver Chest', time: 3 * 60, cards: 7, gold: [21, 36], col: '#c9d4de', dark: '#6d7c8a', rare: 0.14, epic: 0.012, leg: 0.0015 },
+  gold: { name: 'Golden Chest', time: 8 * 60, cards: 22, gold: [78, 143], evo: [0.08, 1], col: '#ffcf40', dark: '#a86a00', rare: 0.16, epic: 0.02, leg: 0.002 },
+  magic: { name: 'Magical Chest', time: 20 * 60, cards: 50, gold: [235, 415], evo: [0.6, 1], col: '#c15cff', dark: '#5a1a8f', rare: 0.2, epic: 0.05, leg: 0.006, minEpic: 2 },
+  giant: { name: 'Giant Chest', time: 20 * 60, cards: 120, gold: [495, 830], evo: [0.3, 1], col: '#4fb4ff', dark: '#1a5a9a', rare: 0.15, epic: 0.012, leg: 0.001 },
+  epic: { name: 'Epic Chest', time: 30 * 60, cards: 10, gold: [0, 0], evo: [0.5, 1], col: '#b04aff', dark: '#4a0f7a', only: 'epic' },
+  legendary: { name: 'Legendary Chest', time: 60 * 60, cards: 1, gold: [0, 0], evo: [1, 2], col: '#3ff0d0', dark: '#0f7a6b', only: 'legendary' },
+  free: { name: 'Free Chest', time: 0, cards: 5, gold: [26, 52], evo: [0.03, 1], col: '#7fe08a', dark: '#2a7a3a', rare: 0.14, epic: 0.01, leg: 0.001, gems: [0, 3] },
+  crown: { name: 'Crown Chest', time: 0, cards: 30, gold: [155, 285], evo: [0.35, 1], col: '#ffe070', dark: '#b07a00', rare: 0.18, epic: 0.03, leg: 0.004, gems: [4, 10] },
 };
 const CHEST_CYCLE = 'SSGSSSGSMSSGSSSGSSHSSGSSESSSGSSMSSGSSLSS'.split('').map((c) => ({ S: 'silver', G: 'gold', M: 'magic', H: 'giant', E: 'epic', L: 'legendary' }[c]));
 const UNLOCK_LANES = 2; // won chests unlock by themselves, two at a time, in the order they were won
@@ -72,6 +72,16 @@ function loadGame() {
   }
   SAVE.road = SAVE.road | 0;
   SAVE.crowns = Math.min(CROWN_BANK, SAVE.crowns | 0);
+  // evolutions arrived later: road nodes already paid hand over the shards they carry now, once
+  if (!SAVE.evoGift) {
+    SAVE.evoGift = 1;
+    try {
+      const rng = new RNG(SAVE.road + 7);
+      for (let i = 0; i < SAVE.road && i < ROAD.length; i++) {
+        for (const [kind, arg] of ROAD[i].rewards) if (kind === 'shards') addShards(arg[0] && SAVE.cards[arg[0]] ? arg[0] : shardTarget(rng), arg[1]);
+      }
+    } catch (e) { /* never block loading */ }
+  }
   scheduleChests();
 }
 
@@ -231,7 +241,10 @@ function rollChest(type, arena, seed) {
   const gold = Math.round(rng.range(def.gold[0], def.gold[1]) * (1 + arena * 0.5));
   const gems = def.gems ? rng.int(def.gems[0], def.gems[1]) : 0;
   out.sort((a, b) => RARITY_ORDER.indexOf(CARDS[a.key].rarity) - RARITY_ORDER.indexOf(CARDS[b.key].rarity));
-  return { cards: out, gold, gems };
+  // evolution shards (from Bone Pit on): for an evolvable card you own and haven't evolved; none left = gold
+  let shards = null;
+  if (def.evo && arena >= 1 && rng.next() < def.evo[0]) shards = { key: shardTarget(rng), n: def.evo[1] };
+  return { cards: out, gold, gems, shards };
 }
 
 // Apply a chest's contents; returns the list with "new" markers for the reveal screen.
@@ -244,8 +257,57 @@ function grantChest(loot) {
   }
   SAVE.gold += loot.gold;
   SAVE.gems += loot.gems;
+  if (loot.shards) loot.shards.gold = addShards(loot.shards.key, loot.shards.n);
   saveGame();
   return res;
+}
+
+// ---- evolutions ----
+// Each evolvable card (EVOS) collects its own shards; EVO_SHARDS of them unlock its evolution for good. An
+// evolution works when the card sits in one of the first EVO_SLOTS slots of the deck.
+const SHARD_GOLD = 300; // a shard with nowhere to go (every evolvable card you own is evolved) is worth this
+const evoShards = (k) => (SAVE.cards[k] ? SAVE.cards[k].sh | 0 : 0);
+const evoUnlocked = (k) => !!(EVOS[k] && SAVE.cards[k] && SAVE.cards[k].evo);
+const canUnlockEvo = (k) => !!(EVOS[k] && SAVE.cards[k] && !SAVE.cards[k].evo && evoShards(k) >= EVO_SHARDS);
+
+function unlockEvo(k) {
+  if (!canUnlockEvo(k)) return false;
+  const c = SAVE.cards[k];
+  c.sh = evoShards(k) - EVO_SHARDS;
+  c.evo = true;
+  saveGame();
+  return true;
+}
+
+// Which card a random shard goes to: an owned evolvable card not evolved yet (deck cards more often), or null.
+function shardTarget(rng) {
+  const own = EVO_KEYS.filter((k) => SAVE.cards[k] && !SAVE.cards[k].evo && evoShards(k) < EVO_SHARDS);
+  if (!own.length) return null;
+  const deck = own.filter((k) => curDeck().includes(k));
+  const list = deck.length && rng.next() < 0.6 ? deck : own;
+  return list[Math.floor(rng.next() * list.length)];
+}
+
+// Adds n shards for card k (null: no card can take them). Returns the gold paid instead, if any.
+function addShards(k, n) {
+  if (!k || !EVOS[k] || !SAVE.cards[k] || SAVE.cards[k].evo) { SAVE.gold += n * SHARD_GOLD; return n * SHARD_GOLD; }
+  SAVE.cards[k].sh = evoShards(k) + n;
+  return 0;
+}
+
+// The evolutions a deck takes into battle: unlocked ones in its first EVO_SLOTS slots.
+function deckEvos(deck) { return deck.slice(0, EVO_SLOTS).filter((k) => evoUnlocked(k)); }
+
+// The AI's evolutions (none in training or before Barbarian Bowl): as many as you bring into battle, now and
+// then one more, at most one before Lava Forge and two from there.
+function aiEvos(deck, arena, rng) {
+  if (arena < 2) return [];
+  const can = deck.filter((k) => EVOS[k]);
+  const mine = deckEvos(curDeck()).length;
+  const n = Math.min(arena >= 5 ? 2 : 1, mine + (rng.next() < 0.25 ? 1 : 0));
+  const out = [];
+  for (const k of rng.shuffle(can.slice())) if (out.length < n) out.push(k);
+  return out;
 }
 
 function chestSlotFree() { return SAVE.chests.findIndex((c) => !c); }
@@ -384,6 +446,8 @@ function refreshShop() {
   if (r1) offers.push({ kind: 'card', key: r1, n: 3, price: 360, cur: 'gold' });
   if (e1) offers.push({ kind: 'card', key: e1, n: 1, price: 1200, cur: 'gold' });
   if (c2 && c2 !== c1) offers.push({ kind: 'card', key: c2, n: 20, price: 280, cur: 'gold' });
+  const sk = curArena() >= 1 ? shardTarget(rng) : null;
+  if (sk) offers.push({ kind: 'shard', key: sk, n: 1, price: 50, cur: 'gems' }); // an evolution shard a day
   SAVE.shop = { day, dn, offers: offers.map((o) => Object.assign(o, { bought: false })), req: 0 };
   saveGame();
   return SAVE.shop;
@@ -404,6 +468,14 @@ function buyOffer(i) {
   const o = refreshShop().offers[i];
   if (!o || o.bought) return null;
   if (o.kind === 'pack') { const cards = claimFreePack(); return cards && { kind: 'pack', cards }; }
+  if (o.kind === 'shard') {
+    if (SAVE.gems < o.price) return null;
+    SAVE.gems -= o.price;
+    o.bought = true;
+    const gold = addShards(o.key, o.n);
+    saveGame();
+    return { kind: 'shard', key: o.key, n: o.n, gold };
+  }
   if (SAVE.gold < o.price) return null;
   SAVE.gold -= o.price;
   o.bought = true;
@@ -485,47 +557,47 @@ const CROWN_ROAD = [
   { t: 120, rewards: [['pack', 1]] },
   { t: 150, rewards: [['card', ['horde']]] },
   { t: 175, rewards: [['card', ['drakeling']]] },
-  { t: 200, rewards: [['gate', 1]] }, // Bone Pit: Imps, Tombstone, Necromancer, Shieldmaiden
+  { t: 200, rewards: [['gate', 1], ['shards', ['knight', 6]]] }, // Bone Pit: Imps, Tombstone, Necromancer, Shieldmaiden + Knight's evolution
   { t: 250, rewards: [['pack', 1]] },
   { t: 300, rewards: [['chest', 'gold']] },
   { t: 350, rewards: [['card', ['barbarians', 'cannon']]] }, // sneak peek
-  { t: 400, rewards: [['gold', 150], ['gems', 10]] },
+  { t: 400, rewards: [['gold', 200], ['gems', 10]] },
   { t: 450, rewards: [['gate', 2], ['chest', 'gold']] }, // Barbarian Bowl: Berserker, Lancer
   { t: 500, rewards: [['pack', 1]] },
   { t: 550, rewards: [['chest', 'gold']] },
   { t: 600, rewards: [['card', ['sprite', 'zap']]] },
   { t: 650, rewards: [['pack', 1]] },
-  { t: 700, rewards: [['gold', 250], ['gems', 10]] },
+  { t: 700, rewards: [['gold', 330], ['gems', 10], ['shards', [null, 3]]] },
   { t: 750, rewards: [['gate', 3], ['chest', 'magic']] }, // Frozen Peak: Freeze, Frost Mage
   { t: 800, rewards: [['pack', 1]] },
   { t: 860, rewards: [['chest', 'gold']] },
   { t: 920, rewards: [['card', ['boar', 'inferno']]] },
   { t: 980, rewards: [['pack', 1]] },
-  { t: 1040, rewards: [['gold', 350], ['gems', 15]] },
+  { t: 1040, rewards: [['gold', 450], ['gems', 15]] },
   { t: 1100, rewards: [['gate', 4], ['chest', 'gold']] }, // Jungle Temple: Bomb Balloon, Poison
   { t: 1170, rewards: [['pack', 1]] },
   { t: 1240, rewards: [['chest', 'gold']] },
   { t: 1310, rewards: [['card', ['firemage', 'pump']]] },
   { t: 1380, rewards: [['pack', 1]] },
-  { t: 1440, rewards: [['gold', 450], ['gems', 15]] },
+  { t: 1440, rewards: [['gold', 600], ['gems', 15], ['shards', [null, 3]]] },
   { t: 1500, rewards: [['gate', 5], ['chest', 'giant']] }, // Lava Forge: Juggernaut, Stone Golem
   { t: 1580, rewards: [['pack', 1]] },
   { t: 1660, rewards: [['chest', 'gold']] },
   { t: 1740, rewards: [['card', ['log']]] },
   { t: 1820, rewards: [['pack', 1]] },
-  { t: 1900, rewards: [['gold', 550], ['gems', 20]] },
+  { t: 1900, rewards: [['gold', 720], ['gems', 20]] },
   { t: 2000, rewards: [['gate', 6], ['chest', 'magic']] }, // Storm Summit: Storm Mage
   { t: 2090, rewards: [['pack', 1]] },
   { t: 2180, rewards: [['chest', 'gold']] },
   { t: 2270, rewards: [['chest', 'magic']] },
   { t: 2360, rewards: [['pack', 1]] },
-  { t: 2450, rewards: [['gold', 700], ['gems', 20]] },
+  { t: 2450, rewards: [['gold', 900], ['gems', 20], ['shards', [null, 3]]] },
   { t: 2530, rewards: [['chest', 'epic']] },
   { t: 2600, rewards: [['gate', 7], ['chest', 'legendary'], ['gems', 50]] }, // Royal Crown: Tunneler
 ];
 
 // Legend Road after the top arena: every 100 trophies from 2700 to 9900, a Legendary Chest on each 1000.
-const LEGEND_CYCLE = [['pack', 2], ['chest', 'gold'], ['gold', 1000], ['chest', 'magic']];
+const LEGEND_CYCLE = [['pack', 2], ['chest', 'gold'], ['gold', 1300], ['chest', 'magic']];
 const ROAD = CROWN_ROAD.concat((() => {
   const out = [];
   let n = 0;
@@ -577,7 +649,7 @@ function claimRoad() {
   while (SAVE.road < ROAD.length && ROAD[SAVE.road].t <= SAVE.best) {
     const node = ROAD[SAVE.road++];
     const a = arenaIndex(node.t);
-    const g = { t: node.t, rewards: node.rewards, cards: [], gold: 0, gems: 0, chest: null, packs: 0 };
+    const g = { t: node.t, rewards: node.rewards, cards: [], gold: 0, gems: 0, chest: null, packs: 0, shards: null };
     const add = (list) => {
       for (const x of list) {
         if (!x) continue;
@@ -595,6 +667,13 @@ function claimRoad() {
         g.gems += loot.gems;
         g.chest = arg;
       } else if (kind === 'gold') { SAVE.gold += arg; g.gold += arg; }
+      else if (kind === 'shards') {
+        // [key or null (a random evolvable card you own), n]
+        const k = arg[0] && SAVE.cards[arg[0]] ? arg[0] : shardTarget(new RNG(randi(1, 1e9)));
+        const gold = addShards(k, arg[1]);
+        g.gold += gold;
+        if (!gold) g.shards = { key: k, n: arg[1] };
+      }
       else if (kind === 'gems') { SAVE.gems += arg; g.gems += arg; }
       else if (kind === 'pack') { add(deckPack(a, arg)); g.packs += arg; }
     }
@@ -645,19 +724,20 @@ function aiOpponent(training) {
   const skill = training ? 0.05 : t < 60 ? 0.1 : Math.min(AI_SKILL_CAP, 0.18 + a * AI_SKILL_STEP);
   const name = training ? 'Training Dummy' : rng.pick(AI_NAMES);
   const trophies = training ? 0 : Math.max(0, t + rng.int(-40, 40));
-  return { deck, levels, king, skill, name, trophies, comeback };
+  const evos = training ? [] : aiEvos(deck, a, rng);
+  return { deck, levels, king, skill, name, trophies, comeback, evos };
 }
 
 // Called once a battle has ended; returns what was earned for the result screen.
 // AI battles pay trophies, gold, a chest (or Instant Loot when the slots are full), king XP and Crown Road
-// nodes. Training pays 5 gold for a win. Online battles pay gold and a chest only (no trophies or road).
+// nodes. Training pays 10 gold for a win. Online battles pay gold and a chest only (no trophies or road).
 function applyResult(r) {
   // r: { mode, win (bool), draw (bool), myCrowns, theirCrowns, oppTrophies, reason }
   const out = { trophies: 0, gold: 0, chest: null, bonus: null, crowns: 0, crownsLost: 0, arenaUp: null, crownChest: false, xp: 0, kingUps: 0, road: [], protected: false, comeback: false };
   const st = SAVE.stats;
   st.played++;
   if (r.mode === 'training') {
-    if (r.win) out.gold = 5;
+    if (r.win) out.gold = 10;
     SAVE.gold += out.gold;
     saveGame();
     return out;
@@ -674,9 +754,9 @@ function applyResult(r) {
     st.bestStreak = Math.max(st.bestStreak, st.streak);
     if (myCrowns >= 3) st.three++;
     out.chest = awardChest();
-    if (online) out.gold = 15 + a * 6 + myCrowns * 3;
+    if (online) out.gold = 25 + a * 9 + myCrowns * 5;
     else {
-      out.gold = 20 + a * 8 + myCrowns * 4;
+      out.gold = 30 + a * 11 + myCrowns * 6;
       const opp = Number.isFinite(r.oppTrophies) ? r.oppTrophies : t;
       out.trophies = winTrophies(t) + clamp(Math.round((opp - t) / 25), -3, 3);
       st.lstreak = 0;
@@ -689,12 +769,12 @@ function applyResult(r) {
   } else if (r.draw) {
     st.draws++;
     st.streak = 0;
-    out.gold = online ? 5 : 8 + a * 2;
+    out.gold = online ? 8 : 12 + a * 3;
   } else {
     if (online) st.onlineLosses++; else st.losses++;
     st.streak = 0;
     if (!online) {
-      out.gold = quit ? 0 : 4 + a * 2 + myCrowns * 2;
+      out.gold = quit ? 0 : 7 + a * 3 + myCrowns * 3;
       if (!quit) st.lstreak = (st.lstreak || 0) + 1;
       // never below the arena floor; out.protected tells the result screen the loss was cut short
       const want = t >= TOP_MIN ? 30 : 12;
